@@ -5,6 +5,7 @@ extern crate lazy_static;
 use regex::Regex;
 use std::env;
 use std::io::{self, BufRead};
+use std::u8;
 
 fn hexify(s : &str) -> String {
     let mut out = String::new();
@@ -17,8 +18,12 @@ fn hexify(s : &str) -> String {
     return out;
 }
 
-fn dehexify(bytes : &str, len : usize) -> String {
-    let mut out = String::new();
+fn dehexify(s : &str) -> Vec<u8> {
+    let mut out = Vec::with_capacity(s.len() / 2);
+
+    for i in 0..(s.len() / 2) {
+        out.push(u8::from_str_radix(&s[i*2..i*2+2], 16).unwrap());
+    }
 
     return out;
 }
