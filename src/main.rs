@@ -1,8 +1,13 @@
 use std::env;
 use std::io::{self, BufRead};
 
-fn hexify(bytes : &str) -> String {
+fn hexify(s : &str) -> String {
     let mut out = String::new();
+    let bytes = s.as_bytes();
+
+    for &b in bytes {
+        out.push_str(&format!("{:02x}", &b));
+    }
 
     return out;
 }
