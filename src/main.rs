@@ -23,7 +23,9 @@ fn dehexify(s : &str) -> Vec<u8> {
     let mut out = Vec::with_capacity(s.len() / 2);
 
     for i in 0..(s.len() / 2) {
-        out.push(u8::from_str_radix(&s[i*2..i*2+2], 16).unwrap());
+        let hex = u8::from_str_radix(&s[i*2..i*2+2], 16)
+                    .expect("Hex parse failure");
+        out.push(hex);
     }
 
     return out;
@@ -127,7 +129,7 @@ fn main() {
         _ => panic!("Invalid option `{}`", &args[1]),
     };
     for line in stdin.lock().lines() {
-        println!("{}", func(&line.unwrap()));
+        println!("{}", func(&line.expect("Line read failure")));
     }
 }
 
