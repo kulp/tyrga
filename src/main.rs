@@ -1,3 +1,8 @@
+extern crate regex;
+#[macro_use]
+extern crate lazy_static;
+
+use regex::Regex;
 use std::env;
 use std::io::{self, BufRead};
 
@@ -19,7 +24,38 @@ fn dehexify(bytes : &str, len : usize) -> String {
 }
 
 fn mangle(name : &str) -> String {
-    return String::from(name)
+    let mut offset = 0;
+    let mut out = String::with_capacity(2 * name.len()); // heuristic
+    lazy_static! {
+        static ref RE_TOKEN    : Regex = Regex::new(r"^(?i)[a-z_]\w*").unwrap();
+        static ref RE_NONTOKEN : Regex = Regex::new(r"^[0-9]*\W*").unwrap();
+    }
+
+    out.push('_');
+
+    while offset < name.len() {
+        match RE_TOKEN.find(&name[offset..]) {
+            Some(m) => {
+                let s = m.as_str();
+                let len = s.len();
+                offset += len;
+                out.push_str(&format!("{}{}", len, s));
+            },
+            None => {},
+        };
+        match RE_NONTOKEN.find(&name[offset..]) {
+            Some(m) if m.as_str().len() > 0 => {
+                let s = m.as_str();
+                let len = s.len();
+                offset += len;
+                out.push_str(&format!("0{}_{}", len, hexify(&s)));
+            },
+            _ => {},
+        };
+    }
+
+    out.shrink_to_fit();
+    return out;
 }
 
 fn demangle(name : &str) -> String {
