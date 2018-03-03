@@ -54,6 +54,8 @@ fn mangle(name : &str) -> String {
                 let len = s.len();
                 offset += len;
                 out.push_str(&format!("0{}_{}", len, hexify(&s)));
+            } else if offset < name.len() {
+                panic!("Unable to progress");
             }
         }
     }
