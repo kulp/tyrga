@@ -79,38 +79,31 @@ fn demangle(name : &str) -> String { // TODO Option<String>
 
     let mut is_hex = false;
     while offset < name.len() {
-        match &name[offset..offset+1] {
-            "0" => {
-                offset += 1;
-                is_hex = true;
-            },
-            _ => {
-                match NUM.find(&name[offset..]) {
-                    Some(m) => {
-                        let len = usize::from_str_radix(m.as_str(), 10)
-                                    .expect("Hex parse failure");
-                        offset += m.as_str().len();
-                        if is_hex {
-                            if &name[offset..offset+1] != "_" {
-                                panic!("Bad identifier (expected `_`)");
-                            }
-                            offset += 1;
-                            let nybbles = 2 * len;
-                            let vec = dehexify(&name[offset..offset+nybbles]);
-                            let utf8 = String::from_utf8(vec)
-                                        .expect("Expected UTF-8 string");
-                            out.push_str(&utf8);
-                            offset += nybbles;
-                        } else {
-                            out.push_str(&name[offset..offset+len]);
-                            offset += len;
-                        }
-                        is_hex = false;
-                    },
-                    None => panic!("Bad identifier (expected number)"),
-                };
-            },
+        if &name[offset..offset+1] == "0" {
+            offset += 1;
+            is_hex = true;
         }
+        let m = NUM.find(&name[offset..])
+                   .expect("Bad identifier (expected number)");
+        let len = usize::from_str_radix(m.as_str(), 10)
+            .expect("Hex parse failure");
+        offset += m.as_str().len();
+        if is_hex {
+            if &name[offset..offset+1] != "_" {
+                panic!("Bad identifier (expected `_`)");
+            }
+            offset += 1;
+            let nybbles = 2 * len;
+            let vec = dehexify(&name[offset..offset+nybbles]);
+            let utf8 = String::from_utf8(vec)
+                .expect("Expected UTF-8 string");
+            out.push_str(&utf8);
+            offset += nybbles;
+        } else {
+            out.push_str(&name[offset..offset+len]);
+            offset += len;
+        }
+        is_hex = false;
     }
 
     out.shrink_to_fit();
