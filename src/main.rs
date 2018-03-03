@@ -42,24 +42,20 @@ fn mangle(name : &str) -> String {
     out.push('_');
 
     while offset < name.len() {
-        match RE_TOKEN.find(&name[offset..]) {
-            Some(m) => {
-                let s = m.as_str();
-                let len = s.len();
-                offset += len;
-                out.push_str(&format!("{}{}", len, s));
-            },
-            None => {},
-        };
-        match RE_NONTOKEN.find(&name[offset..]) {
-            Some(m) if m.as_str().len() > 0 => {
+        if let Some(m) = RE_TOKEN.find(&name[offset..]) {
+            let s = m.as_str();
+            let len = s.len();
+            offset += len;
+            out.push_str(&format!("{}{}", len, s));
+        }
+        if let Some(m) = RE_NONTOKEN.find(&name[offset..]) {
+            if m.as_str().len() > 0 {
                 let s = m.as_str();
                 let len = s.len();
                 offset += len;
                 out.push_str(&format!("0{}_{}", len, hexify(&s)));
-            },
-            _ => {},
-        };
+            }
+        }
     }
 
     out.shrink_to_fit();
