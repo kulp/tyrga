@@ -3,9 +3,13 @@ extern crate regex;
 extern crate lazy_static;
 #[macro_use]
 extern crate classfile_parser;
+#[macro_use]
+extern crate enum_primitive;
+
+extern crate num;
+use num::FromPrimitive;
 
 use classfile_parser::ClassFile;
-use classfile_parser::attribute_info::code_attribute_parser;
 use classfile_parser::constant_info::*;
 use classfile_parser::parse_class;
 use regex::Regex;
@@ -14,6 +18,7 @@ use std::io::{self, BufRead};
 use std::u8;
 use std::usize;
 
+enum_from_primitive! {
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq)]
 enum JvmOps {
@@ -224,6 +229,7 @@ enum JvmOps {
     Impdep1         = 0xfe,
     Impdep2         = 0xff,
 }
+}
 
 fn hexify(s : &str) -> String {
     let mut out = String::new();
@@ -351,13 +357,46 @@ fn stringify(pool : &Vec<ConstantInfo>, index : u16) -> Result<String,&str> {
     };
 }
 
+fn parse(name : &str) -> String {
+    use classfile_parser::attribute_info::code_attribute_parser;
+
+    let out = String::new();
+
+    let class = parse_class(name).unwrap();
+    let method = &class.methods[1];
+    let c = &method.attributes[0].info;
+    let code = code_attribute_parser(c).to_result().unwrap();
+
+    for byte in code.code.iter() {
+        let op = JvmOps::from_u8(*byte);
+        if op.is_some() {
+            use JvmOps::*;
+            match op.unwrap() {
+                b @ Iload0 | b @ Iload1 => println!("handling {:?} (0x{:02x})", &b, b as u8),
+                b @ IfIcmpeq => println!("handling {:?} (0x{:02x})", &b, b as u8),
+                _ => panic!("Unsupported byte 0x{:02x}", byte),
+            };
+        } else {
+            panic!("Invalid byte 0x{:x}", byte);
+        }
+    }
+
+    let pool = &class.const_pool;
+    for f in 1..class.const_pool_size {
+        println!("{}", mangle(&stringify(&pool, f).unwrap()));
+    }
+
+    return out;
+}
+
 fn main() {
     let stdin = io::stdin();
     let args : Vec<_> = env::args().collect();
     if args.len() != 2 {
-        panic!("Need `--mangle` or `--demangle` option");
+        panic!("Need a single option (e.g., `--mangle`, `--demangle`)");
     }
     let func = match &args[1][..] {
+        "--parse" => parse,
         "--mangle" => mangle,
         "--demangle" => demangle,
         _ => panic!("Invalid option `{}`", &args[1]),

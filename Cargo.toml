@@ -7,3 +7,5 @@ authors = ["Darren Kulp <darren@kulp.ch>"]
 lazy_static = "1.0.0"
 regex = "0.2"
 classfile-parser = "0.2.1"
+enum_primitive = "0.1"
+num = "0.1"
