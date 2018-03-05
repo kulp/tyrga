@@ -367,13 +367,16 @@ fn parse(name : &str) -> String {
     let c = &method.attributes[0].info;
     let code = code_attribute_parser(c).to_result().unwrap();
 
-    for byte in code.code.iter() {
+    let mut bytecode = code.code.iter();
+    while let Some(byte) = bytecode.next() {
         let op = JvmOps::from_u8(*byte);
         if op.is_some() {
             use JvmOps::*;
             match op.unwrap() {
                 b @ Iload0 | b @ Iload1 => println!("handling {:?} (0x{:02x})", &b, b as u8),
-                b @ IfIcmpeq => println!("handling {:?} (0x{:02x})", &b, b as u8),
+                b @ IfIcmpeq => { bytecode.next(); bytecode.next(); println!("handling {:?} (0x{:02x})", &b, b as u8) },
+
+                b @ Nop => println!("handling {:?} (0x{:02x})", &b, b as u8),
                 _ => panic!("Unsupported byte 0x{:02x}", byte),
             };
         } else {
