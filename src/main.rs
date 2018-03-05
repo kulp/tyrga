@@ -374,7 +374,11 @@ fn parse(name : &str) -> String {
             use JvmOps::*;
             match op.unwrap() {
                 b @ Iload0 | b @ Iload1 => println!("handling {:?} (0x{:02x})", &b, b as u8),
-                b @ IfIcmpeq => { bytecode.next(); bytecode.next(); println!("handling {:?} (0x{:02x})", &b, b as u8) },
+                b @ IfIcmpeq | b @ IfIcmple => { bytecode.next(); bytecode.next(); println!("handling {:?} (0x{:02x})", &b, b as u8) },
+                b @ Isub => println!("handling {:?} (0x{:02x})", &b, b as u8),
+                b @ Istore0 | b @ Istore1 => println!("handling {:?} (0x{:02x})", &b, b as u8),
+                b @ Goto => { bytecode.next(); bytecode.next(); println!("handling {:?} (0x{:02x})", &b, b as u8); },
+                b @ Ireturn => println!("handling {:?} (0x{:02x})", &b, b as u8),
 
                 b @ Nop => println!("handling {:?} (0x{:02x})", &b, b as u8),
                 _ => panic!("Unsupported byte 0x{:02x}", byte),
