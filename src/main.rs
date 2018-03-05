@@ -357,6 +357,21 @@ fn stringify(pool : &Vec<ConstantInfo>, index : u16) -> Result<String,&str> {
     };
 }
 
+fn handle_op(op : &JvmOps, bytecode : &mut std::slice::Iter<u8>) {
+    use JvmOps::*;
+    match *op {
+        b @ Iload0 | b @ Iload1 => println!("handling {:?} (0x{:02x})", &b, b as u8),
+        b @ IfIcmpeq | b @ IfIcmple => { bytecode.next(); bytecode.next(); println!("handling {:?} (0x{:02x})", &b, b as u8) },
+        b @ Isub => println!("handling {:?} (0x{:02x})", &b, b as u8),
+        b @ Istore0 | b @ Istore1 => println!("handling {:?} (0x{:02x})", &b, b as u8),
+        b @ Goto => { bytecode.next(); bytecode.next(); println!("handling {:?} (0x{:02x})", &b, b as u8); },
+        b @ Ireturn => println!("handling {:?} (0x{:02x})", &b, b as u8),
+
+        b @ Nop => println!("handling {:?} (0x{:02x})", &b, b as u8),
+        b @ _ => panic!("Unsupported byte 0x{:02x}", b as u8),
+    };
+}
+
 fn parse(name : &str) -> String {
     use classfile_parser::attribute_info::code_attribute_parser;
 
@@ -371,18 +386,7 @@ fn parse(name : &str) -> String {
     while let Some(byte) = bytecode.next() {
         let op = JvmOps::from_u8(*byte);
         if op.is_some() {
-            use JvmOps::*;
-            match op.unwrap() {
-                b @ Iload0 | b @ Iload1 => println!("handling {:?} (0x{:02x})", &b, b as u8),
-                b @ IfIcmpeq | b @ IfIcmple => { bytecode.next(); bytecode.next(); println!("handling {:?} (0x{:02x})", &b, b as u8) },
-                b @ Isub => println!("handling {:?} (0x{:02x})", &b, b as u8),
-                b @ Istore0 | b @ Istore1 => println!("handling {:?} (0x{:02x})", &b, b as u8),
-                b @ Goto => { bytecode.next(); bytecode.next(); println!("handling {:?} (0x{:02x})", &b, b as u8); },
-                b @ Ireturn => println!("handling {:?} (0x{:02x})", &b, b as u8),
-
-                b @ Nop => println!("handling {:?} (0x{:02x})", &b, b as u8),
-                _ => panic!("Unsupported byte 0x{:02x}", byte),
-            };
+            handle_op(&op.unwrap(), &mut bytecode);
         } else {
             panic!("Invalid byte 0x{:x}", byte);
         }
