@@ -357,15 +357,19 @@ fn stringify(pool : &Vec<ConstantInfo>, index : u16) -> Result<String,&str> {
     };
 }
 
+fn handle_default(op : JvmOps) {
+    println!("handling {:?} (0x{:02x})", &op, op as u8);
+}
+
 fn handle_op(op : &JvmOps, bytecode : &mut std::slice::Iter<u8>) {
     use JvmOps::*;
     match *op {
-        b @ Iload0 | b @ Iload1 => println!("handling {:?} (0x{:02x})", &b, b as u8),
-        b @ IfIcmpeq | b @ IfIcmple => { bytecode.next(); bytecode.next(); println!("handling {:?} (0x{:02x})", &b, b as u8) },
-        b @ Isub => println!("handling {:?} (0x{:02x})", &b, b as u8),
-        b @ Istore0 | b @ Istore1 => println!("handling {:?} (0x{:02x})", &b, b as u8),
-        b @ Goto => { bytecode.next(); bytecode.next(); println!("handling {:?} (0x{:02x})", &b, b as u8); },
-        b @ Ireturn => println!("handling {:?} (0x{:02x})", &b, b as u8),
+        b @ Iload0 | b @ Iload1 => handle_default(b),
+        b @ IfIcmpeq | b @ IfIcmple => { bytecode.next(); bytecode.next(); handle_default(b) },
+        b @ Isub => handle_default(b),
+        b @ Istore0 | b @ Istore1 => handle_default(b),
+        b @ Goto => { bytecode.next(); bytecode.next(); handle_default(b); },
+        b @ Ireturn => handle_default(b),
 
         b @ Nop => println!("handling {:?} (0x{:02x})", &b, b as u8),
         b @ _ => panic!("Unsupported byte 0x{:02x}", b as u8),
