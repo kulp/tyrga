@@ -362,14 +362,22 @@ fn handle_default(op : JvmOps) {
 }
 
 fn handle_op(op : &JvmOps, bytecode : &mut std::slice::Iter<u8>) {
+    let mut skip = |n| { // `mut` needed because iterator is changed
+        for _ in 0..n {
+            bytecode.next();
+        }
+    };
+
     use JvmOps::*;
     match *op {
-        b @ Iload0 | b @ Iload1 => handle_default(b),
-        b @ IfIcmpeq | b @ IfIcmple => { bytecode.next(); bytecode.next(); handle_default(b) },
-        b @ Isub => handle_default(b),
-        b @ Istore0 | b @ Istore1 => handle_default(b),
-        b @ Goto => { bytecode.next(); bytecode.next(); handle_default(b); },
-        b @ Ireturn => handle_default(b),
+        b @ Iload0 | b @ Iload1                     => handle_default(b),
+        b @ Aload0 | b @ Aload1                     => handle_default(b),
+        b @ Arraylength                             => handle_default(b),
+        b @ IfIcmpeq | b @ IfIcmple                 => { skip(2); handle_default(b); },
+        b @ Isub                                    => handle_default(b),
+        b @ Istore0 | b @ Istore1                   => handle_default(b),
+        b @ Goto                                    => { skip(2); handle_default(b); },
+        b @ Ireturn                                 => handle_default(b),
 
         b @ Nop => println!("handling {:?} (0x{:02x})", &b, b as u8),
         b @ _ => panic!("Unsupported byte 0x{:02x}", b as u8),
