@@ -357,29 +357,28 @@ fn stringify(pool : &Vec<ConstantInfo>, index : u16) -> Result<String,&str> {
     };
 }
 
-fn handle_op(op : &JvmOps, bytecode : &mut std::slice::Iter<u8>) {
-    let mut skip = |n| { // `mut` needed because iterator is changed
-        for _ in 0..n {
-            bytecode.next();
-        }
-    };
+fn handle_op(op : &JvmOps) -> usize {
+    let mut used = 1;
 
     let handle = |op| println!("handling {:?} (0x{:02x})", &op, op as u8);
 
     use JvmOps::*;
     match *op {
-        b @ Iload0 | b @ Iload1                     => handle(b),
+        b @ Iload0 | b @ Iload1 | b @ Iload2        => handle(b),
         b @ Aload0 | b @ Aload1                     => handle(b),
         b @ Arraylength                             => handle(b),
-        b @ IfIcmpeq | b @ IfIcmple                 => { skip(2); handle(b); },
+        b @ IfIcmpeq | b @ IfIcmple                 => { used += 2; handle(b); },
+        b @ Ifle                                    => { used += 1; handle(b); },
         b @ Isub                                    => handle(b),
-        b @ Istore0 | b @ Istore1                   => handle(b),
-        b @ Goto                                    => { skip(2); handle(b); },
+        b @ Istore0 | b @ Istore1 | b @ Istore2     => handle(b),
+        b @ Goto                                    => { used += 2; handle(b); },
         b @ Ireturn                                 => handle(b),
 
         b @ Nop => println!("handling {:?} (0x{:02x})", &b, b as u8),
         b @ _ => panic!("Unsupported byte 0x{:02x}", b as u8),
     };
+
+    return used;
 }
 
 fn parse(name : &str) -> String {
@@ -396,7 +395,9 @@ fn parse(name : &str) -> String {
     while let Some(byte) = bytecode.next() {
         let op = JvmOps::from_u8(*byte);
         if op.is_some() {
-            handle_op(&op.unwrap(), &mut bytecode);
+            let consumed = handle_op(&op.unwrap());
+            // start counting from 1 because we always used at least one byte
+            for _ in 1..consumed { bytecode.next(); }
         } else {
             panic!("Invalid byte 0x{:x}", byte);
         }
