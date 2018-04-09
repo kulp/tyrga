@@ -397,19 +397,18 @@ fn handle_op(op : &JvmOps) -> (usize, Operation) {
     use JvmOps::*;
     use JType::*;
     use Operation::*;
-    let converted_op = Subtract { kind: Int };
-    match *op {
-        b @ Iload0 | b @ Iload1 | b @ Iload2        => handle(b),
-        b @ Aload0 | b @ Aload1                     => handle(b),
-        b @ Arraylength                             => handle(b),
-        b @ IfIcmpeq | b @ IfIcmple                 => { used += 2; handle(b); },
-        b @ Ifle                                    => { used += 1; handle(b); },
-        b @ Isub                                    => handle(b),
-        b @ Istore0 | b @ Istore1 | b @ Istore2     => handle(b),
-        b @ Goto                                    => { used += 2; handle(b); },
-        b @ Ireturn                                 => handle(b),
+    let converted_op = match *op {
+        b @ Iload0 | b @ Iload1 | b @ Iload2        => { handle(b); Load { kind: Int, index: (b as u8) - (Iload0 as u8) } },
+        b @ Aload0 | b @ Aload1                     => { handle(b); Load { kind: Object, index: (b as u8) - (Iload0 as u8) } },
+        b @ Arraylength                             => { handle(b); Length },
+        b @ IfIcmpeq | b @ IfIcmple                 => { used += 2; handle(b); Branch { kind : Int, way: Comparison::Eq/*XXX*/, target: 999/*XXX*/ } },
+        //b @ Ifle                                    => { used += 1; handle(b); Branch { kind : Int, way: X } },
+        b @ Isub                                    => { handle(b); Subtract { kind: Int } },
+        b @ Istore0 | b @ Istore1 | b @ Istore2     => { handle(b); Store { kind: Int, index: (b as u8) - (Istore0 as u8) } },
+        b @ Goto                                    => { used += 2; handle(b); Jump { target: 999/*XXX*/ } },
+        b @ Ireturn                                 => { handle(b); Yield { kind: Int } },
 
-        b @ Nop => println!("handling {:?} (0x{:02x})", &b, b as u8),
+        b @ Nop => { println!("handling {:?} (0x{:02x})", &b, b as u8); Noop },
         b @ _ => panic!("Unsupported byte 0x{:02x}", b as u8),
     };
 
