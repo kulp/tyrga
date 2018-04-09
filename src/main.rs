@@ -389,12 +389,15 @@ fn stringify(pool : &Vec<ConstantInfo>, index : u16) -> Result<String,&str> {
     };
 }
 
-fn handle_op(op : &JvmOps) -> usize {
+fn handle_op(op : &JvmOps) -> (usize, Operation) {
     let mut used = 1;
 
     let handle = |op| println!("handling {:?} (0x{:02x})", &op, op as u8);
 
     use JvmOps::*;
+    use JType::*;
+    use Operation::*;
+    let converted_op = Subtract { kind: Int };
     match *op {
         b @ Iload0 | b @ Iload1 | b @ Iload2        => handle(b),
         b @ Aload0 | b @ Aload1                     => handle(b),
@@ -410,7 +413,7 @@ fn handle_op(op : &JvmOps) -> usize {
         b @ _ => panic!("Unsupported byte 0x{:02x}", b as u8),
     };
 
-    return used;
+    return (used,converted_op);
 }
 
 fn parse_bytecode(code : &Vec<u8>) -> Vec<Operation> {
@@ -420,9 +423,10 @@ fn parse_bytecode(code : &Vec<u8>) -> Vec<Operation> {
     while let Some(byte) = bytecode.next() {
         let op = JvmOps::from_u8(*byte);
         if op.is_some() {
-            let consumed = handle_op(&op.unwrap());
+            let (consumed,converted_op) = handle_op(&op.unwrap());
             // start counting from 1 because we always used at least one byte
             for _ in 1..consumed { bytecode.next(); }
+            out.push(converted_op);
         } else {
             panic!("Invalid byte 0x{:x}", byte);
         }
