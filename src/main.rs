@@ -231,6 +231,38 @@ enum JvmOps {
 }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+enum Comparison {
+    Eq,
+    Ne,
+    Lt,
+    Ge,
+    Gt,
+    Le,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+enum JType {
+    Int,
+    Long,
+    Float,
+    Double,
+    Object,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+enum Operation {
+    Branch   { kind : JType, way : Comparison, target : u16 },
+    Jump     { target : u16 },
+    Leave,   /* i.e. void return */
+    Length,  /* i.e. arraylength */
+    Load     { kind : JType, index : u8 },
+    Noop,
+    Store    { kind : JType, index : u8 },
+    Subtract { kind : JType },
+    Yield    { kind : JType }, /* i.e. return */
+}
+
 fn hexify(s : &str) -> String {
     let mut out = String::new();
     let bytes = s.as_bytes();
