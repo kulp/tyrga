@@ -413,17 +413,10 @@ fn handle_op(op : &JvmOps) -> usize {
     return used;
 }
 
-fn parse(name : &str) -> String {
-    use classfile_parser::attribute_info::code_attribute_parser;
+fn parse_bytecode(code : &Vec<u8>) -> Vec<Operation> {
+    let mut out = Vec::new();
 
-    let out = String::new();
-
-    let class = parse_class(name).unwrap();
-    let method = &class.methods[1];
-    let c = &method.attributes[0].info;
-    let code = code_attribute_parser(c).to_result().unwrap();
-
-    let mut bytecode = code.code.iter();
+    let mut bytecode = code.iter();
     while let Some(byte) = bytecode.next() {
         let op = JvmOps::from_u8(*byte);
         if op.is_some() {
@@ -434,6 +427,21 @@ fn parse(name : &str) -> String {
             panic!("Invalid byte 0x{:x}", byte);
         }
     }
+
+    return out;
+}
+
+fn parse(name : &str) -> String {
+    use classfile_parser::attribute_info::code_attribute_parser;
+
+    let out = String::new();
+
+    let class = parse_class(name).unwrap();
+    let method = &class.methods[1];
+    let c = &method.attributes[0].info;
+    let code = code_attribute_parser(c).to_result().unwrap();
+
+    let parsed = parse_bytecode(&code.code);
 
     let pool = &class.const_pool;
     for f in 1..class.const_pool_size {
