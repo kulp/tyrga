@@ -441,6 +441,12 @@ fn parse_bytecode(code : &Vec<u8>) -> (Vec<Operation>, HashMap<u16,usize>) {
     return (out, map);
 }
 
+fn emit_parsed(parsed : &Vec<Operation>, map : &HashMap<u16,usize>) {
+    for &op in parsed {
+        println!("{:?}", op);
+    }
+}
+
 fn parse(name : &str) -> String {
     use classfile_parser::attribute_info::code_attribute_parser;
 
@@ -451,7 +457,8 @@ fn parse(name : &str) -> String {
     let c = &method.attributes[0].info;
     let code = code_attribute_parser(c).to_result().unwrap();
 
-    let parsed = parse_bytecode(&code.code);
+    let (parsed, map) = parse_bytecode(&code.code);
+    emit_parsed(&parsed, &map);
 
     let pool = &class.const_pool;
     for f in 1..class.const_pool_size {
