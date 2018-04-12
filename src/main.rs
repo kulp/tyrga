@@ -13,6 +13,7 @@ use classfile_parser::ClassFile;
 use classfile_parser::constant_info::*;
 use classfile_parser::parse_class;
 use regex::Regex;
+use std::collections::HashMap;
 use std::env;
 use std::io::{self, BufRead};
 use std::u8;
@@ -415,10 +416,13 @@ fn handle_op(op : &JvmOps) -> (usize, Operation) {
     return (used,converted_op);
 }
 
-fn parse_bytecode(code : &Vec<u8>) -> Vec<Operation> {
+fn parse_bytecode(code : &Vec<u8>) -> (Vec<Operation>, HashMap<u16,usize>) {
     let mut out = Vec::new();
+    let mut map = HashMap::new();
 
     let mut bytecode = code.iter();
+    let mut i : u16 = 0;
+    let mut j : usize = 0;
     while let Some(byte) = bytecode.next() {
         let op = JvmOps::from_u8(*byte);
         if op.is_some() {
@@ -426,12 +430,15 @@ fn parse_bytecode(code : &Vec<u8>) -> Vec<Operation> {
             // start counting from 1 because we always used at least one byte
             for _ in 1..consumed { bytecode.next(); }
             out.push(converted_op);
+            map.insert(i, j);
+            i += consumed as u16;
+            j += 1;
         } else {
             panic!("Invalid byte 0x{:x}", byte);
         }
     }
 
-    return out;
+    return (out, map);
 }
 
 fn parse(name : &str) -> String {
