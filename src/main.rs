@@ -398,14 +398,33 @@ fn handle_op(op : &JvmOps) -> (usize, Operation) {
     use JvmOps::*;
     use JType::*;
     use Operation::*;
+    // TODO handle {F,D}cmp{g,l} (implement carefully !)
+    let way = match *op {
+        Ifeq | IfIcmpeq => Some(Comparison::Eq),
+        Ifne | IfIcmpne => Some(Comparison::Ne),
+        Iflt | IfIcmplt => Some(Comparison::Lt),
+        Ifge | IfIcmpge => Some(Comparison::Ge),
+        Ifgt | IfIcmpgt => Some(Comparison::Gt),
+        Ifle | IfIcmple => Some(Comparison::Le),
+        _ => None,
+    };
+
+    let index = match *op as u8 {
+        // TODO figure out how to use bytecode values from enumeration in these ranges
+        b @ 0x1a...0x1d => Some(b - 0x1a),  /* Iload{N} */
+        b @ 0x2a...0x2d => Some(b - 0x2a),  /* Aload{N} */
+        b @ 0x3b...0x3e => Some(b - 0x3b),  /* Istore{N} */
+        _ => None,
+    };
+
     let converted_op = match *op {
-        b @ Iload0 | b @ Iload1 | b @ Iload2        => { handle(b); Load { kind: Int, index: (b as u8) - (Iload0 as u8) } },
-        b @ Aload0 | b @ Aload1                     => { handle(b); Load { kind: Object, index: (b as u8) - (Iload0 as u8) } },
+        b @ Iload0 | b @ Iload1 | b @ Iload2        => { handle(b); Load { kind: Int, index: index.unwrap() } },
+        b @ Aload0 | b @ Aload1                     => { handle(b); Load { kind: Object, index: index.unwrap() } },
         b @ Arraylength                             => { handle(b); Length },
-        b @ IfIcmpeq | b @ IfIcmple                 => { used += 2; handle(b); Branch { kind : Int, way: Comparison::Eq/*XXX*/, target: 999/*XXX*/ } },
-        //b @ Ifle                                    => { used += 1; handle(b); Branch { kind : Int, way: X } },
+        b @ IfIcmpeq | b @ IfIcmple                 => { used += 2; handle(b); Branch { kind : Int, way: way.unwrap(), target: 999/*XXX*/ } },
+        b @ Ifle                                    => { used += 2; handle(b); Branch { kind : Int, way: way.unwrap(), target: 999/* XXX */ } },
         b @ Isub                                    => { handle(b); Subtract { kind: Int } },
-        b @ Istore0 | b @ Istore1 | b @ Istore2     => { handle(b); Store { kind: Int, index: (b as u8) - (Istore0 as u8) } },
+        b @ Istore0 | b @ Istore1 | b @ Istore2     => { handle(b); Store { kind: Int, index: index.unwrap() } },
         b @ Goto                                    => { used += 2; handle(b); Jump { target: 999/*XXX*/ } },
         b @ Ireturn                                 => { handle(b); Yield { kind: Int } },
 
