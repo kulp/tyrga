@@ -253,8 +253,8 @@ enum JType {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 enum Operation {
-    Branch   { kind : JType, way : Comparison, target : u16 },
-    Jump     { target : u16 },
+    Branch   { kind : JType, way : Comparison, target : i16 },
+    Jump     { target : i16 },
     Leave,   /* i.e. void return */
     Length,  /* i.e. arraylength */
     Load     { kind : JType, index : u8 },
@@ -409,7 +409,7 @@ fn handle_op(bytecode : &mut std::slice::Iter<u8>) -> (usize, Option<AddressedOp
     };
 
     let handle = |op| println!("handling {:?} (0x{:02x})", &op, op as u8);
-    let as_16 = |it : &mut std::slice::Iter<u8>| ((*it.next().unwrap() as u16) << 8) | (*it.next().unwrap() as u16);
+    let as_16 = |it : &mut std::slice::Iter<u8>| ((*it.next().unwrap() as i16) << 8) | (*it.next().unwrap() as i16);
 
     use JvmOps::*;
     use JType::*;
