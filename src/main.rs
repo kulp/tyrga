@@ -390,8 +390,23 @@ fn stringify(pool : &Vec<ConstantInfo>, index : u16) -> Result<String,&str> {
     };
 }
 
-fn handle_op(op : &JvmOps) -> (usize, Operation) {
+#[derive(Debug)]
+struct AddressedOperation {
+    address : u16,
+    op : Operation,
+}
+
+fn handle_op(bytecode : &mut std::slice::Iter<u8>) -> (usize, Option<AddressedOperation>) {
     let mut used = 1;
+
+    let op = match bytecode.next() {
+        Some(byte) => JvmOps::from_u8(*byte),
+        None => None,
+    };
+    let op = match op {
+        Some(op) => op,
+        None => return (0, None),
+    };
 
     let handle = |op| println!("handling {:?} (0x{:02x})", &op, op as u8);
 
@@ -399,7 +414,7 @@ fn handle_op(op : &JvmOps) -> (usize, Operation) {
     use JType::*;
     use Operation::*;
     // TODO handle {F,D}cmp{g,l} (implement carefully !)
-    let way = match *op {
+    let way = match op {
         Ifeq | IfIcmpeq => Some(Comparison::Eq),
         Ifne | IfIcmpne => Some(Comparison::Ne),
         Iflt | IfIcmplt => Some(Comparison::Lt),
@@ -409,7 +424,7 @@ fn handle_op(op : &JvmOps) -> (usize, Operation) {
         _ => None,
     };
 
-    let index = match *op as u8 {
+    let index = match op as u8 {
         // TODO figure out how to use bytecode values from enumeration in these ranges
         b @ 0x1a...0x1d => Some(b - 0x1a),  /* Iload{N} */
         b @ 0x2a...0x2d => Some(b - 0x2a),  /* Aload{N} */
@@ -417,7 +432,7 @@ fn handle_op(op : &JvmOps) -> (usize, Operation) {
         _ => None,
     };
 
-    let converted_op = match *op {
+    let converted_op = match op {
         b @ Iload0 | b @ Iload1 | b @ Iload2        => { handle(b); Load { kind: Int, index: index.unwrap() } },
         b @ Aload0 | b @ Aload1                     => { handle(b); Load { kind: Object, index: index.unwrap() } },
         b @ Arraylength                             => { handle(b); Length },
@@ -432,36 +447,28 @@ fn handle_op(op : &JvmOps) -> (usize, Operation) {
         b @ _ => panic!("Unsupported byte 0x{:02x}", b as u8),
     };
 
-    return (used,converted_op);
+    return (used, Some(AddressedOperation { address: 999/*XXX*/, op: converted_op }));
 }
 
-fn parse_bytecode(code : &Vec<u8>) -> (Vec<Operation>, HashMap<u16,usize>) {
+fn parse_bytecode(code : &Vec<u8>) -> (Vec<AddressedOperation>, HashMap<u16,usize>) {
     let mut out = Vec::new();
     let mut map = HashMap::new();
 
     let mut bytecode = code.iter();
     let mut i : u16 = 0;
     let mut j : usize = 0;
-    while let Some(byte) = bytecode.next() {
-        let op = JvmOps::from_u8(*byte);
-        if op.is_some() {
-            let (consumed,converted_op) = handle_op(&op.unwrap());
-            // start counting from 1 because we always used at least one byte
-            for _ in 1..consumed { bytecode.next(); }
-            out.push(converted_op);
-            map.insert(i, j);
-            i += consumed as u16;
-            j += 1;
-        } else {
-            panic!("Invalid byte 0x{:x}", byte);
-        }
+    while let (consumed, Some(p)) = handle_op(&mut bytecode) {
+        out.push(p);
+        map.insert(i, j);
+        i += consumed as u16;
+        j += 1;
     }
 
     return (out, map);
 }
 
-fn emit_parsed(parsed : &Vec<Operation>, map : &HashMap<u16,usize>) {
-    for &op in parsed {
+fn emit_parsed(parsed : &Vec<AddressedOperation>, map : &HashMap<u16,usize>) {
+    for &ref op in parsed {
         println!("{:?}", op);
     }
 }
