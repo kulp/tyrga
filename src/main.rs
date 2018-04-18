@@ -253,8 +253,8 @@ enum JType {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 enum Operation {
-    Branch   { kind : JType, way : Comparison, target : i16 },
-    Jump     { target : i16 },
+    Branch   { kind : JType, way : Comparison, target : u16 },
+    Jump     { target : u16 },
     Leave,   /* i.e. void return */
     Length,  /* i.e. arraylength */
     Load     { kind : JType, index : u8 },
@@ -434,7 +434,7 @@ fn handle_op(offset : u16, bytecode : &mut std::slice::Iter<u8>) -> (usize, Opti
     };
 
     let target = match op as u8 {
-        b @ 0x99...0xa7 => Some(as_16(bytecode)), /* Ifeq...Goto */
+        b @ 0x99...0xa7 => Some(((as_16(bytecode) as i32) + (offset as i32)) as u16), /* Ifeq...Goto */
         _ => None,
     };
 
