@@ -409,6 +409,7 @@ fn handle_op(bytecode : &mut std::slice::Iter<u8>) -> (usize, Option<AddressedOp
     };
 
     let handle = |op| println!("handling {:?} (0x{:02x})", &op, op as u8);
+    let as_16 = |it : &mut std::slice::Iter<u8>| ((*it.next().unwrap() as u16) << 8) | (*it.next().unwrap() as u16);
 
     use JvmOps::*;
     use JType::*;
@@ -432,15 +433,20 @@ fn handle_op(bytecode : &mut std::slice::Iter<u8>) -> (usize, Option<AddressedOp
         _ => None,
     };
 
+    let target = match op as u8 {
+        b @ 0x99...0xa7 => Some(as_16(bytecode)), /* Ifeq...Goto */
+        _ => None,
+    };
+
     let converted_op = match op {
         b @ Iload0 | b @ Iload1 | b @ Iload2        => { handle(b); Load { kind: Int, index: index.unwrap() } },
         b @ Aload0 | b @ Aload1                     => { handle(b); Load { kind: Object, index: index.unwrap() } },
         b @ Arraylength                             => { handle(b); Length },
-        b @ IfIcmpeq | b @ IfIcmple                 => { used += 2; handle(b); Branch { kind : Int, way: way.unwrap(), target: 999/*XXX*/ } },
-        b @ Ifle                                    => { used += 2; handle(b); Branch { kind : Int, way: way.unwrap(), target: 999/* XXX */ } },
+        b @ IfIcmpeq | b @ IfIcmple                 => { used += 2; handle(b); Branch { kind : Int, way: way.unwrap(), target: target.unwrap() } },
+        b @ Ifle                                    => { used += 2; handle(b); Branch { kind : Int, way: way.unwrap(), target: target.unwrap() } },
         b @ Isub                                    => { handle(b); Subtract { kind: Int } },
         b @ Istore0 | b @ Istore1 | b @ Istore2     => { handle(b); Store { kind: Int, index: index.unwrap() } },
-        b @ Goto                                    => { used += 2; handle(b); Jump { target: 999/*XXX*/ } },
+        b @ Goto                                    => { used += 2; handle(b); Jump { target: target.unwrap() } },
         b @ Ireturn                                 => { handle(b); Yield { kind: Int } },
 
         b @ Nop => { println!("handling {:?} (0x{:02x})", &b, b as u8); Noop },
