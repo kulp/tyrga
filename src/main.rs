@@ -396,7 +396,7 @@ struct AddressedOperation {
     op : Operation,
 }
 
-fn handle_op(bytecode : &mut std::slice::Iter<u8>) -> (usize, Option<AddressedOperation>) {
+fn handle_op(offset : u16, bytecode : &mut std::slice::Iter<u8>) -> (usize, Option<AddressedOperation>) {
     let mut used = 1;
 
     let op = match bytecode.next() {
@@ -453,7 +453,7 @@ fn handle_op(bytecode : &mut std::slice::Iter<u8>) -> (usize, Option<AddressedOp
         b @ _ => panic!("Unsupported byte 0x{:02x}", b as u8),
     };
 
-    return (used, Some(AddressedOperation { address: 999/*XXX*/, op: converted_op }));
+    return (used, Some(AddressedOperation { address: offset, op: converted_op }));
 }
 
 fn parse_bytecode(code : &Vec<u8>) -> (Vec<AddressedOperation>, HashMap<u16,usize>) {
@@ -463,7 +463,7 @@ fn parse_bytecode(code : &Vec<u8>) -> (Vec<AddressedOperation>, HashMap<u16,usiz
     let mut bytecode = code.iter();
     let mut i : u16 = 0;
     let mut j : usize = 0;
-    while let (consumed, Some(p)) = handle_op(&mut bytecode) {
+    while let (consumed, Some(p)) = handle_op(i, &mut bytecode) {
         out.push(p);
         map.insert(i, j);
         i += consumed as u16;
