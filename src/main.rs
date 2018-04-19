@@ -17,6 +17,8 @@ use std::io::{self, BufRead};
 use std::u8;
 use std::usize;
 
+const MAX_LOCALS : u16 = 6; // arbitrary limit for now
+
 enum_from_primitive! {
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -489,6 +491,22 @@ fn parse(name : &str) -> String {
 
     let (parsed, map) = parse_bytecode(&code.code);
     emit_parsed(&parsed, &map);
+
+    use std::collections::HashSet;
+    // TODO use enumeration for registers
+    let regs : HashSet<_> = (0u8..16).collect();
+    let special : HashSet<_> = [0u8, 15].iter().cloned().collect();
+    let retvals : HashSet<_> = [1u8, 2u8].iter().cloned().collect();
+    let largest_local = 3 + code.max_locals;
+    if code.max_locals > MAX_LOCALS {
+        panic!("Too many locals ({} requested, {} permissible)",
+               code.max_locals, MAX_LOCALS);
+    }
+    let locals : HashSet<_> = (3u8..largest_local as u8).collect();
+    let stack : HashSet<_> = regs.clone();
+    let stack : HashSet<_> = stack.difference(&special).cloned().collect();
+    let stack : HashSet<_> = stack.difference(&retvals).cloned().collect();
+    let stack : HashSet<_> = stack.difference(&locals ).cloned().collect();
 
     let pool = &class.const_pool;
     for f in 1..class.const_pool_size {
