@@ -264,6 +264,11 @@ enum Operation {
     Yield    { kind : JType }, /* i.e. return */
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum Register {
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P,
+}
+
 fn hexify(s : &str) -> String {
     let mut out = String::new();
     let bytes = s.as_bytes();
