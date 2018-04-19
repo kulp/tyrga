@@ -1,7 +1,6 @@
 extern crate regex;
 #[macro_use]
 extern crate lazy_static;
-#[macro_use]
 extern crate classfile_parser;
 #[macro_use]
 extern crate enum_primitive;
@@ -9,7 +8,6 @@ extern crate enum_primitive;
 extern crate num;
 use num::FromPrimitive;
 
-use classfile_parser::ClassFile;
 use classfile_parser::constant_info::*;
 use classfile_parser::parse_class;
 use regex::Regex;
