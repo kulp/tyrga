@@ -432,7 +432,7 @@ fn handle_op(offset : u16, bytecode : &mut std::slice::Iter<u8>) -> (usize, Opti
     };
 
     let target = match op as u8 {
-        b @ 0x99...0xa7 => Some(((as_16(bytecode) as i32) + (offset as i32)) as u16), /* Ifeq...Goto */
+        0x99...0xa7 => Some(((as_16(bytecode) as i32) + (offset as i32)) as u16), /* Ifeq...Goto */
         _ => None,
     };
 
