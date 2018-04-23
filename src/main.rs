@@ -497,19 +497,22 @@ fn translate(op : &AddressedOperation, stack : &mut HashSet<u8>) {
 
     let to_reg = |x| (x + b'A') as char;
     let to_cmp = |way| match way {
-        Comparison::Eq => "==",
-        Comparison::Ge => ">=",
-        Comparison::Gt => ">",
-        Comparison::Le => "<=",
-        Comparison::Lt => "<",
-        Comparison::Ne => "!=", // XXX this op does not exist in tenyr
+        Comparison::Eq => ("==", false),
+        Comparison::Ge => (">=", false),
+        Comparison::Gt => (">" , false),
+        Comparison::Le => ("<=", false),
+        Comparison::Lt => ("<" , false),
+        Comparison::Ne => ("==", true ),
     };
 
     println!("L_{}:", op.address);
     match op.op {
         Load { kind: Int, index } => println!("{} <- {}", to_reg(*next), to_reg(index)),
         Branch { kind: Int, way, target } => {
-            println!("N <- {} {} {}", to_reg(*s0), to_cmp(way), to_reg(*s1))
+            let cond = "N"; // TODO
+            println!("{} <- {} {} {}", cond, to_reg(*s0), to_cmp(way).0, to_reg(*s1));
+            let op = if to_cmp(way).1 { "&~" } else { "&" };
+            println!("P <- @+L_{} {} {} + P", target, op, cond);
         },
         _ => println!("/* unhandled */"),
     }
