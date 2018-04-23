@@ -12,6 +12,7 @@ use classfile_parser::constant_info::*;
 use classfile_parser::parse_class;
 use regex::Regex;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::env;
 use std::io::{self, BufRead};
 use std::u8;
@@ -484,6 +485,35 @@ fn emit_parsed(parsed : &Vec<AddressedOperation>, map : &HashMap<u16,usize>) {
     }
 }
 
+fn translate(op : &AddressedOperation, stack : &mut HashSet<u8>) {
+    use JType::*;
+    use Operation::*;
+    let mut si = stack.iter();
+
+    let s0 = si.next().unwrap();
+    let s1 = si.next().unwrap();
+    let next = si.next().unwrap();
+    // TODO take `next` from `stack`
+
+    let to_reg = |x| (x + b'A') as char;
+    let to_cmp = |way| match way {
+        Comparison::Eq => "==",
+        Comparison::Ge => ">=",
+        Comparison::Gt => ">",
+        Comparison::Le => "<=",
+        Comparison::Lt => "<",
+        Comparison::Ne => "!=", // XXX this op does not exist in tenyr
+    };
+
+    match op.op {
+        Load { kind: Int, index } => println!("{} <- {}", to_reg(*next), to_reg(index)),
+        Branch { kind: Int, way, target } => {
+            println!("N <- {} {} {}", to_reg(*s0), to_cmp(way), to_reg(*s1))
+        },
+        _ => println!("/* unhandled */"),
+    }
+}
+
 fn parse(name : &str) -> String {
     use classfile_parser::attribute_info::code_attribute_parser;
 
@@ -497,7 +527,6 @@ fn parse(name : &str) -> String {
     let (parsed, map) = parse_bytecode(&code.code);
     emit_parsed(&parsed, &map);
 
-    use std::collections::HashSet;
     // TODO use enumeration for registers
     let regs : HashSet<_> = (0u8..16).collect();
     let special : HashSet<_> = [0u8, 15].iter().cloned().collect();
@@ -512,6 +541,12 @@ fn parse(name : &str) -> String {
     let stack : HashSet<_> = stack.difference(&special).cloned().collect();
     let stack : HashSet<_> = stack.difference(&retvals).cloned().collect();
     let stack : HashSet<_> = stack.difference(&locals ).cloned().collect();
+
+    let mut stack = stack;
+
+    for op in parsed {
+        translate(&op, &mut stack);
+    }
 
     let pool = &class.const_pool;
     for f in 1..class.const_pool_size {
