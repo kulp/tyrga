@@ -505,6 +505,7 @@ fn translate(op : &AddressedOperation, stack : &mut HashSet<u8>) {
         Comparison::Ne => "!=", // XXX this op does not exist in tenyr
     };
 
+    println!("L_{}:", op.address);
     match op.op {
         Load { kind: Int, index } => println!("{} <- {}", to_reg(*next), to_reg(index)),
         Branch { kind: Int, way, target } => {
