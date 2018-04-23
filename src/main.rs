@@ -514,6 +514,7 @@ fn translate(op : &AddressedOperation, stack : &mut HashSet<u8>) {
             let op = if to_cmp(way).1 { "&~" } else { "&" };
             println!("P <- @+L_{} {} {} + P", target, op, cond);
         },
+        Jump { target } => println!("P <- @+L_{} + P", target),
         _ => println!("/* unhandled */"),
     }
 }
