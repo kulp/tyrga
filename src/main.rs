@@ -484,6 +484,16 @@ fn emit_parsed(parsed : &Vec<AddressedOperation>, map : &HashMap<u16,usize>) {
     }
 }
 
+struct RegState<'a> {
+    regs : &'a Vec<Register>,
+    used : &'a [Register],
+}
+
+struct XlnState<'s,'l> {
+    stack  : &'s RegState<'s>,
+    locals : &'l RegState<'l>,
+}
+
 fn translate(op : &AddressedOperation, stack : &mut HashSet<u8>) {
     use JType::*;
     use Operation::*;
