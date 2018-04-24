@@ -414,7 +414,6 @@ fn handle_op(offset : u16, bytecode : &mut std::slice::Iter<u8>) -> (usize, Opti
         None => return (0, None),
     };
 
-    let handle = |op| println!("handling {:?} (0x{:02x})", &op, op as u8);
     let as_16 = |it : &mut std::slice::Iter<u8>| ((*it.next().unwrap() as i16) << 8) | (*it.next().unwrap() as i16);
 
     use JvmOps::*;
@@ -445,15 +444,15 @@ fn handle_op(offset : u16, bytecode : &mut std::slice::Iter<u8>) -> (usize, Opti
     };
 
     let converted_op = match op {
-        b @ Iload0 | b @ Iload1 | b @ Iload2        => { handle(b); Load { kind: Int, index: index.unwrap() } },
-        b @ Aload0 | b @ Aload1                     => { handle(b); Load { kind: Object, index: index.unwrap() } },
-        b @ Arraylength                             => { handle(b); Length },
-        b @ IfIcmpeq | b @ IfIcmple                 => { used += 2; handle(b); Branch { kind : Int, way: way.unwrap(), target: target.unwrap() } },
-        b @ Ifle                                    => { used += 2; handle(b); Branch { kind : Int, way: way.unwrap(), target: target.unwrap() } },
-        b @ Isub                                    => { handle(b); Subtract { kind: Int } },
-        b @ Istore0 | b @ Istore1 | b @ Istore2     => { handle(b); Store { kind: Int, index: index.unwrap() } },
-        b @ Goto                                    => { used += 2; handle(b); Jump { target: target.unwrap() } },
-        b @ Ireturn                                 => { handle(b); Yield { kind: Int } },
+        b @ Iload0 | b @ Iload1 | b @ Iload2        => { Load { kind: Int, index: index.unwrap() } },
+        b @ Aload0 | b @ Aload1                     => { Load { kind: Object, index: index.unwrap() } },
+        b @ Arraylength                             => { Length },
+        b @ IfIcmpeq | b @ IfIcmple                 => { used += 2; Branch { kind : Int, way: way.unwrap(), target: target.unwrap() } },
+        b @ Ifle                                    => { used += 2; Branch { kind : Int, way: way.unwrap(), target: target.unwrap() } },
+        b @ Isub                                    => { Subtract { kind: Int } },
+        b @ Istore0 | b @ Istore1 | b @ Istore2     => { Store { kind: Int, index: index.unwrap() } },
+        b @ Goto                                    => { used += 2; Jump { target: target.unwrap() } },
+        b @ Ireturn                                 => { Yield { kind: Int } },
 
         b @ Nop => { println!("handling {:?} (0x{:02x})", &b, b as u8); Noop },
         b @ _ => panic!("Unsupported byte 0x{:02x}", b as u8),
@@ -544,7 +543,6 @@ fn parse(name : &str) -> String {
     let code = code_attribute_parser(c).to_result().unwrap();
 
     let (parsed, map) = parse_bytecode(&code.code);
-    emit_parsed(&parsed, &map);
 
     // TODO use enumeration for registers
     let regs : HashSet<_> = (0u8..16).collect();
@@ -565,11 +563,6 @@ fn parse(name : &str) -> String {
 
     for op in parsed {
         translate(&op, &mut stack);
-    }
-
-    let pool = &class.const_pool;
-    for f in 1..class.const_pool_size {
-        println!("{}", mangle(&stringify(&pool, f).unwrap()));
     }
 
     return out;
