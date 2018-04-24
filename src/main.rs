@@ -505,9 +505,12 @@ fn translate(op : &AddressedOperation, stack : &mut HashSet<u8>) {
         Comparison::Ne => ("==", true ),
     };
 
+    let rstack = "O"; // TODO
+    let ret = "B"; // TODO
     println!("L_{}:", op.address);
     match op.op {
         Load { kind: Int, index } => println!("{} <- {}", to_reg(*next), to_reg(index)),
+        Store { kind: Int, index } => println!("{} <- {}", to_reg(index), to_reg(*s0)),
         Branch { kind: Int, way, target } => {
             let cond = "N"; // TODO
             println!("{} <- {} {} {}", cond, to_reg(*s0), to_cmp(way).0, to_reg(*s1));
@@ -515,6 +518,15 @@ fn translate(op : &AddressedOperation, stack : &mut HashSet<u8>) {
             println!("P <- @+L_{} {} {} + P", target, op, cond);
         },
         Jump { target } => println!("P <- @+L_{} + P", target),
+        Subtract { kind: Int } => { // TODO other binary ops
+            let op = "-"; // TODO
+            println!("{} <- {} {} {}", to_reg(*next), to_reg(*s0), op, to_reg(*s1));
+        }
+        Yield { kind: Int } => {
+            println!("{} <- {}", ret, to_reg(*s0));
+            println!("{} <- {} + 1", rstack, rstack);
+            println!("P <- [{} - 1]", rstack);
+        },
         _ => println!("/* unhandled */"),
     }
 }
