@@ -14,6 +14,7 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::env;
+use std::fmt;
 use std::io::{self, BufRead};
 use std::u8;
 use std::usize;
@@ -270,6 +271,12 @@ enum Register {
     A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P,
 }
 
+impl fmt::Display for Register {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 fn hexify(s : &str) -> String {
     let mut out = String::new();
     let bytes = s.as_bytes();
@@ -494,9 +501,10 @@ struct XlnState<'s,'l> {
     locals : &'l RegState<'l>,
 }
 
-fn translate(op : &AddressedOperation, stack : &mut HashSet<u8>) {
+fn translate(op : &AddressedOperation, state : &mut XlnState) {
     use JType::*;
     use Operation::*;
+    let mut stack = &state.stack.regs;
     let mut si = stack.iter();
 
     let s0 = si.next().unwrap();
@@ -504,7 +512,13 @@ fn translate(op : &AddressedOperation, stack : &mut HashSet<u8>) {
     let next = si.next().unwrap();
     // TODO take `next` from `stack`
 
-    let to_reg = |x| (x + b'A') as char;
+    let to_reg = |x| { use Register::*; match x {
+         0 => A,  1 => B,  2 => C,  3 => D,
+         4 => E,  5 => F,  6 => G,  7 => H,
+         8 => I,  9 => J, 10 => K, 11 => L,
+        12 => M, 13 => N, 14 => O, 15 => P,
+        _  => panic!("Invalid register index {}", x),
+    } };
     let to_cmp = |way| match way {
         Comparison::Eq => ("==", false),
         Comparison::Ge => (">=", false),
@@ -519,21 +533,21 @@ fn translate(op : &AddressedOperation, stack : &mut HashSet<u8>) {
     let rstack = "O"; // TODO
     let ret = "B"; // TODO
     let xlated = match op.op {
-        Load { kind: Int, index } => format!("{} <- {}", to_reg(*next), to_reg(index)),
-        Store { kind: Int, index } => format!("{} <- {}", to_reg(index), to_reg(*s0)),
+        Load { kind: Int, index } => format!("{} <- {}", *next, to_reg(index)),
+        Store { kind: Int, index } => format!("{} <- {}", to_reg(index), *s0),
         Branch { kind: Int, way, target } => {
             let cond = "N"; // TODO
             let op = if to_cmp(way).1 { "&~" } else { "&" };
-            format!("{} <- {} {} {}\n", cond, to_reg(*s0), to_cmp(way).0, to_reg(*s1)) +
+            format!("{} <- {} {} {}\n", cond, *s0, to_cmp(way).0, *s1) +
                 &format!("\tP <- @+L_{} {} {} + P", target, op, cond)
         },
         Jump { target } => format!("P <- @+L_{} + P", target),
         Subtract { kind: Int } => { // TODO other binary ops
             let op = "-"; // TODO
-            format!("{} <- {} {} {}", to_reg(*next), to_reg(*s0), op, to_reg(*s1))
+            format!("{} <- {} {} {}", *next, *s0, op, *s1)
         }
         Yield { kind: Int } => {
-            format!("{} <- {}\n", ret, to_reg(*s0)) +
+            format!("{} <- {}\n", ret, *s0) +
                 &format!("\t{} <- {} + 1\n", rstack, rstack) +
                 &format!("\tP <- [{} - 1]", rstack)
         },
@@ -571,8 +585,16 @@ fn parse(name : &str) -> String {
 
     let mut stack = stack;
 
+    let regs = { use Register::*; &vec![ M, L, K, J, I, H ] };
+    let stack  = &RegState { regs, used: &regs[0..0] };
+
+    let regs = { use Register::*; &vec![ D, E, F, G ] };
+    let locals = &RegState { regs, used: &regs[0..0] };
+
+    let mut state = XlnState { stack, locals };
+
     for op in parsed {
-        translate(&op, &mut stack);
+        translate(&op, &mut state);
     }
 
     return out;
