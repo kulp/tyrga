@@ -1,4 +1,3 @@
-extern crate regex;
 extern crate classfile_parser;
 #[macro_use]
 extern crate enum_primitive;
