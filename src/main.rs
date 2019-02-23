@@ -266,9 +266,12 @@ enum Operation {
     Yield    { kind : JType }, /* i.e. return */
 }
 
+enum_from_primitive! {
+#[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Register {
     A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P,
+}
 }
 
 impl fmt::Display for Register {
@@ -412,13 +415,6 @@ fn translate(op : &AddressedOperation, state : &mut XlnState) {
     let next = si.next().unwrap();
     // TODO take `next` from `stack`
 
-    let to_reg = |x| { use Register::*; match x {
-         0 => A,  1 => B,  2 => C,  3 => D,
-         4 => E,  5 => F,  6 => G,  7 => H,
-         8 => I,  9 => J, 10 => K, 11 => L,
-        12 => M, 13 => N, 14 => O, 15 => P,
-        _  => panic!("Invalid register index {}", x),
-    } };
     let to_cmp = |way| match way {
         Comparison::Eq => ("==", false),
         Comparison::Ge => (">=", false),
@@ -433,8 +429,8 @@ fn translate(op : &AddressedOperation, state : &mut XlnState) {
     let rstack = "O"; // TODO
     let ret = "B"; // TODO
     let xlated = match op.op {
-        Load { kind: Int, index } => format!("{} <- {}", *next, to_reg(index)),
-        Store { kind: Int, index } => format!("{} <- {}", to_reg(index), *s0),
+        Load { kind: Int, index } => format!("{} <- {}", *next, Register::from_u8(index).unwrap()),
+        Store { kind: Int, index } => format!("{} <- {}", Register::from_u8(index).unwrap(), *s0),
         Branch { kind: Int, way, target } => {
             let cond = "N"; // TODO
             let op = if to_cmp(way).1 { "&~" } else { "&" };
