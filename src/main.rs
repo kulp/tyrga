@@ -499,11 +499,10 @@ fn main() {
     let stdin = io::stdin();
     let args : Vec<_> = env::args().collect();
     if args.len() != 2 {
-        panic!("Need a single option (e.g., `--mangle`, `--demangle`)");
+        panic!("Need a single option (e.g., `--parse`)");
     }
     let func = match &args[1][..] {
         "--parse" => parse,
-        "--mangle" => mangle,
         "--demangle" => demangle,
         _ => panic!("Invalid option `{}`", &args[1]),
     };
