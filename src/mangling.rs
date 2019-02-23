@@ -15,7 +15,7 @@ const MANGLE_LIST : &[(&str, &str)] = &[
 ];
 
 #[test]
-fn test_mangle_0() {
+fn test_mangle() {
     for (unmangled, mangled) in MANGLE_LIST {
         assert_eq!(&mangle(unmangled), mangled);
     }
@@ -55,7 +55,7 @@ pub fn mangle(name : &str) -> String {
 }
 
 #[test]
-fn test_demangle_0() {
+fn test_demangle() {
     for (unmangled, mangled) in MANGLE_LIST {
         assert_eq!(unmangled, &demangle(mangled));
     }
