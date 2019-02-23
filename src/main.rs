@@ -503,7 +503,6 @@ fn main() {
     }
     let func = match &args[1][..] {
         "--parse" => parse,
-        "--demangle" => demangle,
         _ => panic!("Invalid option `{}`", &args[1]),
     };
     for line in stdin.lock().lines() {
