@@ -16,7 +16,6 @@ use std::u8;
 use std::usize;
 
 pub mod mangling;
-use mangling::{mangle, demangle};
 
 const MAX_LOCALS : u16 = 6; // arbitrary limit for now
 
