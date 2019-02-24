@@ -130,9 +130,8 @@ fn test_round_trip() {
     }
 }
 
-fn hexify(s : &str) -> String {
+fn hexify(bytes : &[u8]) -> String {
     let mut out = String::new();
-    let bytes = s.as_bytes();
 
     for &b in bytes {
         out.push_str(&format!("{:02x}", &b));
