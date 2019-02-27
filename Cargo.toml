@@ -5,7 +5,6 @@ authors = ["Darren Kulp <darren@kulp.ch>"]
 edition = "2018"
 
 [dependencies]
-regex = "0.2"
 classfile-parser = "0.2.1"
 enum_primitive = "0.1"
 num = "0.1"
