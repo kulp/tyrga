@@ -15,7 +15,7 @@ use std::io::{self, BufRead};
 use std::u8;
 use std::usize;
 
-pub mod mangling;
+mod mangling;
 
 const MAX_LOCALS : u16 = 6; // arbitrary limit for now
 
