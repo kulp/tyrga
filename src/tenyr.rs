@@ -43,3 +43,15 @@ pub enum MemoryOpType {
     LoadRight,  //  Z  <- [...]
 }
 
+type Immediate = i32;
+
+pub struct Instruction {
+    p   : InstructionType,
+    dd  : MemoryOpType,
+    z   : Register,
+    x   : Register,
+    y   : Register,
+    op  : Opcode,
+    imm : Immediate,
+}
+
