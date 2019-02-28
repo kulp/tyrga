@@ -91,13 +91,23 @@ impl fmt::Display for Instruction {
     }
 }
 
+#[cfg(test)]
+const INSTRUCTION_TEST_CASES : &[(&str, Instruction)] = &[
+    (" B  <-  C * D + -3 ", Instruction {
+        p  : InstructionType::Type0,
+        dd : MemoryOpType::NoLoad,
+        z  : Register::B,
+        x  : Register::C,
+        y  : Register::D,
+        op : Opcode::Multiply,
+        imm: -3,
+    }),
+];
+
 #[test]
 fn test_instruction_display() {
-    use InstructionType::*;
-    use MemoryOpType::*;
-    use Register::*;
-    use Opcode::*;
-    let insn = Instruction { p: Type0, dd: NoLoad, z: B, x: C, y: D, op: Multiply, imm: -3 };
-    assert_eq!(insn.to_string(), " B  <-  C * D + -3 ");
+    for (string, instruction) in INSTRUCTION_TEST_CASES {
+        assert_eq!(string, &instruction.to_string());
+    }
 }
 
