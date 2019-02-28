@@ -77,7 +77,7 @@ impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use InstructionType::*;
         let rhs = match self.p {
-            Type3 => format!("{x}     + {imm}", x=self.x, imm=self.imm),
+            Type3 => format!("{x} + {imm}", x=self.x, imm=self.imm),
             _     => format!("{x} {op:^3} {y} + {imm}", x=self.x, y=self.y, op=self.op, imm=self.imm),
         };
 
@@ -102,7 +102,7 @@ const INSTRUCTION_TEST_CASES : &[(&str, Instruction)] = &[
         op : Opcode::Multiply,
         imm: -3,
     }),
-    (" P  <-  C     + -4 ", Instruction {
+    (" P  <-  C + -4 ", Instruction {
         p  : InstructionType::Type3,
         dd : MemoryOpType::NoLoad,
         z  : Register::P,
