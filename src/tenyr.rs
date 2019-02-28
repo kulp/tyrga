@@ -27,6 +27,24 @@ pub enum Opcode {
     CompareLt       = 0x7, CompareGe        = 0xf,
 }
 
+impl fmt::Display for Opcode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use Opcode::*;
+        let s = match self {
+            BitwiseOr       => "|" , BitwiseOrn       => "|~" ,
+            BitwiseAnd      => "&" , BitwiseAndn      => "&~" ,
+            BitwiseXor      => "^" , Pack             => "^^" ,
+            ShiftRightArith => ">>", ShiftRightLogic  => ">>>",
+
+            Add             => "+" , Subtract         => "-"  ,
+            Multiply        => "*" , ShiftLeft        => "<<" ,
+            CompareEq       => "==", TestBit          => "@"  ,
+            CompareLt       => "<" , CompareGe        => ">=" ,
+        };
+        write!(f, "{}", s)
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum InstructionType {
     Type0, // [Z] <- [X f Y + I]
