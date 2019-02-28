@@ -10,15 +10,16 @@ use classfile_parser::parse_class;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::env;
-use std::fmt;
 use std::io::{self, BufRead};
 use std::u8;
 use std::usize;
 
 mod mangling;
 mod jvmtypes;
+mod tenyr;
 
 use jvmtypes::*;
+use tenyr::*;
 
 const MAX_LOCALS : u16 = 6; // arbitrary limit for now
 
@@ -43,20 +44,6 @@ enum Operation {
     Store    { kind : JType, index : u8 },
     Subtract { kind : JType },
     Yield    { kind : JType }, /* i.e. return */
-}
-
-enum_from_primitive! {
-#[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-enum Register {
-    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P,
-}
-}
-
-impl fmt::Display for Register {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
 }
 
 fn stringify(pool : &Vec<ConstantInfo>, index : u16) -> Result<String,&str> {
