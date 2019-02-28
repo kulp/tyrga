@@ -85,10 +85,13 @@ pub struct Instruction {
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use InstructionType::*;
-        let rhs = match self.p {
-            Type3 => format!("{x} + {imm}", x=self.x, imm=self.imm),
-            _     => format!("{x} {op:^3} {y} + {imm}", x=self.x, y=self.y, op=self.op.to_string(), imm=self.imm),
+        let mut rhs = match self.p {
+            Type3 => self.x.to_string(),
+            _     => format!("{x} {op:^3} {y}", x=self.x, y=self.y, op=self.op.to_string()),
         };
+        if self.imm != 0 {
+            rhs.push_str(&format!(" + {imm}", imm=self.imm));
+        }
 
         use MemoryOpType::*;
         match self.dd {
@@ -111,6 +114,15 @@ const INSTRUCTION_TEST_CASES : &[(&str, Instruction)] = &[
         op : Opcode::ShiftRightArith,
         imm: -3,
     }),
+    (" B  <-  C >>  D ", Instruction {
+        p  : InstructionType::Type0,
+        dd : MemoryOpType::NoLoad,
+        z  : Register::B,
+        x  : Register::C,
+        y  : Register::D,
+        op : Opcode::ShiftRightArith,
+        imm: 0,
+    }),
     (" P  <-  C + -4 ", Instruction {
         p  : InstructionType::Type3,
         dd : MemoryOpType::NoLoad,
@@ -119,6 +131,15 @@ const INSTRUCTION_TEST_CASES : &[(&str, Instruction)] = &[
         y  : Register::A,
         op : Opcode::Add,
         imm: -4,
+    }),
+    (" P  <-  C ", Instruction {
+        p  : InstructionType::Type3,
+        dd : MemoryOpType::NoLoad,
+        z  : Register::P,
+        x  : Register::C,
+        y  : Register::A,
+        op : Opcode::Add,
+        imm: 0,
     }),
 ];
 
