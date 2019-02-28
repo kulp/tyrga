@@ -93,13 +93,13 @@ impl fmt::Display for Instruction {
 
 #[cfg(test)]
 const INSTRUCTION_TEST_CASES : &[(&str, Instruction)] = &[
-    (" B  <-  C  *  D + -3 ", Instruction {
+    (" B  <-  C >>  D + -3 ", Instruction {
         p  : InstructionType::Type0,
         dd : MemoryOpType::NoLoad,
         z  : Register::B,
         x  : Register::C,
         y  : Register::D,
-        op : Opcode::Multiply,
+        op : Opcode::ShiftRightArith,
         imm: -3,
     }),
     (" P  <-  C + -4 ", Instruction {
