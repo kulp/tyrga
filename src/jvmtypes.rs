@@ -220,3 +220,32 @@ pub enum JType {
     Object,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Comparison {
+    Eq,
+    Ne,
+    Lt,
+    Ge,
+    Gt,
+    Le,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Operation {
+    Branch   { kind : JType, way : Comparison, target : u16 },
+    Jump     { target : u16 },
+    Leave,   /* i.e. void return */
+    Length,  /* i.e. arraylength */
+    Load     { kind : JType, index : u8 },
+    Noop,
+    Store    { kind : JType, index : u8 },
+    Subtract { kind : JType },
+    Yield    { kind : JType }, /* i.e. return */
+}
+
+#[derive(Debug)]
+pub struct AddressedOperation {
+    pub address : u16,
+    pub op : Operation,
+}
+

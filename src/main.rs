@@ -23,29 +23,6 @@ use tenyr::*;
 
 const MAX_LOCALS : u16 = 6; // arbitrary limit for now
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-enum Comparison {
-    Eq,
-    Ne,
-    Lt,
-    Ge,
-    Gt,
-    Le,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-enum Operation {
-    Branch   { kind : JType, way : Comparison, target : u16 },
-    Jump     { target : u16 },
-    Leave,   /* i.e. void return */
-    Length,  /* i.e. arraylength */
-    Load     { kind : JType, index : u8 },
-    Noop,
-    Store    { kind : JType, index : u8 },
-    Subtract { kind : JType },
-    Yield    { kind : JType }, /* i.e. return */
-}
-
 fn stringify(pool : &Vec<ConstantInfo>, index : u16) -> Result<String,&str> {
     let ci = &pool[(index - 1) as usize];
     let st = stringify;
@@ -70,12 +47,6 @@ fn stringify(pool : &Vec<ConstantInfo>, index : u16) -> Result<String,&str> {
 
         _ => Err("Unsupported constant p item type"),
     };
-}
-
-#[derive(Debug)]
-struct AddressedOperation {
-    address : u16,
-    op : Operation,
 }
 
 fn handle_op(offset : u16, bytecode : &mut std::slice::Iter<u8>) -> (usize, Option<AddressedOperation>) {
