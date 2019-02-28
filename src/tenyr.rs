@@ -73,3 +73,31 @@ pub struct Instruction {
     imm : Immediate,
 }
 
+impl fmt::Display for Instruction {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use InstructionType::*;
+        let rhs = match self.p {
+            Type3 => format!("{x}             + {imm}", x=self.x, imm=self.imm),
+            _     => format!("{x} {op:^3} {y} + {imm}", x=self.x, y=self.y, op=self.op, imm=self.imm),
+        };
+
+        use MemoryOpType::*;
+        match self.dd {
+            NoLoad     => write!(f, " {z}  <-  {rhs} ", z=self.z, rhs=rhs),
+            StoreRight => write!(f, " {z}  -> [{rhs}]", z=self.z, rhs=rhs),
+            StoreLeft  => write!(f, "[{z}] <-  {rhs} ", z=self.z, rhs=rhs),
+            LoadRight  => write!(f, " {z}  <- [{rhs}]", z=self.z, rhs=rhs),
+        }
+    }
+}
+
+#[test]
+fn test_instruction_display() {
+    use InstructionType::*;
+    use MemoryOpType::*;
+    use Register::*;
+    use Opcode::*;
+    let insn = Instruction { p: Type0, dd: NoLoad, z: B, x: C, y: D, op: Multiply, imm: -3 };
+    assert_eq!(insn.to_string(), " B  <-  C * D + -3 ");
+}
+
