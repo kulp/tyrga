@@ -27,3 +27,13 @@ pub enum Opcode {
     CompareLt       = 0x7, CompareGe        = 0xf,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum InstructionType {
+    Type0, Type1, Type2, Type3
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum MemoryOpType {
+    NoLoad, StoreRight, StoreLeft, LoadRight
+}
+
