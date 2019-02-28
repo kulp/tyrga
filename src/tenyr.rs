@@ -29,11 +29,17 @@ pub enum Opcode {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum InstructionType {
-    Type0, Type1, Type2, Type3
+    Type0, // [Z] <- [X f Y + I]
+    Type1, // [Z] <- [X f I + Y]
+    Type2, // [Z] <- [I f X + Y]
+    Type3, // [Z] <- [X     + I]
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MemoryOpType {
-    NoLoad, StoreRight, StoreLeft, LoadRight
+    NoLoad,     //  Z  <-  ...
+    StoreRight, //  Z  -> [...]
+    StoreLeft,  // [Z] <-  ...
+    LoadRight,  //  Z  <- [...]
 }
 
