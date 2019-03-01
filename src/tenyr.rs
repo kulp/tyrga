@@ -112,84 +112,86 @@ impl fmt::Display for Instruction {
 }
 
 #[cfg(test)]
-const INSTRUCTION_TEST_CASES : &[(&str, Instruction)] = &[
-    (" B  <-  C >>  D + -3", Instruction {
-        p  : InstructionType::Type0,
-        dd : MemoryOpType::NoLoad,
-        z  : Register::B,
-        x  : Register::C,
-        y  : Register::D,
-        op : Opcode::ShiftRightArith,
-        imm: -3,
-    }),
-    (" B  <-  C >>  D", Instruction {
-        p  : InstructionType::Type0,
-        dd : MemoryOpType::NoLoad,
-        z  : Register::B,
-        x  : Register::C,
-        y  : Register::D,
-        op : Opcode::ShiftRightArith,
-        imm: 0,
-    }),
-    (" B  <-  C  |  D + -3", Instruction {
-        p  : InstructionType::Type0,
-        dd : MemoryOpType::NoLoad,
-        z  : Register::B,
-        x  : Register::C,
-        y  : Register::D,
-        op : Opcode::BitwiseOr,
-        imm: -3,
-    }),
-    (" B  <-  C  |  D", Instruction {
-        p  : InstructionType::Type0,
-        dd : MemoryOpType::NoLoad,
-        z  : Register::B,
-        x  : Register::C,
-        y  : Register::D,
-        op : Opcode::BitwiseOr,
-        imm: 0,
-    }),
-    (" B  <-  C + -3", Instruction {
-        p  : InstructionType::Type0,
-        dd : MemoryOpType::NoLoad,
-        z  : Register::B,
-        x  : Register::C,
-        y  : Register::A,
-        op : Opcode::BitwiseOr,
-        imm: -3,
-    }),
-    (" B  <-  C", Instruction {
-        p  : InstructionType::Type0,
-        dd : MemoryOpType::NoLoad,
-        z  : Register::B,
-        x  : Register::C,
-        y  : Register::A,
-        op : Opcode::BitwiseOr,
-        imm: 0,
-    }),
-    (" P  <-  C + -4", Instruction {
-        p  : InstructionType::Type3,
-        dd : MemoryOpType::NoLoad,
-        z  : Register::P,
-        x  : Register::C,
-        y  : Register::A,
-        op : Opcode::Add,
-        imm: -4,
-    }),
-    (" P  <-  C", Instruction {
-        p  : InstructionType::Type3,
-        dd : MemoryOpType::NoLoad,
-        z  : Register::P,
-        x  : Register::C,
-        y  : Register::A,
-        op : Opcode::Add,
-        imm: 0,
-    }),
-];
+fn instruction_test_cases() -> &'static [(&'static str, Instruction)] {
+    return &[
+        (" B  <-  C >>  D + -3", Instruction {
+            p  : InstructionType::Type0,
+            dd : MemoryOpType::NoLoad,
+            z  : Register::B,
+            x  : Register::C,
+            y  : Register::D,
+            op : Opcode::ShiftRightArith,
+            imm: -3,
+        }),
+        (" B  <-  C >>  D", Instruction {
+            p  : InstructionType::Type0,
+            dd : MemoryOpType::NoLoad,
+            z  : Register::B,
+            x  : Register::C,
+            y  : Register::D,
+            op : Opcode::ShiftRightArith,
+            imm: 0,
+        }),
+        (" B  <-  C  |  D + -3", Instruction {
+            p  : InstructionType::Type0,
+            dd : MemoryOpType::NoLoad,
+            z  : Register::B,
+            x  : Register::C,
+            y  : Register::D,
+            op : Opcode::BitwiseOr,
+            imm: -3,
+        }),
+        (" B  <-  C  |  D", Instruction {
+            p  : InstructionType::Type0,
+            dd : MemoryOpType::NoLoad,
+            z  : Register::B,
+            x  : Register::C,
+            y  : Register::D,
+            op : Opcode::BitwiseOr,
+            imm: 0,
+        }),
+        (" B  <-  C + -3", Instruction {
+            p  : InstructionType::Type0,
+            dd : MemoryOpType::NoLoad,
+            z  : Register::B,
+            x  : Register::C,
+            y  : Register::A,
+            op : Opcode::BitwiseOr,
+            imm: -3,
+        }),
+        (" B  <-  C", Instruction {
+            p  : InstructionType::Type0,
+            dd : MemoryOpType::NoLoad,
+            z  : Register::B,
+            x  : Register::C,
+            y  : Register::A,
+            op : Opcode::BitwiseOr,
+            imm: 0,
+        }),
+        (" P  <-  C + -4", Instruction {
+            p  : InstructionType::Type3,
+            dd : MemoryOpType::NoLoad,
+            z  : Register::P,
+            x  : Register::C,
+            y  : Register::A,
+            op : Opcode::Add,
+            imm: -4,
+        }),
+        (" P  <-  C", Instruction {
+            p  : InstructionType::Type3,
+            dd : MemoryOpType::NoLoad,
+            z  : Register::P,
+            x  : Register::C,
+            y  : Register::A,
+            op : Opcode::Add,
+            imm: 0,
+        }),
+    ];
+}
 
 #[test]
 fn test_instruction_display() {
-    for (string, instruction) in INSTRUCTION_TEST_CASES {
+    for (string, instruction) in instruction_test_cases() {
         assert_eq!(string, &instruction.to_string());
     }
 }
@@ -211,7 +213,7 @@ impl fmt::Display for BasicBlock {
 
 #[test]
 fn test_basicblock_display() {
-    let (_, insns) : (Vec<_>, Vec<_>) = INSTRUCTION_TEST_CASES.iter().cloned().unzip();
+    let (_, insns) : (Vec<_>, Vec<_>) = instruction_test_cases().iter().cloned().unzip();
     let label = "testbb".to_string();
     let bb = BasicBlock { label, insns };
     let ss = bb.to_string();
