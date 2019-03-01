@@ -72,6 +72,7 @@ pub enum MemoryOpType {
 
 type Immediate = i32;
 
+#[derive(Copy, Clone)]
 pub struct Instruction {
     p   : InstructionType,
     dd  : MemoryOpType,
