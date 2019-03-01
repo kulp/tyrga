@@ -86,8 +86,6 @@ pub struct Instruction {
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use InstructionType::*;
-        use Opcode::*;
-        use Register::*;
         let (a, b, c) = match self.p {
             Type1 => (self.x  .to_string() , self.imm .to_string(), self.y  .to_string()),
             Type2 => (self.imm.to_string() , self.x   .to_string(), self.y  .to_string()),
