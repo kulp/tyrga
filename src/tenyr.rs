@@ -102,9 +102,9 @@ impl fmt::Display for Instruction {
 
         use MemoryOpType::*;
         match self.dd {
-            NoLoad     => write!(f, " {z}  <-  {rhs} ", z=self.z, rhs=rhs),
+            NoLoad     => write!(f, " {z}  <-  {rhs}" , z=self.z, rhs=rhs),
             StoreRight => write!(f, " {z}  -> [{rhs}]", z=self.z, rhs=rhs),
-            StoreLeft  => write!(f, "[{z}] <-  {rhs} ", z=self.z, rhs=rhs),
+            StoreLeft  => write!(f, "[{z}] <-  {rhs}" , z=self.z, rhs=rhs),
             LoadRight  => write!(f, " {z}  <- [{rhs}]", z=self.z, rhs=rhs),
         }
     }
@@ -112,7 +112,7 @@ impl fmt::Display for Instruction {
 
 #[cfg(test)]
 const INSTRUCTION_TEST_CASES : &[(&str, Instruction)] = &[
-    (" B  <-  C >>  D + -3 ", Instruction {
+    (" B  <-  C >>  D + -3", Instruction {
         p  : InstructionType::Type0,
         dd : MemoryOpType::NoLoad,
         z  : Register::B,
@@ -121,7 +121,7 @@ const INSTRUCTION_TEST_CASES : &[(&str, Instruction)] = &[
         op : Opcode::ShiftRightArith,
         imm: -3,
     }),
-    (" B  <-  C >>  D ", Instruction {
+    (" B  <-  C >>  D", Instruction {
         p  : InstructionType::Type0,
         dd : MemoryOpType::NoLoad,
         z  : Register::B,
@@ -130,7 +130,7 @@ const INSTRUCTION_TEST_CASES : &[(&str, Instruction)] = &[
         op : Opcode::ShiftRightArith,
         imm: 0,
     }),
-    (" B  <-  C  |  D + -3 ", Instruction {
+    (" B  <-  C  |  D + -3", Instruction {
         p  : InstructionType::Type0,
         dd : MemoryOpType::NoLoad,
         z  : Register::B,
@@ -139,7 +139,7 @@ const INSTRUCTION_TEST_CASES : &[(&str, Instruction)] = &[
         op : Opcode::BitwiseOr,
         imm: -3,
     }),
-    (" B  <-  C  |  D ", Instruction {
+    (" B  <-  C  |  D", Instruction {
         p  : InstructionType::Type0,
         dd : MemoryOpType::NoLoad,
         z  : Register::B,
@@ -148,7 +148,7 @@ const INSTRUCTION_TEST_CASES : &[(&str, Instruction)] = &[
         op : Opcode::BitwiseOr,
         imm: 0,
     }),
-    (" B  <-  C + -3 ", Instruction {
+    (" B  <-  C + -3", Instruction {
         p  : InstructionType::Type0,
         dd : MemoryOpType::NoLoad,
         z  : Register::B,
@@ -157,7 +157,7 @@ const INSTRUCTION_TEST_CASES : &[(&str, Instruction)] = &[
         op : Opcode::BitwiseOr,
         imm: -3,
     }),
-    (" B  <-  C ", Instruction {
+    (" B  <-  C", Instruction {
         p  : InstructionType::Type0,
         dd : MemoryOpType::NoLoad,
         z  : Register::B,
@@ -166,7 +166,7 @@ const INSTRUCTION_TEST_CASES : &[(&str, Instruction)] = &[
         op : Opcode::BitwiseOr,
         imm: 0,
     }),
-    (" P  <-  C + -4 ", Instruction {
+    (" P  <-  C + -4", Instruction {
         p  : InstructionType::Type3,
         dd : MemoryOpType::NoLoad,
         z  : Register::P,
@@ -175,7 +175,7 @@ const INSTRUCTION_TEST_CASES : &[(&str, Instruction)] = &[
         op : Opcode::Add,
         imm: -4,
     }),
-    (" P  <-  C ", Instruction {
+    (" P  <-  C", Instruction {
         p  : InstructionType::Type3,
         dd : MemoryOpType::NoLoad,
         z  : Register::P,
