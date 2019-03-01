@@ -211,10 +211,9 @@ impl fmt::Display for BasicBlock {
 
 #[test]
 fn test_basicblock_display() {
-    let bb = BasicBlock {
-            label : "testbb".to_string(),
-            insns : INSTRUCTION_TEST_CASES.iter().map(|(_,x)| *x).collect(),
-        };
+    let (_, insns) : (Vec<_>, Vec<_>) = INSTRUCTION_TEST_CASES.iter().cloned().unzip();
+    let label = "testbb".to_string();
+    let bb = BasicBlock { label, insns };
     let ss = bb.to_string();
     let first_line = ss.lines().nth(0).unwrap();
     assert_eq!(':', first_line.chars().last().unwrap());
