@@ -194,3 +194,31 @@ fn test_instruction_display() {
     }
 }
 
+pub struct BasicBlock {
+    label : String,
+    insns : Vec<Instruction>,
+}
+
+impl fmt::Display for BasicBlock {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}:\n", self.label)?;
+        for insn in &self.insns {
+            write!(f, "    {}\n", insn.to_string())?;
+        }
+        Ok(())
+    }
+}
+
+#[test]
+fn test_basicblock_display() {
+    let bb = BasicBlock {
+            label : "testbb".to_string(),
+            insns : INSTRUCTION_TEST_CASES.iter().map(|(_,x)| *x).collect(),
+        };
+    let ss = bb.to_string();
+    let first_line = ss.lines().nth(0).unwrap();
+    assert_eq!(':', first_line.chars().last().unwrap());
+    assert_eq!(bb.label, first_line[..first_line.len()-1]);
+    assert_eq!(bb.insns.len() + 1, ss.lines().count());
+}
+
