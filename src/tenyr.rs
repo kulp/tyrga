@@ -85,9 +85,16 @@ pub struct Instruction {
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use InstructionType::*;
+        use Opcode::*;
+        use Register::*;
         let mut rhs = match self.p {
             Type3 => self.x.to_string(),
-            _     => format!("{x} {op:^3} {y}", x=self.x, y=self.y, op=self.op.to_string()),
+            _     => match self.op {
+                BitwiseOr if self.y == A =>
+                    format!("{x}", x=self.x),
+                _ =>
+                    format!("{x} {op:^3} {y}", x=self.x, y=self.y, op=self.op.to_string()),
+            },
         };
         if self.imm != 0 {
             rhs.push_str(&format!(" + {imm}", imm=self.imm));
@@ -121,6 +128,42 @@ const INSTRUCTION_TEST_CASES : &[(&str, Instruction)] = &[
         x  : Register::C,
         y  : Register::D,
         op : Opcode::ShiftRightArith,
+        imm: 0,
+    }),
+    (" B  <-  C  |  D + -3 ", Instruction {
+        p  : InstructionType::Type0,
+        dd : MemoryOpType::NoLoad,
+        z  : Register::B,
+        x  : Register::C,
+        y  : Register::D,
+        op : Opcode::BitwiseOr,
+        imm: -3,
+    }),
+    (" B  <-  C  |  D ", Instruction {
+        p  : InstructionType::Type0,
+        dd : MemoryOpType::NoLoad,
+        z  : Register::B,
+        x  : Register::C,
+        y  : Register::D,
+        op : Opcode::BitwiseOr,
+        imm: 0,
+    }),
+    (" B  <-  C + -3 ", Instruction {
+        p  : InstructionType::Type0,
+        dd : MemoryOpType::NoLoad,
+        z  : Register::B,
+        x  : Register::C,
+        y  : Register::A,
+        op : Opcode::BitwiseOr,
+        imm: -3,
+    }),
+    (" B  <-  C ", Instruction {
+        p  : InstructionType::Type0,
+        dd : MemoryOpType::NoLoad,
+        z  : Register::B,
+        x  : Register::C,
+        y  : Register::A,
+        op : Opcode::BitwiseOr,
         imm: 0,
     }),
     (" P  <-  C + -4 ", Instruction {
