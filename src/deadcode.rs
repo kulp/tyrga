@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use classfile_parser::constant_info::*;
 use crate::jvmtypes::*;
 use std::collections::HashMap;

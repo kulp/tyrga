@@ -1,4 +1,3 @@
-
 use num::FromPrimitive;
 
 use classfile_parser::parse_class;
@@ -19,6 +18,7 @@ use tenyr::*;
 
 const MAX_LOCALS : u16 = 6; // arbitrary limit for now
 
+#[allow(unused_variables)]
 fn handle_op(offset : u16, bytecode : &mut std::slice::Iter<u8>) -> (usize, Option<AddressedOperation>) {
     let mut used = 1;
 
