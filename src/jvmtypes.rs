@@ -1,3 +1,5 @@
+use enum_primitive::*;
+
 enum_from_primitive! {
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq)]
