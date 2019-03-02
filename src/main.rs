@@ -1,6 +1,4 @@
-extern crate classfile_parser;
 
-extern crate num;
 use num::FromPrimitive;
 
 use classfile_parser::parse_class;
