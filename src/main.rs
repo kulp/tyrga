@@ -9,6 +9,7 @@ use std::u8;
 use std::usize;
 
 mod deadcode;
+mod exprtree;
 mod jvmtypes;
 mod mangling;
 mod tenyr;
