@@ -14,8 +14,8 @@ use std::io::{self, BufRead};
 use std::u8;
 use std::usize;
 
-mod mangling;
 mod jvmtypes;
+mod mangling;
 mod tenyr;
 
 use jvmtypes::*;
