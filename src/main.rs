@@ -5,7 +5,6 @@ extern crate enum_primitive;
 extern crate num;
 use num::FromPrimitive;
 
-use classfile_parser::constant_info::*;
 use classfile_parser::parse_class;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -113,7 +112,7 @@ struct XlnState<'s,'l> {
 fn translate(op : &AddressedOperation, state : &mut XlnState) {
     use JType::*;
     use Operation::*;
-    let mut stack = &state.stack.regs;
+    let stack = &state.stack.regs;
     let mut si = stack.iter();
 
     let s0 = si.next().unwrap();
@@ -168,7 +167,7 @@ fn parse(name : &str) -> String {
     let c = &method.attributes[0].info;
     let code = code_attribute_parser(c).to_result().unwrap();
 
-    let (parsed, map) = parse_bytecode(&code.code);
+    let (parsed, _map) = parse_bytecode(&code.code);
 
     // TODO use enumeration for registers
     let regs : HashSet<_> = (0u8..16).collect();
@@ -184,8 +183,6 @@ fn parse(name : &str) -> String {
     let stack : HashSet<_> = stack.difference(&special).cloned().collect();
     let stack : HashSet<_> = stack.difference(&retvals).cloned().collect();
     let stack : HashSet<_> = stack.difference(&locals ).cloned().collect();
-
-    let mut stack = stack;
 
     let regs = { use Register::*; &vec![ M, L, K, J, I, H ] };
     let stack  = &RegState { regs, used: &regs[0..0] };

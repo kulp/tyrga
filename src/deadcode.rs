@@ -28,7 +28,7 @@ fn stringify(pool : &Vec<ConstantInfo>, index : u16) -> Result<String,&str> {
     };
 }
 
-fn emit_parsed(parsed : &Vec<AddressedOperation>, map : &HashMap<u16,usize>) {
+fn emit_parsed(parsed : &Vec<AddressedOperation>, _map : &HashMap<u16,usize>) {
     for &ref op in parsed {
         println!("{:?}", op);
     }
