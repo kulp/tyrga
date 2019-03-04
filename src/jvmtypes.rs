@@ -254,3 +254,28 @@ pub struct AddressedOperation {
     pub op : Operation,
 }
 
+fn get_op_for_byte(byte : u8) -> Option<Operation> {
+    use JType::*;
+    use JvmOps::*;
+    use Operation::*;
+
+    if let Some(code) = JvmOps::from_u8(byte){
+        return match code {
+            IconstM1 | Iconst0 | Iconst1 | Iconst2 | Iconst3 | Iconst4 | Iconst5
+                => Some(Constant { kind : Int, value : (byte as i8 - Iconst0 as i8) }),
+            _
+                => None,
+        }
+    }
+
+    None
+}
+
+#[test]
+fn test_get_op() {
+    use JType::*;
+    use JvmOps::*;
+
+    assert_eq!(Operation::Constant { kind : Int, value : 3 }, get_op_for_byte(Iconst3 as u8).unwrap());
+}
+
