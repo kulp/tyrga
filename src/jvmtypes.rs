@@ -246,6 +246,7 @@ pub enum Operation {
     Store    { kind : JType, index : u8 },
     Subtract { kind : JType },
     Yield    { kind : JType }, /* i.e. return */
+    Unhandled(u8),
 }
 
 #[derive(Debug)]
@@ -274,7 +275,7 @@ fn get_op_for_byte(byte : u8) -> Option<Operation> {
             Dconst0 | Dconst1
                 => Some(Constant { kind : Double, value : (byte - Dconst0 as u8) as i8 }),
             _
-                => None,
+                => Some(Unhandled(byte)),
         }
     }
 
@@ -287,5 +288,11 @@ fn test_get_op() {
     use JvmOps::*;
 
     assert_eq!(Operation::Constant { kind : Int, value : 3 }, get_op_for_byte(Iconst3 as u8).unwrap());
+
+    for b in 0..=255 {
+        if let Some(_) = JvmOps::from_u8(b){
+            assert!(match get_op_for_byte(b) { Some(_) => true, _ => false });
+        }
+    }
 }
 
