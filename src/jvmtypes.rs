@@ -5,7 +5,7 @@ use enum_primitive::*;
 enum_from_primitive! {
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum JvmOps {
+enum JvmOps {
     Nop             = 0x00,
     AconstNull      = 0x01,
     IconstM1        = 0x02,
