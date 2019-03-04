@@ -261,8 +261,18 @@ fn get_op_for_byte(byte : u8) -> Option<Operation> {
 
     if let Some(code) = JvmOps::from_u8(byte){
         return match code {
+            Nop
+                => Some(Noop),
+            AconstNull
+                => Some(Constant { kind : Object, value : 0 }),
             IconstM1 | Iconst0 | Iconst1 | Iconst2 | Iconst3 | Iconst4 | Iconst5
                 => Some(Constant { kind : Int, value : (byte as i8 - Iconst0 as i8) }),
+            Lconst0 | Lconst1
+                => Some(Constant { kind : Long, value : (byte - Lconst0 as u8) as i8 }),
+            Fconst0 | Fconst1 | Fconst2
+                => Some(Constant { kind : Float, value : (byte - Fconst0 as u8) as i8 }),
+            Dconst0 | Dconst1
+                => Some(Constant { kind : Double, value : (byte - Dconst0 as u8) as i8 }),
             _
                 => None,
         }
