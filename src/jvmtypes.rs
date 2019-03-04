@@ -237,6 +237,7 @@ pub enum Comparison {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
     Branch   { kind : JType, way : Comparison, target : u16 },
+    Constant { kind : JType, value : i8 },
     Jump     { target : u16 },
     Leave,   /* i.e. void return */
     Length,  /* i.e. arraylength */
