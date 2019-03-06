@@ -238,6 +238,23 @@ pub enum Comparison {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
+pub enum ArithmeticOperation {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Rem,
+    Neg,
+    Shl,
+    Shr,
+    Ushr,
+    And,
+    Or,
+    Xor,
+    Inc,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum StackOperation {
     Pop,
     Dup,
@@ -248,6 +265,7 @@ pub enum StackOperation {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
+    Arithmetic  { kind : JType, op : ArithmeticOperation },
     Branch      { kind : JType, way : Comparison, target : u16 },
     Constant    { kind : JType, value : i32 },
     Jump        { target : u16 },
@@ -275,6 +293,7 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
     use JType::*;
     use JvmOps::*;
     use Operation::*;
+    use ArithmeticOperation::*;
 
     let byte = stream[0];
     return match JvmOps::from_u8(byte) {
@@ -300,6 +319,18 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     | Astore0 | Astore1 | Astore2 | Astore3
                     | Iastore | Lastore | Fastore | Dastore | Aastore | Bastore | Castore | Sastore
                     | Pop | Pop2 | Dup | DupX1 | DupX2 | Dup2 | Dup2X1 | Dup2X2 | Swap
+                    | Iadd | Ladd | Fadd | Dadd
+                    | Isub | Lsub | Fsub | Dsub
+                    | Imul | Lmul | Fmul | Dmul
+                    | Idiv | Ldiv | Fdiv | Ddiv
+                    | Irem | Lrem | Frem | Drem
+                    | Ineg | Lneg | Fneg | Dneg
+                    | Ishl  | Lshl
+                    | Ishr  | Lshr
+                    | Iushr | Lushr
+                    | Iand  | Land
+                    | Ior   | Lor
+                    | Ixor  | Lxor
                     => 1,
                 Bipush
                     | Ldc
@@ -308,6 +339,7 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => 2,
                 Sipush
                     | LdcW | Ldc2W
+                    | Iinc
                     => 3,
                 _
                     => 0,
@@ -426,6 +458,80 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => Some(StackOp { op : StackOperation::DupX2, size : 2 }),
                 Swap
                     => Some(StackOp { op : StackOperation::Swap, size : 2 }),
+                Iadd
+                    => Some(Arithmetic { kind : Int, op : Add }),
+                Ladd
+                    => Some(Arithmetic { kind : Long, op : Add }),
+                Fadd
+                    => Some(Arithmetic { kind : Float, op : Add }),
+                Dadd
+                    => Some(Arithmetic { kind : Double, op : Add }),
+                Isub
+                    => Some(Arithmetic { kind : Int, op : Sub }),
+                Lsub
+                    => Some(Arithmetic { kind : Long, op : Sub }),
+                Fsub
+                    => Some(Arithmetic { kind : Float, op : Sub }),
+                Dsub
+                    => Some(Arithmetic { kind : Double, op : Sub }),
+                Imul
+                    => Some(Arithmetic { kind : Int, op : Mul }),
+                Lmul
+                    => Some(Arithmetic { kind : Long, op : Mul }),
+                Fmul
+                    => Some(Arithmetic { kind : Float, op : Mul }),
+                Dmul
+                    => Some(Arithmetic { kind : Double, op : Mul }),
+                Idiv
+                    => Some(Arithmetic { kind : Int, op : Div }),
+                Ldiv
+                    => Some(Arithmetic { kind : Long, op : Div }),
+                Fdiv
+                    => Some(Arithmetic { kind : Float, op : Div }),
+                Ddiv
+                    => Some(Arithmetic { kind : Double, op : Div }),
+                Irem
+                    => Some(Arithmetic { kind : Int, op : Rem }),
+                Lrem
+                    => Some(Arithmetic { kind : Long, op : Rem }),
+                Frem
+                    => Some(Arithmetic { kind : Float, op : Rem }),
+                Drem
+                    => Some(Arithmetic { kind : Double, op : Rem }),
+                Ineg
+                    => Some(Arithmetic { kind : Int, op : Neg }),
+                Lneg
+                    => Some(Arithmetic { kind : Long, op : Neg }),
+                Fneg
+                    => Some(Arithmetic { kind : Float, op : Neg }),
+                Dneg
+                    => Some(Arithmetic { kind : Double, op : Neg }),
+                Ishl
+                    => Some(Arithmetic { kind : Int, op : Shl }),
+                Lshl
+                    => Some(Arithmetic { kind : Long, op : Shl }),
+                Ishr
+                    => Some(Arithmetic { kind : Int, op : Shr }),
+                Lshr
+                    => Some(Arithmetic { kind : Long, op : Shr }),
+                Iushr
+                    => Some(Arithmetic { kind : Int, op : Ushr }),
+                Lushr
+                    => Some(Arithmetic { kind : Long, op : Ushr }),
+                Iand
+                    => Some(Arithmetic { kind : Int, op : And }),
+                Land
+                    => Some(Arithmetic { kind : Long, op : And }),
+                Ior
+                    => Some(Arithmetic { kind : Int, op : Or }),
+                Lor
+                    => Some(Arithmetic { kind : Long, op : Or }),
+                Ixor
+                    => Some(Arithmetic { kind : Int, op : Xor }),
+                Lxor
+                    => Some(Arithmetic { kind : Long, op : Xor }),
+                Iinc
+                    => Some(Arithmetic { kind : Int, op : Inc }),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
