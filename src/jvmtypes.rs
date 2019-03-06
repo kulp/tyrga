@@ -237,7 +237,7 @@ pub enum Comparison {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
     Branch   { kind : JType, way : Comparison, target : u16 },
-    Constant { kind : JType, value : i8 },
+    Constant { kind : JType, value : i32 },
     Jump     { target : u16 },
     Leave,   /* i.e. void return */
     Length,  /* i.e. arraylength */
@@ -271,13 +271,13 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                 AconstNull
                     => Some(Constant { kind : Object, value : 0 }),
                 IconstM1 | Iconst0 | Iconst1 | Iconst2 | Iconst3 | Iconst4 | Iconst5
-                    => Some(Constant { kind : Int, value : (byte as i8 - Iconst0 as i8) }),
+                    => Some(Constant { kind : Int, value : (byte as i8 - Iconst0 as i8) as i32 }),
                 Lconst0 | Lconst1
-                    => Some(Constant { kind : Long, value : (byte - Lconst0 as u8) as i8 }),
+                    => Some(Constant { kind : Long, value : (byte - Lconst0 as u8) as i32 }),
                 Fconst0 | Fconst1 | Fconst2
-                    => Some(Constant { kind : Float, value : (byte - Fconst0 as u8) as i8 }),
+                    => Some(Constant { kind : Float, value : (byte - Fconst0 as u8) as i32 }),
                 Dconst0 | Dconst1
-                    => Some(Constant { kind : Double, value : (byte - Dconst0 as u8) as i8 }),
+                    => Some(Constant { kind : Double, value : (byte - Dconst0 as u8) as i32 }),
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
             };
