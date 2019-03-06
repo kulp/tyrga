@@ -222,6 +222,9 @@ pub enum JType {
     Float,
     Double,
     Object,
+    Byte,
+    Char,
+    Short,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -241,6 +244,7 @@ pub enum Operation {
     Jump        { target : u16 },
     Leave,      /* i.e. void return */
     Length,     /* i.e. arraylength */
+    LoadArray   (JType),
     LoadLocal   { kind : JType, index : u8 },
     Noop,
     Store       { kind : JType, index : u8 },
@@ -277,6 +281,7 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     | Fload0 | Fload1 | Fload2 | Fload3
                     | Dload0 | Dload1 | Dload2 | Dload3
                     | Aload0 | Aload1 | Aload2 | Aload3
+                    | Iaload | Laload | Faload | Daload | Aaload | Baload | Caload | Saload
                     => 1,
                 Bipush
                     | Ldc
@@ -332,6 +337,23 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => Some(LoadLocal { kind : Double, index : byte - Dload0 as u8 }),
                 Aload0 | Aload1 | Aload2 | Aload3
                     => Some(LoadLocal { kind : Object, index : byte - Aload0 as u8 }),
+                Iaload
+                    => Some(LoadArray(Int)),
+                Laload
+                    => Some(LoadArray(Long)),
+                Faload
+                    => Some(LoadArray(Float)),
+                Daload
+                    => Some(LoadArray(Double)),
+                Aaload
+                    => Some(LoadArray(Object)),
+                Baload
+                    => Some(LoadArray(Byte)),
+                Caload
+                    => Some(LoadArray(Char)),
+                Saload
+                    => Some(LoadArray(Short)),
+
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
             };
