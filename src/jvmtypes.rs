@@ -278,6 +278,10 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => Some(Constant { kind : Float, value : (byte - Fconst0 as u8) as i32 }),
                 Dconst0 | Dconst1
                     => Some(Constant { kind : Double, value : (byte - Dconst0 as u8) as i32 }),
+                Bipush
+                    => Some(Constant { kind : Int, value : stream[1] as i32 }),
+                Sipush
+                    => Some(Constant { kind : Int, value : (((stream[1] as i16) << 8) | stream[2] as i16) as i32 }),
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
             };
@@ -289,7 +293,12 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     | Fconst0 | Fconst1 | Fconst2
                     | Dconst0 | Dconst1
                     => 1,
-                _ => 0,
+                Bipush
+                    => 2,
+                Sipush
+                    => 3,
+                _
+                    => 0,
             };
 
             (opt, consumed)
