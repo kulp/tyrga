@@ -372,16 +372,13 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => Some(Constant { kind : Int, value : (((stream[1] as i16) << 8) | stream[2] as i16) as i32 }),
                 Ldc | LdcW | Ldc2W
                     => Some(Unhandled(byte)),
-                Iload
-                    => Some(LoadLocal { kind : Int, index : stream[1] }),
-                Lload
-                    => Some(LoadLocal { kind : Long, index : stream[1] }),
-                Fload
-                    => Some(LoadLocal { kind : Float, index : stream[1] }),
-                Dload
-                    => Some(LoadLocal { kind : Double, index : stream[1] }),
-                Aload
-                    => Some(LoadLocal { kind : Object, index : stream[1] }),
+
+                Iload => Some(LoadLocal { kind : Int   , index : stream[1] }),
+                Lload => Some(LoadLocal { kind : Long  , index : stream[1] }),
+                Fload => Some(LoadLocal { kind : Float , index : stream[1] }),
+                Dload => Some(LoadLocal { kind : Double, index : stream[1] }),
+                Aload => Some(LoadLocal { kind : Object, index : stream[1] }),
+
                 Iload0 | Iload1 | Iload2 | Iload3
                     => Some(LoadLocal { kind : Int, index : byte - Iload0 as u8 }),
                 Lload0 | Lload1 | Lload2 | Lload3
@@ -392,32 +389,22 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => Some(LoadLocal { kind : Double, index : byte - Dload0 as u8 }),
                 Aload0 | Aload1 | Aload2 | Aload3
                     => Some(LoadLocal { kind : Object, index : byte - Aload0 as u8 }),
-                Iaload
-                    => Some(LoadArray(Int)),
-                Laload
-                    => Some(LoadArray(Long)),
-                Faload
-                    => Some(LoadArray(Float)),
-                Daload
-                    => Some(LoadArray(Double)),
-                Aaload
-                    => Some(LoadArray(Object)),
-                Baload
-                    => Some(LoadArray(Byte)),
-                Caload
-                    => Some(LoadArray(Char)),
-                Saload
-                    => Some(LoadArray(Short)),
-                Istore
-                    => Some(StoreLocal { kind : Int, index : stream[1] }),
-                Lstore
-                    => Some(StoreLocal { kind : Long, index : stream[1] }),
-                Fstore
-                    => Some(StoreLocal { kind : Float, index : stream[1] }),
-                Dstore
-                    => Some(StoreLocal { kind : Double, index : stream[1] }),
-                Astore
-                    => Some(StoreLocal { kind : Object, index : stream[1] }),
+
+                Iaload => Some(LoadArray(Int)),
+                Laload => Some(LoadArray(Long)),
+                Faload => Some(LoadArray(Float)),
+                Daload => Some(LoadArray(Double)),
+                Aaload => Some(LoadArray(Object)),
+                Baload => Some(LoadArray(Byte)),
+                Caload => Some(LoadArray(Char)),
+                Saload => Some(LoadArray(Short)),
+
+                Istore => Some(StoreLocal { kind : Int   , index : stream[1] }),
+                Lstore => Some(StoreLocal { kind : Long  , index : stream[1] }),
+                Fstore => Some(StoreLocal { kind : Float , index : stream[1] }),
+                Dstore => Some(StoreLocal { kind : Double, index : stream[1] }),
+                Astore => Some(StoreLocal { kind : Object, index : stream[1] }),
+
                 Istore0 | Istore1 | Istore2 | Istore3
                     => Some(StoreLocal { kind : Int, index : byte - Istore0 as u8 }),
                 Lstore0 | Lstore1 | Lstore2 | Lstore3
@@ -428,144 +415,78 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => Some(StoreLocal { kind : Double, index : byte - Dstore0 as u8 }),
                 Astore0 | Astore1 | Astore2 | Astore3
                     => Some(StoreLocal { kind : Object, index : byte - Astore0 as u8 }),
-                Iastore
-                    => Some(StoreArray(Int)),
-                Lastore
-                    => Some(StoreArray(Long)),
-                Fastore
-                    => Some(StoreArray(Float)),
-                Dastore
-                    => Some(StoreArray(Double)),
-                Aastore
-                    => Some(StoreArray(Object)),
-                Bastore
-                    => Some(StoreArray(Byte)),
-                Castore
-                    => Some(StoreArray(Char)),
-                Sastore
-                    => Some(StoreArray(Short)),
-                Pop
-                    => Some(StackOp { op : StackOperation::Pop, size : 1 }),
-                Pop2
-                    => Some(StackOp { op : StackOperation::Pop, size : 2 }),
-                Dup
-                    => Some(StackOp { op : StackOperation::Dup, size : 1 }),
-                DupX1
-                    => Some(StackOp { op : StackOperation::DupX1, size : 1 }),
-                DupX2
-                    => Some(StackOp { op : StackOperation::DupX2, size : 1 }),
-                Dup2
-                    => Some(StackOp { op : StackOperation::Dup, size : 2 }),
-                Dup2X1
-                    => Some(StackOp { op : StackOperation::DupX1, size : 2 }),
-                Dup2X2
-                    => Some(StackOp { op : StackOperation::DupX2, size : 2 }),
-                Swap
-                    => Some(StackOp { op : StackOperation::Swap, size : 2 }),
-                Iadd
-                    => Some(Arithmetic { kind : Int, op : Add }),
-                Ladd
-                    => Some(Arithmetic { kind : Long, op : Add }),
-                Fadd
-                    => Some(Arithmetic { kind : Float, op : Add }),
-                Dadd
-                    => Some(Arithmetic { kind : Double, op : Add }),
-                Isub
-                    => Some(Arithmetic { kind : Int, op : Sub }),
-                Lsub
-                    => Some(Arithmetic { kind : Long, op : Sub }),
-                Fsub
-                    => Some(Arithmetic { kind : Float, op : Sub }),
-                Dsub
-                    => Some(Arithmetic { kind : Double, op : Sub }),
-                Imul
-                    => Some(Arithmetic { kind : Int, op : Mul }),
-                Lmul
-                    => Some(Arithmetic { kind : Long, op : Mul }),
-                Fmul
-                    => Some(Arithmetic { kind : Float, op : Mul }),
-                Dmul
-                    => Some(Arithmetic { kind : Double, op : Mul }),
-                Idiv
-                    => Some(Arithmetic { kind : Int, op : Div }),
-                Ldiv
-                    => Some(Arithmetic { kind : Long, op : Div }),
-                Fdiv
-                    => Some(Arithmetic { kind : Float, op : Div }),
-                Ddiv
-                    => Some(Arithmetic { kind : Double, op : Div }),
-                Irem
-                    => Some(Arithmetic { kind : Int, op : Rem }),
-                Lrem
-                    => Some(Arithmetic { kind : Long, op : Rem }),
-                Frem
-                    => Some(Arithmetic { kind : Float, op : Rem }),
-                Drem
-                    => Some(Arithmetic { kind : Double, op : Rem }),
-                Ineg
-                    => Some(Arithmetic { kind : Int, op : Neg }),
-                Lneg
-                    => Some(Arithmetic { kind : Long, op : Neg }),
-                Fneg
-                    => Some(Arithmetic { kind : Float, op : Neg }),
-                Dneg
-                    => Some(Arithmetic { kind : Double, op : Neg }),
-                Ishl
-                    => Some(Arithmetic { kind : Int, op : Shl }),
-                Lshl
-                    => Some(Arithmetic { kind : Long, op : Shl }),
-                Ishr
-                    => Some(Arithmetic { kind : Int, op : Shr }),
-                Lshr
-                    => Some(Arithmetic { kind : Long, op : Shr }),
-                Iushr
-                    => Some(Arithmetic { kind : Int, op : Ushr }),
-                Lushr
-                    => Some(Arithmetic { kind : Long, op : Ushr }),
-                Iand
-                    => Some(Arithmetic { kind : Int, op : And }),
-                Land
-                    => Some(Arithmetic { kind : Long, op : And }),
-                Ior
-                    => Some(Arithmetic { kind : Int, op : Or }),
-                Lor
-                    => Some(Arithmetic { kind : Long, op : Or }),
-                Ixor
-                    => Some(Arithmetic { kind : Int, op : Xor }),
-                Lxor
-                    => Some(Arithmetic { kind : Long, op : Xor }),
-                Iinc
-                    => Some(Arithmetic { kind : Int, op : Inc }),
-                I2l
-                    => Some(Conversion { from : Int, to : Long }),
-                I2f
-                    => Some(Conversion { from : Int, to : Float }),
-                I2d
-                    => Some(Conversion { from : Int, to : Double }),
-                L2i
-                    => Some(Conversion { from : Long, to : Int }),
-                L2f
-                    => Some(Conversion { from : Long, to : Float }),
-                L2d
-                    => Some(Conversion { from : Long, to : Double }),
-                F2i
-                    => Some(Conversion { from : Float, to : Int }),
-                F2l
-                    => Some(Conversion { from : Float, to : Long }),
-                F2d
-                    => Some(Conversion { from : Float, to : Double }),
-                D2i
-                    => Some(Conversion { from : Double, to : Int }),
-                D2l
-                    => Some(Conversion { from : Double, to : Long }),
-                D2f
-                    => Some(Conversion { from : Double, to : Float }),
-                I2b
-                    => Some(Conversion { from : Int, to : Byte }),
-                I2c
-                    => Some(Conversion { from : Int, to : Char }),
-                I2s
-                    => Some(Conversion { from : Int, to : Short }),
+
+                Iastore => Some(StoreArray(Int)),
+                Lastore => Some(StoreArray(Long)),
+                Fastore => Some(StoreArray(Float)),
+                Dastore => Some(StoreArray(Double)),
+                Aastore => Some(StoreArray(Object)),
+                Bastore => Some(StoreArray(Byte)),
+                Castore => Some(StoreArray(Char)),
+                Sastore => Some(StoreArray(Short)),
+
+                Pop     => Some(StackOp { op : StackOperation::Pop  , size : 1 }),
+                Pop2    => Some(StackOp { op : StackOperation::Pop  , size : 2 }),
+                Dup     => Some(StackOp { op : StackOperation::Dup  , size : 1 }),
+                DupX1   => Some(StackOp { op : StackOperation::DupX1, size : 1 }),
+                DupX2   => Some(StackOp { op : StackOperation::DupX2, size : 1 }),
+                Dup2    => Some(StackOp { op : StackOperation::Dup  , size : 2 }),
+                Dup2X1  => Some(StackOp { op : StackOperation::DupX1, size : 2 }),
+                Dup2X2  => Some(StackOp { op : StackOperation::DupX2, size : 2 }),
+                Swap    => Some(StackOp { op : StackOperation::Swap , size : 2 }),
+
+                Iadd    => Some(Arithmetic { kind : Int   , op : Add    }),
+                Ladd    => Some(Arithmetic { kind : Long  , op : Add    }),
+                Fadd    => Some(Arithmetic { kind : Float , op : Add    }),
+                Dadd    => Some(Arithmetic { kind : Double, op : Add    }),
+                Isub    => Some(Arithmetic { kind : Int   , op : Sub    }),
+                Lsub    => Some(Arithmetic { kind : Long  , op : Sub    }),
+                Fsub    => Some(Arithmetic { kind : Float , op : Sub    }),
+                Dsub    => Some(Arithmetic { kind : Double, op : Sub    }),
+                Imul    => Some(Arithmetic { kind : Int   , op : Mul    }),
+                Lmul    => Some(Arithmetic { kind : Long  , op : Mul    }),
+                Fmul    => Some(Arithmetic { kind : Float , op : Mul    }),
+                Dmul    => Some(Arithmetic { kind : Double, op : Mul    }),
+                Idiv    => Some(Arithmetic { kind : Int   , op : Div    }),
+                Ldiv    => Some(Arithmetic { kind : Long  , op : Div    }),
+                Fdiv    => Some(Arithmetic { kind : Float , op : Div    }),
+                Ddiv    => Some(Arithmetic { kind : Double, op : Div    }),
+                Irem    => Some(Arithmetic { kind : Int   , op : Rem    }),
+                Lrem    => Some(Arithmetic { kind : Long  , op : Rem    }),
+                Frem    => Some(Arithmetic { kind : Float , op : Rem    }),
+                Drem    => Some(Arithmetic { kind : Double, op : Rem    }),
+                Ineg    => Some(Arithmetic { kind : Int   , op : Neg    }),
+                Lneg    => Some(Arithmetic { kind : Long  , op : Neg    }),
+                Fneg    => Some(Arithmetic { kind : Float , op : Neg    }),
+                Dneg    => Some(Arithmetic { kind : Double, op : Neg    }),
+                Ishl    => Some(Arithmetic { kind : Int   , op : Shl    }),
+                Lshl    => Some(Arithmetic { kind : Long  , op : Shl    }),
+                Ishr    => Some(Arithmetic { kind : Int   , op : Shr    }),
+                Lshr    => Some(Arithmetic { kind : Long  , op : Shr    }),
+                Iushr   => Some(Arithmetic { kind : Int   , op : Ushr   }),
+                Lushr   => Some(Arithmetic { kind : Long  , op : Ushr   }),
+                Iand    => Some(Arithmetic { kind : Int   , op : And    }),
+                Land    => Some(Arithmetic { kind : Long  , op : And    }),
+                Ior     => Some(Arithmetic { kind : Int   , op : Or     }),
+                Lor     => Some(Arithmetic { kind : Long  , op : Or     }),
+                Ixor    => Some(Arithmetic { kind : Int   , op : Xor    }),
+                Lxor    => Some(Arithmetic { kind : Long  , op : Xor    }),
+                Iinc    => Some(Arithmetic { kind : Int   , op : Inc    }),
+                I2l     => Some(Conversion { from : Int   , to : Long   }),
+                I2f     => Some(Conversion { from : Int   , to : Float  }),
+                I2d     => Some(Conversion { from : Int   , to : Double }),
+                L2i     => Some(Conversion { from : Long  , to : Int    }),
+                L2f     => Some(Conversion { from : Long  , to : Float  }),
+                L2d     => Some(Conversion { from : Long  , to : Double }),
+                F2i     => Some(Conversion { from : Float , to : Int    }),
+                F2l     => Some(Conversion { from : Float , to : Long   }),
+                F2d     => Some(Conversion { from : Float , to : Double }),
+                D2i     => Some(Conversion { from : Double, to : Int    }),
+                D2l     => Some(Conversion { from : Double, to : Long   }),
+                D2f     => Some(Conversion { from : Double, to : Float  }),
+                I2b     => Some(Conversion { from : Int   , to : Byte   }),
+                I2c     => Some(Conversion { from : Int   , to : Char   }),
+                I2s     => Some(Conversion { from : Int   , to : Short  }),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
