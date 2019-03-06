@@ -268,6 +268,7 @@ pub enum Operation {
     Arithmetic  { kind : JType, op : ArithmeticOperation },
     Branch      { kind : JType, way : Comparison, target : u16 },
     Constant    { kind : JType, value : i32 },
+    Conversion  { from : JType, to : JType },
     Jump        { target : u16 },
     Leave,      /* i.e. void return */
     Length,     /* i.e. arraylength */
@@ -331,6 +332,9 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     | Iand  | Land
                     | Ior   | Lor
                     | Ixor  | Lxor
+                    | I2l | I2f | I2d | L2i | L2f | L2d
+                    | F2i | F2l | F2d | D2i | D2l | D2f
+                    | I2b | I2c | I2s
                     => 1,
                 Bipush
                     | Ldc
@@ -532,6 +536,36 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => Some(Arithmetic { kind : Long, op : Xor }),
                 Iinc
                     => Some(Arithmetic { kind : Int, op : Inc }),
+                I2l
+                    => Some(Conversion { from : Int, to : Long }),
+                I2f
+                    => Some(Conversion { from : Int, to : Float }),
+                I2d
+                    => Some(Conversion { from : Int, to : Double }),
+                L2i
+                    => Some(Conversion { from : Long, to : Int }),
+                L2f
+                    => Some(Conversion { from : Long, to : Float }),
+                L2d
+                    => Some(Conversion { from : Long, to : Double }),
+                F2i
+                    => Some(Conversion { from : Float, to : Int }),
+                F2l
+                    => Some(Conversion { from : Float, to : Long }),
+                F2d
+                    => Some(Conversion { from : Float, to : Double }),
+                D2i
+                    => Some(Conversion { from : Double, to : Int }),
+                D2l
+                    => Some(Conversion { from : Double, to : Long }),
+                D2f
+                    => Some(Conversion { from : Double, to : Float }),
+                I2b
+                    => Some(Conversion { from : Int, to : Byte }),
+                I2c
+                    => Some(Conversion { from : Int, to : Char }),
+                I2s
+                    => Some(Conversion { from : Int, to : Short }),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
