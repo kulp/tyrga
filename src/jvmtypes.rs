@@ -272,6 +272,11 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     | Lconst0 | Lconst1
                     | Fconst0 | Fconst1 | Fconst2
                     | Dconst0 | Dconst1
+                    | Iload0 | Iload1 | Iload2 | Iload3
+                    | Lload0 | Lload1 | Lload2 | Lload3
+                    | Fload0 | Fload1 | Fload2 | Fload3
+                    | Dload0 | Dload1 | Dload2 | Dload3
+                    | Aload0 | Aload1 | Aload2 | Aload3
                     => 1,
                 Bipush
                     | Ldc
@@ -317,6 +322,16 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => Some(Load { kind : Double, index : stream[1] }),
                 Aload
                     => Some(Load { kind : Object, index : stream[1] }),
+                Iload0 | Iload1 | Iload2 | Iload3
+                    => Some(Load { kind : Int, index : byte - Iload0 as u8 }),
+                Lload0 | Lload1 | Lload2 | Lload3
+                    => Some(Load { kind : Long, index : byte - Lload0 as u8 }),
+                Fload0 | Fload1 | Fload2 | Fload3
+                    => Some(Load { kind : Float, index : byte - Fload0 as u8 }),
+                Dload0 | Dload1 | Dload2 | Dload3
+                    => Some(Load { kind : Double, index : byte - Dload0 as u8 }),
+                Aload0 | Aload1 | Aload2 | Aload3
+                    => Some(Load { kind : Object, index : byte - Aload0 as u8 }),
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
             };
