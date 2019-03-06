@@ -238,6 +238,15 @@ pub enum Comparison {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
+pub enum StackOperation {
+    Pop,
+    Dup,
+    DupX1,
+    DupX2,
+    Swap,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
     Branch      { kind : JType, way : Comparison, target : u16 },
     Constant    { kind : JType, value : i32 },
@@ -247,6 +256,7 @@ pub enum Operation {
     LoadArray   (JType),
     LoadLocal   { kind : JType, index : u8 },
     Noop,
+    StackOp     { size : u8, op : StackOperation },
     StoreArray  (JType),
     StoreLocal  { kind : JType, index : u8 },
     Subtract    { kind : JType },
@@ -289,6 +299,7 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     | Dstore0 | Dstore1 | Dstore2 | Dstore3
                     | Astore0 | Astore1 | Astore2 | Astore3
                     | Iastore | Lastore | Fastore | Dastore | Aastore | Bastore | Castore | Sastore
+                    | Pop | Pop2 | Dup | DupX1 | DupX2 | Dup2 | Dup2X1 | Dup2X2 | Swap
                     => 1,
                 Bipush
                     | Ldc
@@ -397,6 +408,24 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => Some(StoreArray(Char)),
                 Sastore
                     => Some(StoreArray(Short)),
+                Pop
+                    => Some(StackOp { op : StackOperation::Pop, size : 1 }),
+                Pop2
+                    => Some(StackOp { op : StackOperation::Pop, size : 2 }),
+                Dup
+                    => Some(StackOp { op : StackOperation::Dup, size : 1 }),
+                DupX1
+                    => Some(StackOp { op : StackOperation::DupX1, size : 1 }),
+                DupX2
+                    => Some(StackOp { op : StackOperation::DupX2, size : 1 }),
+                Dup2
+                    => Some(StackOp { op : StackOperation::Dup, size : 2 }),
+                Dup2X1
+                    => Some(StackOp { op : StackOperation::DupX1, size : 2 }),
+                Dup2X2
+                    => Some(StackOp { op : StackOperation::DupX2, size : 2 }),
+                Swap
+                    => Some(StackOp { op : StackOperation::Swap, size : 2 }),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
