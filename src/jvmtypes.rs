@@ -247,7 +247,8 @@ pub enum Operation {
     LoadArray   (JType),
     LoadLocal   { kind : JType, index : u8 },
     Noop,
-    Store       { kind : JType, index : u8 },
+    StoreArray  (JType),
+    StoreLocal  { kind : JType, index : u8 },
     Subtract    { kind : JType },
     Yield       { kind : JType }, /* i.e. return */
     Unhandled   (u8),
@@ -282,10 +283,17 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     | Dload0 | Dload1 | Dload2 | Dload3
                     | Aload0 | Aload1 | Aload2 | Aload3
                     | Iaload | Laload | Faload | Daload | Aaload | Baload | Caload | Saload
+                    | Istore0 | Istore1 | Istore2 | Istore3
+                    | Lstore0 | Lstore1 | Lstore2 | Lstore3
+                    | Fstore0 | Fstore1 | Fstore2 | Fstore3
+                    | Dstore0 | Dstore1 | Dstore2 | Dstore3
+                    | Astore0 | Astore1 | Astore2 | Astore3
+                    | Iastore | Lastore | Fastore | Dastore | Aastore | Bastore | Castore | Sastore
                     => 1,
                 Bipush
                     | Ldc
                     | Iload | Lload | Fload | Dload | Aload
+                    | Istore | Lstore | Fstore | Dstore | Astore
                     => 2,
                 Sipush
                     | LdcW | Ldc2W
@@ -353,6 +361,42 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => Some(LoadArray(Char)),
                 Saload
                     => Some(LoadArray(Short)),
+                Istore
+                    => Some(StoreLocal { kind : Int, index : stream[1] }),
+                Lstore
+                    => Some(StoreLocal { kind : Long, index : stream[1] }),
+                Fstore
+                    => Some(StoreLocal { kind : Float, index : stream[1] }),
+                Dstore
+                    => Some(StoreLocal { kind : Double, index : stream[1] }),
+                Astore
+                    => Some(StoreLocal { kind : Object, index : stream[1] }),
+                Istore0 | Istore1 | Istore2 | Istore3
+                    => Some(StoreLocal { kind : Int, index : byte - Istore0 as u8 }),
+                Lstore0 | Lstore1 | Lstore2 | Lstore3
+                    => Some(StoreLocal { kind : Long, index : byte - Lstore0 as u8 }),
+                Fstore0 | Fstore1 | Fstore2 | Fstore3
+                    => Some(StoreLocal { kind : Float, index : byte - Fstore0 as u8 }),
+                Dstore0 | Dstore1 | Dstore2 | Dstore3
+                    => Some(StoreLocal { kind : Double, index : byte - Dstore0 as u8 }),
+                Astore0 | Astore1 | Astore2 | Astore3
+                    => Some(StoreLocal { kind : Object, index : byte - Astore0 as u8 }),
+                Iastore
+                    => Some(StoreArray(Int)),
+                Lastore
+                    => Some(StoreArray(Long)),
+                Fastore
+                    => Some(StoreArray(Float)),
+                Dastore
+                    => Some(StoreArray(Double)),
+                Aastore
+                    => Some(StoreArray(Object)),
+                Bastore
+                    => Some(StoreArray(Byte)),
+                Castore
+                    => Some(StoreArray(Char)),
+                Sastore
+                    => Some(StoreArray(Short)),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
