@@ -264,10 +264,17 @@ pub enum StackOperation {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
+pub enum NanComparisons {
+    Greater,
+    Less,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
     Arithmetic  { kind : JType, op : ArithmeticOperation },
     Branch      { kind : JType, way : Comparison, target : u16 },
     Constant    { kind : JType, value : i32 },
+    Compare     { kind : JType, nans : Option<NanComparisons> },
     Conversion  { from : JType, to : JType },
     Jump        { target : u16 },
     Leave,      /* i.e. void return */
@@ -335,6 +342,7 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     | I2l | I2f | I2d | L2i | L2f | L2d
                     | F2i | F2l | F2d | D2i | D2l | D2f
                     | I2b | I2c | I2s
+                    | Lcmp | Fcmpl | Fcmpg | Dcmpl | Dcmpg
                     => 1,
                 Bipush
                     | Ldc
@@ -487,6 +495,12 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                 I2b     => Some(Conversion { from : Int   , to : Byte   }),
                 I2c     => Some(Conversion { from : Int   , to : Char   }),
                 I2s     => Some(Conversion { from : Int   , to : Short  }),
+
+                Lcmp    => Some(Compare { kind : Long  , nans : None                          }),
+                Fcmpl   => Some(Compare { kind : Float , nans : Some(NanComparisons::Less   ) }),
+                Fcmpg   => Some(Compare { kind : Float , nans : Some(NanComparisons::Greater) }),
+                Dcmpl   => Some(Compare { kind : Double, nans : Some(NanComparisons::Less   ) }),
+                Dcmpg   => Some(Compare { kind : Double, nans : Some(NanComparisons::Greater) }),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
