@@ -265,6 +265,29 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
     return match JvmOps::from_u8(byte) {
         None => (None, 0),
         Some(code) => {
+            let consumed = match code {
+                Nop
+                    | AconstNull
+                    | IconstM1 | Iconst0 | Iconst1 | Iconst2 | Iconst3 | Iconst4 | Iconst5
+                    | Lconst0 | Lconst1
+                    | Fconst0 | Fconst1 | Fconst2
+                    | Dconst0 | Dconst1
+                    => 1,
+                Bipush
+                    | Ldc
+                    | Iload
+                    => 2,
+                Sipush
+                    | LdcW | Ldc2W
+                    => 3,
+                _
+                    => 0,
+            };
+
+            if stream.len() < consumed {
+                panic!("expected {} bytes, received only {}", consumed, stream.len());
+            }
+
             let opt = match code {
                 Nop
                     => Some(Noop),
@@ -288,24 +311,6 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => Some(Load { kind : Int, index : stream[1] }),
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
-            };
-            let consumed = match code {
-                Nop
-                    | AconstNull
-                    | IconstM1 | Iconst0 | Iconst1 | Iconst2 | Iconst3 | Iconst4 | Iconst5
-                    | Lconst0 | Lconst1
-                    | Fconst0 | Fconst1 | Fconst2
-                    | Dconst0 | Dconst1
-                    => 1,
-                Bipush
-                    | Ldc
-                    | Iload
-                    => 2,
-                Sipush
-                    | LdcW | Ldc2W
-                    => 3,
-                _
-                    => 0,
             };
 
             (opt, consumed)
