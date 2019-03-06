@@ -284,6 +284,8 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => Some(Constant { kind : Int, value : (((stream[1] as i16) << 8) | stream[2] as i16) as i32 }),
                 Ldc | LdcW | Ldc2W
                     => Some(Unhandled(byte)),
+                Iload
+                    => Some(Load { kind : Int, index : stream[1] }),
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
             };
@@ -297,6 +299,7 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => 1,
                 Bipush
                     | Ldc
+                    | Iload
                     => 2,
                 Sipush
                     | LdcW | Ldc2W
