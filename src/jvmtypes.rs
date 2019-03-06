@@ -275,7 +275,7 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => 1,
                 Bipush
                     | Ldc
-                    | Iload
+                    | Iload | Lload | Fload | Dload | Aload
                     => 2,
                 Sipush
                     | LdcW | Ldc2W
@@ -309,6 +309,14 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     => Some(Unhandled(byte)),
                 Iload
                     => Some(Load { kind : Int, index : stream[1] }),
+                Lload
+                    => Some(Load { kind : Long, index : stream[1] }),
+                Fload
+                    => Some(Load { kind : Float, index : stream[1] }),
+                Dload
+                    => Some(Load { kind : Double, index : stream[1] }),
+                Aload
+                    => Some(Load { kind : Object, index : stream[1] }),
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
             };
