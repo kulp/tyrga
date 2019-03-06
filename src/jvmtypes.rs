@@ -255,31 +255,46 @@ pub struct AddressedOperation {
     pub op : Operation,
 }
 
-fn get_op_for_byte(byte : u8) -> Option<Operation> {
+// returns any Operation parsed and the number of bytes consumed
+fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
     use JType::*;
     use JvmOps::*;
     use Operation::*;
 
-    if let Some(code) = JvmOps::from_u8(byte){
-        return match code {
-            Nop
-                => Some(Noop),
-            AconstNull
-                => Some(Constant { kind : Object, value : 0 }),
-            IconstM1 | Iconst0 | Iconst1 | Iconst2 | Iconst3 | Iconst4 | Iconst5
-                => Some(Constant { kind : Int, value : (byte as i8 - Iconst0 as i8) }),
-            Lconst0 | Lconst1
-                => Some(Constant { kind : Long, value : (byte - Lconst0 as u8) as i8 }),
-            Fconst0 | Fconst1 | Fconst2
-                => Some(Constant { kind : Float, value : (byte - Fconst0 as u8) as i8 }),
-            Dconst0 | Dconst1
-                => Some(Constant { kind : Double, value : (byte - Dconst0 as u8) as i8 }),
-            _
-                => Some(Unhandled(byte)),
-        }
-    }
+    let byte = stream[0];
+    return match JvmOps::from_u8(byte) {
+        None => (None, 0),
+        Some(code) => {
+            let opt = match code {
+                Nop
+                    => Some(Noop),
+                AconstNull
+                    => Some(Constant { kind : Object, value : 0 }),
+                IconstM1 | Iconst0 | Iconst1 | Iconst2 | Iconst3 | Iconst4 | Iconst5
+                    => Some(Constant { kind : Int, value : (byte as i8 - Iconst0 as i8) }),
+                Lconst0 | Lconst1
+                    => Some(Constant { kind : Long, value : (byte - Lconst0 as u8) as i8 }),
+                Fconst0 | Fconst1 | Fconst2
+                    => Some(Constant { kind : Float, value : (byte - Fconst0 as u8) as i8 }),
+                Dconst0 | Dconst1
+                    => Some(Constant { kind : Double, value : (byte - Dconst0 as u8) as i8 }),
+                _
+                    => Some(Unhandled(byte)), // TODO eventually unreachable!()
+            };
+            let consumed = match code {
+                Nop
+                    | AconstNull
+                    | IconstM1 | Iconst0 | Iconst1 | Iconst2 | Iconst3 | Iconst4 | Iconst5
+                    | Lconst0 | Lconst1
+                    | Fconst0 | Fconst1 | Fconst2
+                    | Dconst0 | Dconst1
+                    => 1,
+                _ => 0,
+            };
 
-    None
+            (opt, consumed)
+        }
+    };
 }
 
 #[test]
@@ -287,11 +302,18 @@ fn test_get_op() {
     use JType::*;
     use JvmOps::*;
 
-    assert_eq!(Operation::Constant { kind : Int, value : 3 }, get_op_for_byte(Iconst3 as u8).unwrap());
+    assert_eq!((Some(Operation::Constant { kind : Int, value : 3 }), 1),
+                decode_op(&vec![ Iconst3 as u8 ]));
 
     for b in 0..=255 {
         if let Some(_) = JvmOps::from_u8(b){
-            assert!(match get_op_for_byte(b) { Some(_) => true, _ => false });
+            let arr = vec![ b, 0u8, 0u8, 0u8, 0u8, 0u8 ];
+            let v = decode_op(&arr);
+            match v {
+                (Some(Operation::Unhandled(_)), 0) => {},
+                (Some(_), x) => assert!(x != 0),
+                _ => panic!("unhandled"),
+            };
         }
     }
 }
