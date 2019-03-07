@@ -270,9 +270,15 @@ pub enum NanComparisons {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
+pub enum OperandCount {
+    _1,
+    _2,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
     Arithmetic  { kind : JType, op : ArithmeticOperation },
-    Branch      { kind : JType, way : Comparison, target : u16 },
+    Branch      { kind : JType, ops : OperandCount, way : Comparison, reltarget : i16 },
     Constant    { kind : JType, value : i32 },
     Compare     { kind : JType, nans : Option<NanComparisons> },
     Conversion  { from : JType, to : JType },
@@ -301,6 +307,7 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
     use ArithmeticOperation::*;
     use JType::*;
     use JvmOps::*;
+    use OperandCount::*;
     use Operation::*;
 
     let signed16 = |x : &[u8]| ((x[0] as i16) << 8) | x[1] as i16;
@@ -354,6 +361,7 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                 Sipush
                     | LdcW | Ldc2W
                     | Iinc
+                    | Ifeq | Ifne | Iflt | Ifge | Ifgt | Ifle
                     => 3,
                 _
                     => 0,
@@ -503,6 +511,13 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                 Fcmpg   => Some(Compare { kind : Float , nans : Some(NanComparisons::Greater) }),
                 Dcmpl   => Some(Compare { kind : Double, nans : Some(NanComparisons::Less   ) }),
                 Dcmpg   => Some(Compare { kind : Double, nans : Some(NanComparisons::Greater) }),
+
+                Ifeq    => Some(Branch { kind : Int, way : Comparison::Eq, ops : _1, reltarget : signed16(&stream[1..]) }),
+                Ifne    => Some(Branch { kind : Int, way : Comparison::Ne, ops : _1, reltarget : signed16(&stream[1..]) }),
+                Iflt    => Some(Branch { kind : Int, way : Comparison::Lt, ops : _1, reltarget : signed16(&stream[1..]) }),
+                Ifge    => Some(Branch { kind : Int, way : Comparison::Ge, ops : _1, reltarget : signed16(&stream[1..]) }),
+                Ifgt    => Some(Branch { kind : Int, way : Comparison::Gt, ops : _1, reltarget : signed16(&stream[1..]) }),
+                Ifle    => Some(Branch { kind : Int, way : Comparison::Le, ops : _1, reltarget : signed16(&stream[1..]) }),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
