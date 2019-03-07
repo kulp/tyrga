@@ -278,11 +278,11 @@ pub enum OperandCount {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
     Arithmetic  { kind : JType, op : ArithmeticOperation },
-    Branch      { kind : JType, ops : OperandCount, way : Comparison, reltarget : i16 },
+    Branch      { kind : JType, ops : OperandCount, way : Comparison, target : u16 },
     Constant    { kind : JType, value : i32 },
     Compare     { kind : JType, nans : Option<NanComparisons> },
     Conversion  { from : JType, to : JType },
-    Jump        { reltarget : i16 },
+    Jump        { target : u16 },
     Leave,      /* i.e. void return */
     Length,     /* i.e. arraylength */
     LoadArray   (JType),
@@ -317,6 +317,8 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
           | ((x[1] as i32) << 16)
           | ((x[2] as i32) <<  8)
           | ((x[3] as i32) <<  0);
+
+    let target = |x : i16| (addr as i32 + x as i32) as u16;
 
     let byte = stream[0];
     return match JvmOps::from_u8(byte) {
@@ -539,23 +541,23 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                 Dcmpl   => Some(Compare { kind : Double, nans : Some(NanComparisons::Less   ) }),
                 Dcmpg   => Some(Compare { kind : Double, nans : Some(NanComparisons::Greater) }),
 
-                Ifeq    => Some(Branch { kind : Int, way : Comparison::Eq, ops : _1, reltarget : signed16(&stream[1..]) }),
-                Ifne    => Some(Branch { kind : Int, way : Comparison::Ne, ops : _1, reltarget : signed16(&stream[1..]) }),
-                Iflt    => Some(Branch { kind : Int, way : Comparison::Lt, ops : _1, reltarget : signed16(&stream[1..]) }),
-                Ifge    => Some(Branch { kind : Int, way : Comparison::Ge, ops : _1, reltarget : signed16(&stream[1..]) }),
-                Ifgt    => Some(Branch { kind : Int, way : Comparison::Gt, ops : _1, reltarget : signed16(&stream[1..]) }),
-                Ifle    => Some(Branch { kind : Int, way : Comparison::Le, ops : _1, reltarget : signed16(&stream[1..]) }),
+                Ifeq    => Some(Branch { kind : Int, way : Comparison::Eq, ops : _1, target : target(signed16(&stream[1..])) }),
+                Ifne    => Some(Branch { kind : Int, way : Comparison::Ne, ops : _1, target : target(signed16(&stream[1..])) }),
+                Iflt    => Some(Branch { kind : Int, way : Comparison::Lt, ops : _1, target : target(signed16(&stream[1..])) }),
+                Ifge    => Some(Branch { kind : Int, way : Comparison::Ge, ops : _1, target : target(signed16(&stream[1..])) }),
+                Ifgt    => Some(Branch { kind : Int, way : Comparison::Gt, ops : _1, target : target(signed16(&stream[1..])) }),
+                Ifle    => Some(Branch { kind : Int, way : Comparison::Le, ops : _1, target : target(signed16(&stream[1..])) }),
 
-                IfIcmpeq    => Some(Branch { kind : Int   , way : Comparison::Eq, ops : _2, reltarget : signed16(&stream[1..]) }),
-                IfIcmpne    => Some(Branch { kind : Int   , way : Comparison::Ne, ops : _2, reltarget : signed16(&stream[1..]) }),
-                IfIcmplt    => Some(Branch { kind : Int   , way : Comparison::Lt, ops : _2, reltarget : signed16(&stream[1..]) }),
-                IfIcmpge    => Some(Branch { kind : Int   , way : Comparison::Ge, ops : _2, reltarget : signed16(&stream[1..]) }),
-                IfIcmpgt    => Some(Branch { kind : Int   , way : Comparison::Gt, ops : _2, reltarget : signed16(&stream[1..]) }),
-                IfIcmple    => Some(Branch { kind : Int   , way : Comparison::Le, ops : _2, reltarget : signed16(&stream[1..]) }),
-                IfAcmpeq    => Some(Branch { kind : Object, way : Comparison::Eq, ops : _2, reltarget : signed16(&stream[1..]) }),
-                IfAcmpne    => Some(Branch { kind : Object, way : Comparison::Ne, ops : _2, reltarget : signed16(&stream[1..]) }),
+                IfIcmpeq    => Some(Branch { kind : Int   , way : Comparison::Eq, ops : _2, target : target(signed16(&stream[1..])) }),
+                IfIcmpne    => Some(Branch { kind : Int   , way : Comparison::Ne, ops : _2, target : target(signed16(&stream[1..])) }),
+                IfIcmplt    => Some(Branch { kind : Int   , way : Comparison::Lt, ops : _2, target : target(signed16(&stream[1..])) }),
+                IfIcmpge    => Some(Branch { kind : Int   , way : Comparison::Ge, ops : _2, target : target(signed16(&stream[1..])) }),
+                IfIcmpgt    => Some(Branch { kind : Int   , way : Comparison::Gt, ops : _2, target : target(signed16(&stream[1..])) }),
+                IfIcmple    => Some(Branch { kind : Int   , way : Comparison::Le, ops : _2, target : target(signed16(&stream[1..])) }),
+                IfAcmpeq    => Some(Branch { kind : Object, way : Comparison::Eq, ops : _2, target : target(signed16(&stream[1..])) }),
+                IfAcmpne    => Some(Branch { kind : Object, way : Comparison::Ne, ops : _2, target : target(signed16(&stream[1..])) }),
 
-                Goto    => Some(Jump { reltarget : signed16(&stream[1..]) }),
+                Goto    => Some(Jump { target : target(signed16(&stream[1..])) }),
                 Jsr     => Some(Unhandled(byte)),
                 JsrW    => Some(Unhandled(byte)),
                 Ret     => Some(Unhandled(byte)),
