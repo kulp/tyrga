@@ -392,6 +392,19 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                         let count = (high - low + 1) as usize;
                         need + count * 4
                     }
+                Lookupswitch
+                    => {
+                        let padding = ((4 - ((addr + 1) & 3)) & 3) as usize;
+                        let need = 1 + padding + 4 * 2;
+                        if stream.len() < need {
+                            panic!("ran out of bytes in stream during {:?}", code);
+                        }
+                        let def  = &stream[1 + padding..];
+                        let npairs = &def[4..];
+                        let count = signed32(npairs) as usize;
+                        need + count * 4
+                    }
+
                 _
                     => 0,
             };
@@ -563,6 +576,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                 Ret     => Some(Unhandled(byte)),
 
                 Tableswitch     => Some(Unhandled(byte)),
+                Lookupswitch    => Some(Unhandled(byte)),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
