@@ -282,7 +282,7 @@ pub enum Operation {
     Constant    { kind : JType, value : i32 },
     Compare     { kind : JType, nans : Option<NanComparisons> },
     Conversion  { from : JType, to : JType },
-    Jump        { target : u16 },
+    Jump        { reltarget : i16 },
     Leave,      /* i.e. void return */
     Length,     /* i.e. arraylength */
     LoadArray   (JType),
@@ -357,6 +357,7 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     | Ldc
                     | Iload | Lload | Fload | Dload | Aload
                     | Istore | Lstore | Fstore | Dstore | Astore
+                    | Ret
                     => 2,
                 Sipush
                     | LdcW | Ldc2W
@@ -364,7 +365,10 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     | Ifeq | Ifne | Iflt | Ifge | Ifgt | Ifle
                     | IfIcmpeq | IfIcmpne | IfIcmplt | IfIcmpge | IfIcmpgt | IfIcmple
                     | IfAcmpeq | IfAcmpne
+                    | Goto | Jsr
                     => 3,
+                JsrW
+                    => 4,
                 _
                     => 0,
             };
@@ -529,6 +533,11 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                 IfIcmple    => Some(Branch { kind : Int   , way : Comparison::Le, ops : _2, reltarget : signed16(&stream[1..]) }),
                 IfAcmpeq    => Some(Branch { kind : Object, way : Comparison::Eq, ops : _2, reltarget : signed16(&stream[1..]) }),
                 IfAcmpne    => Some(Branch { kind : Object, way : Comparison::Ne, ops : _2, reltarget : signed16(&stream[1..]) }),
+
+                Goto    => Some(Jump { reltarget : signed16(&stream[1..]) }),
+                Jsr     => Some(Unhandled(byte)),
+                JsrW    => Some(Unhandled(byte)),
+                Ret     => Some(Unhandled(byte)),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
