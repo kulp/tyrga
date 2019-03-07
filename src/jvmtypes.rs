@@ -291,10 +291,10 @@ pub struct AddressedOperation {
 
 // returns any Operation parsed and the number of bytes consumed
 fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
+    use ArithmeticOperation::*;
     use JType::*;
     use JvmOps::*;
     use Operation::*;
-    use ArithmeticOperation::*;
 
     let byte = stream[0];
     return match JvmOps::from_u8(byte) {
