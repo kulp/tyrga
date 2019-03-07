@@ -562,6 +562,8 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                 JsrW    => Some(Unhandled(byte)),
                 Ret     => Some(Unhandled(byte)),
 
+                Tableswitch     => Some(Unhandled(byte)),
+
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
             };
