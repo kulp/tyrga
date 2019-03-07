@@ -594,3 +594,16 @@ fn test_get_op() {
     }
 }
 
+#[test]
+#[should_panic(expected = "expected 20")]
+fn test_tableswitch() {
+    let mut arr = vec![ JvmOps::Tableswitch as u8 ];
+    for _ in 1..18 { arr.push(0) }
+    let v = decode_op(&arr, 0);
+    match v {
+        (Some(Operation::Unhandled(_)), 0) => {},
+            (Some(_), x) => assert!(x != 0),
+            _ => panic!("unhandled"),
+    };
+}
+
