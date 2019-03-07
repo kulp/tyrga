@@ -377,33 +377,30 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     => 3,
                 JsrW
                     => 4,
-                Tableswitch
+                Tableswitch | Lookupswitch
                     => {
                         let padding = ((4 - ((addr + 1) & 3)) & 3) as usize;
                         let need = 1 + padding + 4 * 3;
                         if stream.len() < need {
                             panic!("ran out of bytes in stream during {:?}", code);
                         }
-                        let def  = &stream[1 + padding..];
-                        let low  = &def[4..];
-                        let high = &low[4..];
-                        let low  = signed32(low);
-                        let high = signed32(high);
-                        let count = (high - low + 1) as usize;
+                        let def = &stream[1 + padding..];
+                        let count = match code {
+                            Tableswitch => {
+                                let low  = &def[4..];
+                                let high = &low[4..];
+                                let low  = signed32(low);
+                                let high = signed32(high);
+                                (high - low + 1) as usize
+                            },
+                            Lookupswitch => {
+                                let npairs = &def[4..];
+                                signed32(npairs) as usize
+                            },
+                            _ => unreachable!(),
+                        };
                         need + count * 4
-                    }
-                Lookupswitch
-                    => {
-                        let padding = ((4 - ((addr + 1) & 3)) & 3) as usize;
-                        let need = 1 + padding + 4 * 2;
-                        if stream.len() < need {
-                            panic!("ran out of bytes in stream during {:?}", code);
-                        }
-                        let def  = &stream[1 + padding..];
-                        let npairs = &def[4..];
-                        let count = signed32(npairs) as usize;
-                        need + count * 4
-                    }
+                    },
 
                 _
                     => 0,
