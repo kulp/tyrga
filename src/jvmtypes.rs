@@ -303,6 +303,8 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
     use JvmOps::*;
     use Operation::*;
 
+    let signed16 = |x : &[u8]| ((x[0] as i16) << 8) | x[1] as i16;
+
     let byte = stream[0];
     return match JvmOps::from_u8(byte) {
         None => (None, 0),
@@ -377,7 +379,7 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                 Bipush
                     => Some(Constant { kind : Int, value : stream[1] as i32 }),
                 Sipush
-                    => Some(Constant { kind : Int, value : (((stream[1] as i16) << 8) | stream[2] as i16) as i32 }),
+                    => Some(Constant { kind : Int, value : signed16(&stream[1..]) as i32 }),
                 Ldc | LdcW | Ldc2W
                     => Some(Unhandled(byte)),
 
