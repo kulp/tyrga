@@ -311,6 +311,12 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
     use Operation::*;
 
     let signed16 = |x : &[u8]| ((x[0] as i16) << 8) | x[1] as i16;
+    let signed32 =
+        |x : &[u8]|
+            ((x[0] as i32) << 24)
+          | ((x[1] as i32) << 16)
+          | ((x[2] as i32) <<  8)
+          | ((x[3] as i32) <<  0);
 
     let byte = stream[0];
     return match JvmOps::from_u8(byte) {
@@ -369,6 +375,21 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     => 3,
                 JsrW
                     => 4,
+                Tableswitch
+                    => {
+                        let padding = ((4 - ((addr + 1) & 3)) & 3) as usize;
+                        let need = 1 + padding + 4 * 3;
+                        if stream.len() < need {
+                            panic!("ran out of bytes in stream during {:?}", code);
+                        }
+                        let def  = &stream[1 + padding..];
+                        let low  = &def[4..];
+                        let high = &low[4..];
+                        let low  = signed32(low);
+                        let high = signed32(high);
+                        let count = (high - low + 1) as usize;
+                        need + count * 4
+                    }
                 _
                     => 0,
             };
@@ -558,7 +579,8 @@ fn test_get_op() {
 
     for b in 0..=255 {
         if let Some(_) = JvmOps::from_u8(b){
-            let arr = vec![ b, 0u8, 0u8, 0u8, 0u8, 0u8 ];
+            let mut arr = vec![ b ];
+            for _ in 1..20 { arr.push(0) }
             let addr = 0; // TODO
             let v = decode_op(&arr, addr);
             match v {
