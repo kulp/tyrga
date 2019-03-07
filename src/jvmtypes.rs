@@ -303,7 +303,7 @@ pub struct AddressedOperation {
 }
 
 // returns any Operation parsed and the number of bytes consumed
-fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
+fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
     use ArithmeticOperation::*;
     use JType::*;
     use JvmOps::*;
@@ -554,12 +554,13 @@ fn test_get_op() {
     use JvmOps::*;
 
     assert_eq!((Some(Operation::Constant { kind : Int, value : 3 }), 1),
-                decode_op(&vec![ Iconst3 as u8 ]));
+                decode_op(&vec![ Iconst3 as u8 ], 0));
 
     for b in 0..=255 {
         if let Some(_) = JvmOps::from_u8(b){
             let arr = vec![ b, 0u8, 0u8, 0u8, 0u8, 0u8 ];
-            let v = decode_op(&arr);
+            let addr = 0; // TODO
+            let v = decode_op(&arr, addr);
             match v {
                 (Some(Operation::Unhandled(_)), 0) => {},
                 (Some(_), x) => assert!(x != 0),
