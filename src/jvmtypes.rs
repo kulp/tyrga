@@ -362,6 +362,8 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                     | LdcW | Ldc2W
                     | Iinc
                     | Ifeq | Ifne | Iflt | Ifge | Ifgt | Ifle
+                    | IfIcmpeq | IfIcmpne | IfIcmplt | IfIcmpge | IfIcmpgt | IfIcmple
+                    | IfAcmpeq | IfAcmpne
                     => 3,
                 _
                     => 0,
@@ -518,6 +520,15 @@ fn decode_op(stream : &[u8]) -> (Option<Operation>, usize) {
                 Ifge    => Some(Branch { kind : Int, way : Comparison::Ge, ops : _1, reltarget : signed16(&stream[1..]) }),
                 Ifgt    => Some(Branch { kind : Int, way : Comparison::Gt, ops : _1, reltarget : signed16(&stream[1..]) }),
                 Ifle    => Some(Branch { kind : Int, way : Comparison::Le, ops : _1, reltarget : signed16(&stream[1..]) }),
+
+                IfIcmpeq    => Some(Branch { kind : Int   , way : Comparison::Eq, ops : _2, reltarget : signed16(&stream[1..]) }),
+                IfIcmpne    => Some(Branch { kind : Int   , way : Comparison::Ne, ops : _2, reltarget : signed16(&stream[1..]) }),
+                IfIcmplt    => Some(Branch { kind : Int   , way : Comparison::Lt, ops : _2, reltarget : signed16(&stream[1..]) }),
+                IfIcmpge    => Some(Branch { kind : Int   , way : Comparison::Ge, ops : _2, reltarget : signed16(&stream[1..]) }),
+                IfIcmpgt    => Some(Branch { kind : Int   , way : Comparison::Gt, ops : _2, reltarget : signed16(&stream[1..]) }),
+                IfIcmple    => Some(Branch { kind : Int   , way : Comparison::Le, ops : _2, reltarget : signed16(&stream[1..]) }),
+                IfAcmpeq    => Some(Branch { kind : Object, way : Comparison::Eq, ops : _2, reltarget : signed16(&stream[1..]) }),
+                IfAcmpne    => Some(Branch { kind : Object, way : Comparison::Ne, ops : _2, reltarget : signed16(&stream[1..]) }),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
