@@ -225,6 +225,7 @@ pub enum JType {
     Byte,
     Char,
     Short,
+    Void,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -360,6 +361,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | F2i | F2l | F2d | D2i | D2l | D2f
                     | I2b | I2c | I2s
                     | Lcmp | Fcmpl | Fcmpg | Dcmpl | Dcmpg
+                    | Ireturn | Lreturn | Freturn | Dreturn | Areturn | Return
                     => 1,
                 Bipush
                     | Ldc
@@ -574,6 +576,13 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
 
                 Tableswitch     => Some(Unhandled(byte)),
                 Lookupswitch    => Some(Unhandled(byte)),
+
+                Ireturn => Some(Yield { kind : Int    }),
+                Lreturn => Some(Yield { kind : Long   }),
+                Freturn => Some(Yield { kind : Float  }),
+                Dreturn => Some(Yield { kind : Double }),
+                Areturn => Some(Yield { kind : Object }),
+                Return  => Some(Yield { kind : Void   }),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
