@@ -422,7 +422,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | Goto | Jsr
                     | Getstatic | Putstatic | Getfield | Putfield
                     | Invokespecial | Invokestatic | Invokevirtual
-                    | New
+                    | New | Anewarray
                     => 3,
                 JsrW
                     => 4,
@@ -646,6 +646,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
 
                 New => Some(Allocation { index : unsigned16(&stream[1..]) }),
                 Newarray => Some(ArrayAlloc { kind : ArrayKind::from_u8(stream[1]).unwrap() }),
+                Anewarray => Some(Unhandled(byte)),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
