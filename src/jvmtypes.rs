@@ -299,6 +299,7 @@ pub enum InvokeKind {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
+    Allocation  { index : u16 },
     Arithmetic  { kind : JType, op : ArithmeticOperation },
     Branch      { kind : JType, ops : OperandCount, way : Comparison, target : u16 },
     Compare     { kind : JType, nans : Option<NanComparisons> },
@@ -404,6 +405,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | Goto | Jsr
                     | Getstatic | Putstatic | Getfield | Putfield
                     | Invokespecial | Invokestatic | Invokevirtual
+                    | New
                     => 3,
                 JsrW
                     => 4,
@@ -624,6 +626,8 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                 Invokestatic    => Some(Invocation { kind : Static   , index : unsigned16(&stream[1..]), count : 0         }),
                 Invokeinterface => Some(Invocation { kind : Interface, index : unsigned16(&stream[1..]), count : stream[3] }),
                 Invokedynamic   => Some(Invocation { kind : Dynamic  , index : unsigned16(&stream[1..]), count : 0         }),
+
+                New => Some(Allocation { index : unsigned16(&stream[1..]) }),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
