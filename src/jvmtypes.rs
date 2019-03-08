@@ -289,12 +289,22 @@ pub enum VarKind {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
+pub enum InvokeKind {
+    Dynamic,
+    Interface,
+    Special,
+    Static,
+    Virtual,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
     Arithmetic  { kind : JType, op : ArithmeticOperation },
     Branch      { kind : JType, ops : OperandCount, way : Comparison, target : u16 },
     Compare     { kind : JType, nans : Option<NanComparisons> },
     Constant    { kind : JType, value : i32 },
     Conversion  { from : JType, to : JType },
+    Invocation  { kind : InvokeKind, index : u16, count : u8 },
     Jump        { target : u16 },
     Leave,      /* i.e. void return */
     Length,     /* i.e. arraylength */
@@ -320,12 +330,14 @@ pub struct AddressedOperation {
 // returns any Operation parsed and the number of bytes consumed
 fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
     use ArithmeticOperation::*;
+    use InvokeKind::*;
     use JType::*;
     use JvmOps::*;
     use OperandCount::*;
     use Operation::*;
 
-    let signed16 = |x : &[u8]| ((x[0] as i16) << 8) | x[1] as i16;
+    let signed16   = |x : &[u8]| ((x[0] as i16) << 8) | x[1] as i16;
+    let unsigned16 = |x : &[u8]| ((x[0] as u16) << 8) | x[1] as u16;
     let signed32 =
         |x : &[u8]|
             ((x[0] as i32) << 24)
@@ -391,9 +403,12 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | IfAcmpeq | IfAcmpne
                     | Goto | Jsr
                     | Getstatic | Putstatic | Getfield | Putfield
+                    | Invokespecial | Invokestatic | Invokevirtual
                     => 3,
                 JsrW
                     => 4,
+                Invokeinterface | Invokedynamic
+                    => 5,
                 Tableswitch | Lookupswitch
                     => {
                         let padding = ((4 - ((addr + 1) & 3)) & 3) as usize;
@@ -603,6 +618,12 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                 Putstatic   => Some(VarAction { op : VarOp::Put, kind : VarKind::Static }),
                 Getfield    => Some(VarAction { op : VarOp::Get, kind : VarKind::Field  }),
                 Putfield    => Some(VarAction { op : VarOp::Put, kind : VarKind::Field  }),
+
+                Invokevirtual   => Some(Invocation { kind : Virtual  , index : unsigned16(&stream[1..]), count : 0         }),
+                Invokespecial   => Some(Invocation { kind : Special  , index : unsigned16(&stream[1..]), count : 0         }),
+                Invokestatic    => Some(Invocation { kind : Static   , index : unsigned16(&stream[1..]), count : 0         }),
+                Invokeinterface => Some(Invocation { kind : Interface, index : unsigned16(&stream[1..]), count : stream[3] }),
+                Invokedynamic   => Some(Invocation { kind : Dynamic  , index : unsigned16(&stream[1..]), count : 0         }),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
