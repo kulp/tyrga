@@ -297,10 +297,26 @@ pub enum InvokeKind {
     Virtual,
 }
 
+enum_from_primitive! {
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum ArrayKind {
+    Boolean = 4,
+    Char    = 5,
+    Float   = 6,
+    Double  = 7,
+    Byte    = 8,
+    Short   = 9,
+    Int     = 10,
+    Long    = 11,
+}
+}
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
     Allocation  { index : u16 },
     Arithmetic  { kind : JType, op : ArithmeticOperation },
+    ArrayAlloc  { kind : ArrayKind },
     Branch      { kind : JType, ops : OperandCount, way : Comparison, target : u16 },
     Compare     { kind : JType, nans : Option<NanComparisons> },
     Constant    { kind : JType, value : i32 },
@@ -395,6 +411,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | Iload | Lload | Fload | Dload | Aload
                     | Istore | Lstore | Fstore | Dstore | Astore
                     | Ret
+                    | Newarray
                     => 2,
                 Sipush
                     | LdcW | Ldc2W
@@ -628,6 +645,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                 Invokedynamic   => Some(Invocation { kind : Dynamic  , index : unsigned16(&stream[1..]), count : 0         }),
 
                 New => Some(Allocation { index : unsigned16(&stream[1..]) }),
+                Newarray => Some(ArrayAlloc { kind : ArrayKind::from_u8(stream[1]).unwrap() }),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
@@ -647,10 +665,14 @@ fn test_get_op() {
                 decode_op(&vec![ Iconst3 as u8 ], 0));
 
     for b in 0..=255 {
-        if let Some(_) = JvmOps::from_u8(b){
+        if let Some(name) = JvmOps::from_u8(b){
             let mut arr = vec![ b ];
             for _ in 1..20 { arr.push(0) }
             let addr = 0; // TODO
+            match name {
+                Newarray => arr[1] = ArrayKind::Boolean as u8,
+                _ => {},
+            };
             let v = decode_op(&arr, addr);
             match v {
                 (Some(Operation::Unhandled(_)), 0) => {},
