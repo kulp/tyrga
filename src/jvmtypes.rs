@@ -405,6 +405,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | I2b | I2c | I2s
                     | Lcmp | Fcmpl | Fcmpg | Dcmpl | Dcmpg
                     | Ireturn | Lreturn | Freturn | Dreturn | Areturn | Return
+                    | Arraylength
                     => 1,
                 Bipush
                     | Ldc
@@ -647,6 +648,8 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                 New => Some(Allocation { index : unsigned16(&stream[1..]) }),
                 Newarray => Some(ArrayAlloc { kind : ArrayKind::from_u8(stream[1]).unwrap() }),
                 Anewarray => Some(Unhandled(byte)),
+
+                Arraylength => Some(Length),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
