@@ -292,8 +292,8 @@ pub enum VarKind {
 pub enum Operation {
     Arithmetic  { kind : JType, op : ArithmeticOperation },
     Branch      { kind : JType, ops : OperandCount, way : Comparison, target : u16 },
-    Constant    { kind : JType, value : i32 },
     Compare     { kind : JType, nans : Option<NanComparisons> },
+    Constant    { kind : JType, value : i32 },
     Conversion  { from : JType, to : JType },
     Jump        { target : u16 },
     Leave,      /* i.e. void return */
@@ -305,8 +305,8 @@ pub enum Operation {
     StoreArray  (JType),
     StoreLocal  { kind : JType, index : u8 },
     Subtract    { kind : JType },
-    Yield       { kind : JType }, /* i.e. return */
     VarAction   { op : VarOp, kind : VarKind },
+    Yield       { kind : JType }, /* i.e. return */
 
     Unhandled   (u8),
 }
