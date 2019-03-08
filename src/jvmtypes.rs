@@ -277,6 +277,18 @@ pub enum OperandCount {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
+pub enum VarOp {
+    Get,
+    Put,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum VarKind {
+    Static,
+    Field,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
     Arithmetic  { kind : JType, op : ArithmeticOperation },
     Branch      { kind : JType, ops : OperandCount, way : Comparison, target : u16 },
@@ -294,6 +306,8 @@ pub enum Operation {
     StoreLocal  { kind : JType, index : u8 },
     Subtract    { kind : JType },
     Yield       { kind : JType }, /* i.e. return */
+    VarAction   { op : VarOp, kind : VarKind },
+
     Unhandled   (u8),
 }
 
@@ -376,6 +390,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | IfIcmpeq | IfIcmpne | IfIcmplt | IfIcmpge | IfIcmpgt | IfIcmple
                     | IfAcmpeq | IfAcmpne
                     | Goto | Jsr
+                    | Getstatic | Putstatic | Getfield | Putfield
                     => 3,
                 JsrW
                     => 4,
@@ -583,6 +598,11 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                 Dreturn => Some(Yield { kind : Double }),
                 Areturn => Some(Yield { kind : Object }),
                 Return  => Some(Yield { kind : Void   }),
+
+                Getstatic   => Some(VarAction { op : VarOp::Get, kind : VarKind::Static }),
+                Putstatic   => Some(VarAction { op : VarOp::Put, kind : VarKind::Static }),
+                Getfield    => Some(VarAction { op : VarOp::Get, kind : VarKind::Field  }),
+                Putfield    => Some(VarAction { op : VarOp::Put, kind : VarKind::Field  }),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
