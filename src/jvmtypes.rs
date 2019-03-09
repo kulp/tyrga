@@ -457,6 +457,17 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                         };
                         need + count * 4
                     },
+                Wide
+                    => match JvmOps::from_u8(stream[1]).expect("bad opcode") {
+                        Ret
+                            | Iload  | Fload  | Aload  | Lload  | Dload
+                            | Istore | Fstore | Astore | Lstore | Dstore
+                            => 4,
+                        Iinc
+                            => 6,
+                        _
+                            => panic!("unexpected opcode in {:?}", code),
+                    },
 
                 _
                     => 0,
@@ -660,6 +671,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | Instanceof
                     | Monitorenter
                     | Monitorexit
+                    | Wide
                     => Some(Unhandled(byte)),
 
                 _
@@ -686,6 +698,7 @@ fn test_get_op() {
             let addr = 0; // TODO
             match name {
                 Newarray => arr[1] = ArrayKind::Boolean as u8,
+                Wide => arr[1] = Iload as u8,
                 _ => {},
             };
             let v = decode_op(&arr, addr);
