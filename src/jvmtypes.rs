@@ -702,14 +702,13 @@ fn test_get_op() {
         if let Some(name) = JvmOps::from_u8(b){
             let mut arr = vec![ b ];
             for _ in 1..20 { arr.push(0) }
-            let addr = 0; // TODO
             match name {
                 Newarray => arr[1] = ArrayKind::Boolean as u8,
                 Wide => arr[1] = Iload as u8,
                 Breakpoint | Impdep1 | Impdep2 => continue,
                 _ => {},
             };
-            let v = decode_op(&arr, addr);
+            let v = decode_op(&arr, 0);
             match v {
                 (Some(Operation::Unhandled(_)), 0) => {},
                 (Some(_), x) => assert!(x != 0),
