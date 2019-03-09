@@ -681,8 +681,8 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                 Ifnull      => Some(Branch { kind : Object, way : Comparison::Eq, ops : _1, target : target(signed16(&stream[1..])) }),
                 Ifnonnull   => Some(Branch { kind : Object, way : Comparison::Ne, ops : _1, target : target(signed16(&stream[1..])) }),
 
-                _
-                    => Some(Unhandled(byte)), // TODO eventually unreachable!()
+                Breakpoint | Impdep1 | Impdep2
+                    => panic!("invalid opcode {:?} found", code),
             };
 
             (opt, consumed)
@@ -706,6 +706,7 @@ fn test_get_op() {
             match name {
                 Newarray => arr[1] = ArrayKind::Boolean as u8,
                 Wide => arr[1] = Iload as u8,
+                Breakpoint | Impdep1 | Impdep2 => continue,
                 _ => {},
             };
             let v = decode_op(&arr, addr);
@@ -730,4 +731,25 @@ fn test_tableswitch() {
             _ => panic!("unhandled"),
     };
 }
+
+#[cfg(test)]
+fn test_invalids(op : JvmOps) {
+    match decode_op(&vec![ op as u8 ], 0) {
+        (Some(Operation::Unhandled(_)), 0) => {},
+            (Some(_), x) => assert!(x != 0),
+            _ => panic!("unhandled"),
+    };
+}
+
+#[test]
+#[should_panic(expected = "invalid opcode Breakpoint found")]
+fn test_breakpoint() { test_invalids(JvmOps::Breakpoint) }
+
+#[test]
+#[should_panic(expected = "invalid opcode Impdep1 found")]
+fn test_impdep1() { test_invalids(JvmOps::Impdep1) }
+
+#[test]
+#[should_panic(expected = "invalid opcode Impdep2 found")]
+fn test_impdep2() { test_invalids(JvmOps::Impdep2) }
 
