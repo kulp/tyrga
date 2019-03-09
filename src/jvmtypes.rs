@@ -430,6 +430,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | Monitorenter | Monitorexit
                     => 3,
                 JsrW
+                    | Multianewarray
                     => 4,
                 Invokeinterface | Invokedynamic
                     => 5,
@@ -672,6 +673,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | Monitorenter
                     | Monitorexit
                     | Wide
+                    | Multianewarray
                     => Some(Unhandled(byte)),
 
                 _
