@@ -428,6 +428,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | Checkcast
                     | Instanceof
                     | Monitorenter | Monitorexit
+                    | Ifnull | Ifnonnull
                     => 3,
                 JsrW
                     | Multianewarray
@@ -675,6 +676,9 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | Wide
                     | Multianewarray
                     => Some(Unhandled(byte)),
+
+                Ifnull      => Some(Branch { kind : Object, way : Comparison::Eq, ops : _1, target : target(signed16(&stream[1..])) }),
+                Ifnonnull   => Some(Branch { kind : Object, way : Comparison::Ne, ops : _1, target : target(signed16(&stream[1..])) }),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
