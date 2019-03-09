@@ -430,11 +430,10 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | Monitorenter | Monitorexit
                     | Ifnull | Ifnonnull
                     => 3,
-                JsrW
-                    | Multianewarray
+                Multianewarray
                     => 4,
                 Invokeinterface | Invokedynamic
-                    | GotoW
+                    | JsrW | GotoW
                     => 5,
                 Tableswitch | Lookupswitch
                     => {
