@@ -406,6 +406,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | Lcmp | Fcmpl | Fcmpg | Dcmpl | Dcmpg
                     | Ireturn | Lreturn | Freturn | Dreturn | Areturn | Return
                     | Arraylength
+                    | Athrow
                     => 1,
                 Bipush
                     | Ldc
@@ -424,6 +425,9 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | Getstatic | Putstatic | Getfield | Putfield
                     | Invokespecial | Invokestatic | Invokevirtual
                     | New | Anewarray
+                    | Checkcast
+                    | Instanceof
+                    | Monitorenter | Monitorexit
                     => 3,
                 JsrW
                     => 4,
@@ -650,6 +654,13 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                 Anewarray => Some(Unhandled(byte)),
 
                 Arraylength => Some(Length),
+
+                Athrow
+                    | Checkcast
+                    | Instanceof
+                    | Monitorenter
+                    | Monitorexit
+                    => Some(Unhandled(byte)),
 
                 _
                     => Some(Unhandled(byte)), // TODO eventually unreachable!()
