@@ -1,8 +1,23 @@
+use std::error::Error;
+use std::fs;
+use std::path::Path;
 use std::process::Command;
 
-fn main() {
-    Command::new("make")
-        .args(&["-C", "test"])
-        .status()
-        .expect("failed to build test artifacts");
+fn main() -> Result<(), Box<Error>> {
+    let test_dir = "test";
+    let out_dir = std::env::var("OUT_DIR").unwrap();
+
+    for entry in fs::read_dir(Path::new(test_dir))? {
+        let path = entry?.path();
+        let name = &path.to_str().unwrap();
+        if name.ends_with(".java") {
+            Command::new("javac")
+                .args(&[ "-d", &out_dir ])
+                .arg("-g:none")
+                .arg(name)
+                .status()?;
+        }
+    }
+
+    Ok(())
 }

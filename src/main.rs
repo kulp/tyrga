@@ -11,7 +11,7 @@ fn test_parse_first_method() {
     use classfile_parser::parse_class;
     use classfile_parser::attribute_info::code_attribute_parser;
 
-    let name = "test/Nest";
+    let name = concat!(env!("OUT_DIR"), "/Nest");
     let class = parse_class(name).unwrap();
     let method = &class.methods[1];
     let c = &method.attributes[0].info;
