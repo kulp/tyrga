@@ -434,6 +434,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | Multianewarray
                     => 4,
                 Invokeinterface | Invokedynamic
+                    | GotoW
                     => 5,
                 Tableswitch | Lookupswitch
                     => {
@@ -637,6 +638,7 @@ fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                 IfAcmpne    => Some(Branch { kind : Object, way : Comparison::Ne, ops : _2, target : target(signed16(&stream[1..])) }),
 
                 Goto    => Some(Jump { target : target(signed16(&stream[1..])) }),
+                GotoW   => Some(Unhandled(byte)),
                 Jsr     => Some(Unhandled(byte)),
                 JsrW    => Some(Unhandled(byte)),
                 Ret     => Some(Unhandled(byte)),
