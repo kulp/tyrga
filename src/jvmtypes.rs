@@ -345,7 +345,7 @@ pub struct AddressedOperation {
 }
 
 // returns any Operation parsed and the number of bytes consumed
-fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
+pub fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
     use ArithmeticOperation::*;
     use InvokeKind::*;
     use JType::*;
