@@ -6,6 +6,19 @@ mod tenyr;
 
 use jvmtypes::*;
 
+fn parse_method(code : &[u8]) -> Vec<Operation> {
+    let mut vec = Vec::new();
+    let mut addr = 0;
+    while code[addr..].len() > 0 {
+        let (op, consumed) = decode_op(&code[addr..], addr as u16);
+        assert!(consumed > 0, "no progress made while parsing");
+        vec.push(op.expect("need opcode"));
+        addr += consumed;
+    }
+
+    vec
+}
+
 #[test]
 fn test_parse_first_method() {
     use classfile_parser::parse_class;
@@ -17,15 +30,7 @@ fn test_parse_first_method() {
     let c = &method.attributes[0].info;
     let code = code_attribute_parser(c).to_result().unwrap().code;
 
-    let mut vec = Vec::new();
-    let mut addr = 0;
-    while code[addr..].len() > 0 {
-        let (op, consumed) = decode_op(&code[addr..], addr as u16);
-        assert!(consumed > 0);
-        vec.push(op.expect("need op"));
-        addr += consumed;
-    }
-
+    let vec = parse_method(&code);
     assert_eq!(vec.len(), 41);
 }
 
