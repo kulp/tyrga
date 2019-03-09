@@ -1,4 +1,5 @@
 language: rust
+dist: xenial # for JDK
 addons:
   apt:
     packages:
