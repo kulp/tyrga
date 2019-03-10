@@ -36,7 +36,13 @@ fn test_parse_first_method(stem : &str) {
     assert!(vec.len() > 0);
 }
 
-#[test] fn test_parse_nest() { test_parse_first_method("Nest") }
+#[test] fn test_parse_except() { test_parse_first_method("Except") }
+#[test] fn test_parse_expr()   { test_parse_first_method("Expr") }
+#[test] fn test_parse_gcd()    { test_parse_first_method("GCD") }
+#[test] fn test_parse_nest()   { test_parse_first_method("Nest") }
+#[test] fn test_parse_sieve()  { test_parse_first_method("Sieve") }
+#[test] fn test_parse_switch() { test_parse_first_method("Switch") }
+#[test] fn test_parse_tiny()   { test_parse_first_method("Tiny") }
 
 fn main() {
 }
