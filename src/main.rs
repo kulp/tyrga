@@ -19,20 +19,24 @@ fn parse_method(code : &[u8]) -> Vec<Operation> {
     vec
 }
 
-#[test]
-fn test_parse_first_method() {
+#[cfg(test)]
+fn test_parse_first_method(stem : &str) {
     use classfile_parser::parse_class;
     use classfile_parser::attribute_info::code_attribute_parser;
 
-    let name = concat!(env!("OUT_DIR"), "/Nest");
+    let mut name = String::from(concat!(env!("OUT_DIR"), "/"));
+    name.push_str(stem);
+    let name = &name;
     let class = parse_class(name).unwrap();
     let method = &class.methods[1];
     let c = &method.attributes[0].info;
     let code = code_attribute_parser(c).to_result().unwrap().code;
 
     let vec = parse_method(&code);
-    assert_eq!(vec.len(), 41);
+    assert!(vec.len() > 0);
 }
+
+#[test] fn test_parse_nest() { test_parse_first_method("Nest") }
 
 fn main() {
 }
