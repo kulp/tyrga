@@ -20,7 +20,7 @@ fn parse_method(code : &[u8]) -> Vec<Operation> {
 }
 
 #[cfg(test)]
-fn test_parse_first_method(stem : &str) {
+fn test_parse_methods(stem : &str) {
     use classfile_parser::parse_class;
     use classfile_parser::attribute_info::code_attribute_parser;
 
@@ -28,21 +28,22 @@ fn test_parse_first_method(stem : &str) {
     name.push_str(stem);
     let name = &name;
     let class = parse_class(name).unwrap();
-    let method = &class.methods[1];
-    let c = &method.attributes[0].info;
-    let code = code_attribute_parser(c).to_result().unwrap().code;
+    for method in &class.methods {
+        let c = &method.attributes[0].info;
+        let code = code_attribute_parser(c).to_result().unwrap().code;
 
-    let vec = parse_method(&code);
-    assert!(vec.len() > 0);
+        let vec = parse_method(&code);
+        assert!(vec.len() > 0);
+    }
 }
 
-#[test] fn test_parse_except() { test_parse_first_method("Except") }
-#[test] fn test_parse_expr()   { test_parse_first_method("Expr") }
-#[test] fn test_parse_gcd()    { test_parse_first_method("GCD") }
-#[test] fn test_parse_nest()   { test_parse_first_method("Nest") }
-#[test] fn test_parse_sieve()  { test_parse_first_method("Sieve") }
-#[test] fn test_parse_switch() { test_parse_first_method("Switch") }
-#[test] fn test_parse_tiny()   { test_parse_first_method("Tiny") }
+#[test] fn test_parse_except() { test_parse_methods("Except") }
+#[test] fn test_parse_expr()   { test_parse_methods("Expr") }
+#[test] fn test_parse_gcd()    { test_parse_methods("GCD") }
+#[test] fn test_parse_nest()   { test_parse_methods("Nest") }
+#[test] fn test_parse_sieve()  { test_parse_methods("Sieve") }
+#[test] fn test_parse_switch() { test_parse_methods("Switch") }
+#[test] fn test_parse_tiny()   { test_parse_methods("Tiny") }
 
 fn main() {
 }
