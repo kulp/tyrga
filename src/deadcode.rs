@@ -1,8 +1,6 @@
 #![allow(dead_code)]
 
 use classfile_parser::constant_info::*;
-use crate::jvmtypes::*;
-use std::collections::HashMap;
 
 fn stringify(pool : &Vec<ConstantInfo>, index : u16) -> Result<String,&str> {
     let ci = &pool[(index - 1) as usize];
@@ -28,11 +26,5 @@ fn stringify(pool : &Vec<ConstantInfo>, index : u16) -> Result<String,&str> {
 
         _ => Err("Unsupported constant p item type"),
     };
-}
-
-fn emit_parsed(parsed : &Vec<AddressedOperation>, _map : &HashMap<u16,usize>) {
-    for &ref op in parsed {
-        println!("{:?}", op);
-    }
 }
 

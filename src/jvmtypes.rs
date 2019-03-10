@@ -338,12 +338,6 @@ pub enum Operation {
     Unhandled   (u8),
 }
 
-#[derive(Debug)]
-pub struct AddressedOperation {
-    pub address : u16,
-    pub op : Operation,
-}
-
 // returns any Operation parsed and the number of bytes consumed
 pub fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
     use ArithmeticOperation::*;
