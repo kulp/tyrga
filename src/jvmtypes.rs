@@ -614,21 +614,39 @@ pub fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                 Dcmpl   => Some(Compare { kind : Double, nans : Some(NanComparisons::Less   ) }),
                 Dcmpg   => Some(Compare { kind : Double, nans : Some(NanComparisons::Greater) }),
 
-                Ifeq    => Some(Branch { kind : Int, way : Comparison::Eq, ops : _1, target : target(signed16(&stream[1..])) }),
-                Ifne    => Some(Branch { kind : Int, way : Comparison::Ne, ops : _1, target : target(signed16(&stream[1..])) }),
-                Iflt    => Some(Branch { kind : Int, way : Comparison::Lt, ops : _1, target : target(signed16(&stream[1..])) }),
-                Ifge    => Some(Branch { kind : Int, way : Comparison::Ge, ops : _1, target : target(signed16(&stream[1..])) }),
-                Ifgt    => Some(Branch { kind : Int, way : Comparison::Gt, ops : _1, target : target(signed16(&stream[1..])) }),
-                Ifle    => Some(Branch { kind : Int, way : Comparison::Le, ops : _1, target : target(signed16(&stream[1..])) }),
+                Ifeq | Ifne | Iflt | Ifge | Ifgt | Ifle
+                    | IfIcmpeq | IfIcmpne | IfIcmplt | IfIcmpge | IfIcmpgt | IfIcmple | IfAcmpeq | IfAcmpne
+                    | Ifnull | Ifnonnull
+                    => {
+                        let kind = match code {
+                            IfAcmpeq | IfAcmpne | Ifnull | Ifnonnull => Object,
+                            _ => Int,
+                        };
+                        let target = target(signed16(&stream[1..]));
+                        use Comparison::*;
+                        match code {
+                            Ifeq    => Some(Branch { kind, way : Eq, ops : _1, target }),
+                            Ifne    => Some(Branch { kind, way : Ne, ops : _1, target }),
+                            Iflt    => Some(Branch { kind, way : Lt, ops : _1, target }),
+                            Ifge    => Some(Branch { kind, way : Ge, ops : _1, target }),
+                            Ifgt    => Some(Branch { kind, way : Gt, ops : _1, target }),
+                            Ifle    => Some(Branch { kind, way : Le, ops : _1, target }),
 
-                IfIcmpeq    => Some(Branch { kind : Int   , way : Comparison::Eq, ops : _2, target : target(signed16(&stream[1..])) }),
-                IfIcmpne    => Some(Branch { kind : Int   , way : Comparison::Ne, ops : _2, target : target(signed16(&stream[1..])) }),
-                IfIcmplt    => Some(Branch { kind : Int   , way : Comparison::Lt, ops : _2, target : target(signed16(&stream[1..])) }),
-                IfIcmpge    => Some(Branch { kind : Int   , way : Comparison::Ge, ops : _2, target : target(signed16(&stream[1..])) }),
-                IfIcmpgt    => Some(Branch { kind : Int   , way : Comparison::Gt, ops : _2, target : target(signed16(&stream[1..])) }),
-                IfIcmple    => Some(Branch { kind : Int   , way : Comparison::Le, ops : _2, target : target(signed16(&stream[1..])) }),
-                IfAcmpeq    => Some(Branch { kind : Object, way : Comparison::Eq, ops : _2, target : target(signed16(&stream[1..])) }),
-                IfAcmpne    => Some(Branch { kind : Object, way : Comparison::Ne, ops : _2, target : target(signed16(&stream[1..])) }),
+                            IfIcmpeq    => Some(Branch { kind, way : Eq, ops : _2, target }),
+                            IfIcmpne    => Some(Branch { kind, way : Ne, ops : _2, target }),
+                            IfIcmplt    => Some(Branch { kind, way : Lt, ops : _2, target }),
+                            IfIcmpge    => Some(Branch { kind, way : Ge, ops : _2, target }),
+                            IfIcmpgt    => Some(Branch { kind, way : Gt, ops : _2, target }),
+                            IfIcmple    => Some(Branch { kind, way : Le, ops : _2, target }),
+                            IfAcmpeq    => Some(Branch { kind, way : Eq, ops : _2, target }),
+                            IfAcmpne    => Some(Branch { kind, way : Ne, ops : _2, target }),
+
+                            Ifnull      => Some(Branch { kind, way : Eq, ops : _1, target }),
+                            Ifnonnull   => Some(Branch { kind, way : Ne, ops : _1, target }),
+
+                            _ => unreachable!(),
+                        }
+                    },
 
                 Goto    => Some(Jump { target : target(signed16(&stream[1..])) }),
                 GotoW   => Some(Unhandled(byte)),
@@ -671,9 +689,6 @@ pub fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                     | Wide
                     | Multianewarray
                     => Some(Unhandled(byte)),
-
-                Ifnull      => Some(Branch { kind : Object, way : Comparison::Eq, ops : _1, target : target(signed16(&stream[1..])) }),
-                Ifnonnull   => Some(Branch { kind : Object, way : Comparison::Ne, ops : _1, target : target(signed16(&stream[1..])) }),
 
                 Breakpoint | Impdep1 | Impdep2
                     => panic!("invalid opcode {:?} found", code),
