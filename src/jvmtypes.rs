@@ -344,7 +344,6 @@ pub fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
     use InvokeKind::*;
     use JType::*;
     use JvmOps::*;
-    use OperandCount::*;
     use Operation::*;
 
     let signed16   = |x : &[u8]| ((x[0] as i16) << 8) | x[1] as i16;
@@ -623,29 +622,32 @@ pub fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                             _ => Int,
                         };
                         let target = target(signed16(&stream[1..]));
-                        use Comparison::*;
-                        match code {
-                            Ifeq    => Some(Branch { kind, way : Eq, ops : _1, target }),
-                            Ifne    => Some(Branch { kind, way : Ne, ops : _1, target }),
-                            Iflt    => Some(Branch { kind, way : Lt, ops : _1, target }),
-                            Ifge    => Some(Branch { kind, way : Ge, ops : _1, target }),
-                            Ifgt    => Some(Branch { kind, way : Gt, ops : _1, target }),
-                            Ifle    => Some(Branch { kind, way : Le, ops : _1, target }),
+                        let way = {
+                            use Comparison::*;
+                            match code {
+                                Ifeq    |   IfIcmpeq    |   IfAcmpeq    |   Ifnull      => Eq,
+                                Ifne    |   IfIcmpne    |   IfAcmpne    |   Ifnonnull   => Ne,
+                                Iflt    |   IfIcmplt                                    => Lt,
+                                Ifge    |   IfIcmpge                                    => Ge,
+                                Ifgt    |   IfIcmpgt                                    => Gt,
+                                Ifle    |   IfIcmple                                    => Le,
 
-                            IfIcmpeq    => Some(Branch { kind, way : Eq, ops : _2, target }),
-                            IfIcmpne    => Some(Branch { kind, way : Ne, ops : _2, target }),
-                            IfIcmplt    => Some(Branch { kind, way : Lt, ops : _2, target }),
-                            IfIcmpge    => Some(Branch { kind, way : Ge, ops : _2, target }),
-                            IfIcmpgt    => Some(Branch { kind, way : Gt, ops : _2, target }),
-                            IfIcmple    => Some(Branch { kind, way : Le, ops : _2, target }),
-                            IfAcmpeq    => Some(Branch { kind, way : Eq, ops : _2, target }),
-                            IfAcmpne    => Some(Branch { kind, way : Ne, ops : _2, target }),
+                                _ => unreachable!(),
+                            }
+                        };
+                        let ops = {
+                            use OperandCount::{_1,_2};
+                            match code {
+                                Ifeq | Ifne | Iflt | Ifge | Ifgt | Ifle
+                                    | Ifnull | Ifnonnull
+                                    => _1,
+                                IfIcmpeq | IfIcmpne | IfIcmplt | IfIcmpge | IfIcmpgt | IfIcmple | IfAcmpeq | IfAcmpne
+                                    => _2,
+                                _ => unreachable!(),
+                            }
+                        };
 
-                            Ifnull      => Some(Branch { kind, way : Eq, ops : _1, target }),
-                            Ifnonnull   => Some(Branch { kind, way : Ne, ops : _1, target }),
-
-                            _ => unreachable!(),
-                        }
+                        Some(Branch { kind, way, ops, target })
                     },
 
                 Goto    => Some(Jump { target : target(signed16(&stream[1..])) }),
