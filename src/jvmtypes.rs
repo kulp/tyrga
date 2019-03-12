@@ -591,21 +591,31 @@ pub fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                 Ixor    => Some(Arithmetic { kind : Int   , op : Xor    }),
                 Lxor    => Some(Arithmetic { kind : Long  , op : Xor    }),
                 Iinc    => Some(Arithmetic { kind : Int   , op : Inc    }),
-                I2l     => Some(Conversion { from : Int   , to : Long   }),
-                I2f     => Some(Conversion { from : Int   , to : Float  }),
-                I2d     => Some(Conversion { from : Int   , to : Double }),
-                L2i     => Some(Conversion { from : Long  , to : Int    }),
-                L2f     => Some(Conversion { from : Long  , to : Float  }),
-                L2d     => Some(Conversion { from : Long  , to : Double }),
-                F2i     => Some(Conversion { from : Float , to : Int    }),
-                F2l     => Some(Conversion { from : Float , to : Long   }),
-                F2d     => Some(Conversion { from : Float , to : Double }),
-                D2i     => Some(Conversion { from : Double, to : Int    }),
-                D2l     => Some(Conversion { from : Double, to : Long   }),
-                D2f     => Some(Conversion { from : Double, to : Float  }),
-                I2b     => Some(Conversion { from : Int   , to : Byte   }),
-                I2c     => Some(Conversion { from : Int   , to : Char   }),
-                I2s     => Some(Conversion { from : Int   , to : Short  }),
+
+                I2l | I2f | I2d | L2i | L2f | L2d | F2i | F2l | F2d | D2i | D2l | D2f | I2b | I2c | I2s
+                    => {
+                        let from = match code {
+                            I2l | I2f | I2d | I2b | I2c | I2s => Int,
+                            L2i | L2f | L2d                   => Long,
+                            F2i | F2l | F2d                   => Float,
+                            D2i | D2l | D2f                   => Double,
+
+                            _ => unreachable!(),
+                        };
+                        let to = match code {
+                            I2b             => Byte,
+                            I2c             => Char,
+                            F2d | I2d | L2d => Double,
+                            D2f | I2f | L2f => Float,
+                            D2i | F2i | L2i => Int,
+                            D2l | F2l | I2l => Long,
+                            I2s             => Short,
+
+                            _ => unreachable!(),
+                        };
+
+                        Some(Conversion { from, to })
+                    },
 
                 Lcmp    => Some(Compare { kind : Long  , nans : None                          }),
                 Fcmpl   => Some(Compare { kind : Float , nans : Some(NanComparisons::Less   ) }),
