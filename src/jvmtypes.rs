@@ -340,7 +340,6 @@ pub enum Operation {
 
 // returns any Operation parsed and the number of bytes consumed
 pub fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
-    use ArithmeticOperation::*;
     use InvokeKind::*;
     use JType::*;
     use JvmOps::*;
@@ -554,43 +553,52 @@ pub fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                 Dup2X2  => Some(StackOp { op : StackOperation::DupX2, size : 2 }),
                 Swap    => Some(StackOp { op : StackOperation::Swap , size : 2 }),
 
-                Iadd    => Some(Arithmetic { kind : Int   , op : Add    }),
-                Ladd    => Some(Arithmetic { kind : Long  , op : Add    }),
-                Fadd    => Some(Arithmetic { kind : Float , op : Add    }),
-                Dadd    => Some(Arithmetic { kind : Double, op : Add    }),
-                Isub    => Some(Arithmetic { kind : Int   , op : Sub    }),
-                Lsub    => Some(Arithmetic { kind : Long  , op : Sub    }),
-                Fsub    => Some(Arithmetic { kind : Float , op : Sub    }),
-                Dsub    => Some(Arithmetic { kind : Double, op : Sub    }),
-                Imul    => Some(Arithmetic { kind : Int   , op : Mul    }),
-                Lmul    => Some(Arithmetic { kind : Long  , op : Mul    }),
-                Fmul    => Some(Arithmetic { kind : Float , op : Mul    }),
-                Dmul    => Some(Arithmetic { kind : Double, op : Mul    }),
-                Idiv    => Some(Arithmetic { kind : Int   , op : Div    }),
-                Ldiv    => Some(Arithmetic { kind : Long  , op : Div    }),
-                Fdiv    => Some(Arithmetic { kind : Float , op : Div    }),
-                Ddiv    => Some(Arithmetic { kind : Double, op : Div    }),
-                Irem    => Some(Arithmetic { kind : Int   , op : Rem    }),
-                Lrem    => Some(Arithmetic { kind : Long  , op : Rem    }),
-                Frem    => Some(Arithmetic { kind : Float , op : Rem    }),
-                Drem    => Some(Arithmetic { kind : Double, op : Rem    }),
-                Ineg    => Some(Arithmetic { kind : Int   , op : Neg    }),
-                Lneg    => Some(Arithmetic { kind : Long  , op : Neg    }),
-                Fneg    => Some(Arithmetic { kind : Float , op : Neg    }),
-                Dneg    => Some(Arithmetic { kind : Double, op : Neg    }),
-                Ishl    => Some(Arithmetic { kind : Int   , op : Shl    }),
-                Lshl    => Some(Arithmetic { kind : Long  , op : Shl    }),
-                Ishr    => Some(Arithmetic { kind : Int   , op : Shr    }),
-                Lshr    => Some(Arithmetic { kind : Long  , op : Shr    }),
-                Iushr   => Some(Arithmetic { kind : Int   , op : Ushr   }),
-                Lushr   => Some(Arithmetic { kind : Long  , op : Ushr   }),
-                Iand    => Some(Arithmetic { kind : Int   , op : And    }),
-                Land    => Some(Arithmetic { kind : Long  , op : And    }),
-                Ior     => Some(Arithmetic { kind : Int   , op : Or     }),
-                Lor     => Some(Arithmetic { kind : Long  , op : Or     }),
-                Ixor    => Some(Arithmetic { kind : Int   , op : Xor    }),
-                Lxor    => Some(Arithmetic { kind : Long  , op : Xor    }),
-                Iinc    => Some(Arithmetic { kind : Int   , op : Inc    }),
+                Iadd | Ladd | Fadd | Dadd
+                    | Isub | Lsub | Fsub | Dsub
+                    | Imul | Lmul | Fmul | Dmul
+                    | Idiv | Ldiv | Fdiv | Ddiv
+                    | Irem | Lrem | Frem | Drem
+                    | Ineg | Lneg | Fneg | Dneg
+                    | Ishl | Lshl
+                    | Ishr | Lshr
+                    | Iushr| Lushr
+                    | Iand | Land
+                    | Ior  | Lor
+                    | Ixor | Lxor
+                    | Iinc
+                    => {
+                        let kind = match code {
+                            Iadd | Isub | Imul | Idiv | Irem | Ineg
+                                | Ishl | Ishr | Iushr | Iand | Ior | Ixor | Iinc
+                                => JType::Int,
+                            Ladd | Lsub | Lmul | Ldiv | Lrem | Lneg
+                                | Lshl | Lshr | Lushr | Land | Lor | Lxor
+                                => JType::Long,
+                            Fadd | Fsub | Fmul | Fdiv | Frem | Fneg
+                                => JType::Float,
+                            Dadd | Dsub | Dmul | Ddiv | Drem | Dneg
+                                => JType::Double,
+
+                            _ => unreachable!(),
+                        };
+                        let op = match code {
+                            Iadd | Ladd | Fadd | Dadd => ArithmeticOperation::Add,
+                            Isub | Lsub | Fsub | Dsub => ArithmeticOperation::Sub,
+                            Imul | Lmul | Fmul | Dmul => ArithmeticOperation::Mul,
+                            Idiv | Ldiv | Fdiv | Ddiv => ArithmeticOperation::Div,
+                            Irem | Lrem | Frem | Drem => ArithmeticOperation::Rem,
+                            Ineg | Lneg | Fneg | Dneg => ArithmeticOperation::Neg,
+                            Ishl | Lshl               => ArithmeticOperation::Shl,
+                            Ishr | Lshr               => ArithmeticOperation::Shr,
+                            Iushr| Lushr              => ArithmeticOperation::Ushr,
+                            Iand | Land               => ArithmeticOperation::And,
+                            Ior  | Lor                => ArithmeticOperation::Or,
+                            Ixor | Lxor               => ArithmeticOperation::Xor,
+                            Iinc                      => ArithmeticOperation::Inc,
+                            _ => unreachable!(),
+                        };
+                        Some(Arithmetic { kind, op })
+                    },
 
                 I2l | I2f | I2d | L2i | L2f | L2d | F2i | F2l | F2d | D2i | D2l | D2f | I2b | I2c | I2s
                     => {
