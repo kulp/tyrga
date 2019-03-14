@@ -677,12 +677,20 @@ pub fn decode_op(stream : &[u8], addr : u16) -> (Option<Operation>, usize) {
                 Tableswitch     => Some(Unhandled(byte)),
                 Lookupswitch    => Some(Unhandled(byte)),
 
-                Ireturn => Some(Yield { kind : Int    }),
-                Lreturn => Some(Yield { kind : Long   }),
-                Freturn => Some(Yield { kind : Float  }),
-                Dreturn => Some(Yield { kind : Double }),
-                Areturn => Some(Yield { kind : Object }),
-                Return  => Some(Yield { kind : Void   }),
+                Ireturn | Lreturn | Freturn | Dreturn | Areturn | Return
+                    => {
+                        let kind = match code {
+                            Ireturn => Int,
+                            Lreturn => Long,
+                            Freturn => Float,
+                            Dreturn => Double,
+                            Areturn => Object,
+                            Return  => Void,
+
+                            _ => unreachable!(),
+                        };
+                        Some(Yield { kind })
+                    },
 
                 Getstatic   => Some(VarAction { op : VarOp::Get, kind : VarKind::Static }),
                 Putstatic   => Some(VarAction { op : VarOp::Put, kind : VarKind::Static }),
