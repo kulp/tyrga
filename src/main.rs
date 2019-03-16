@@ -6,14 +6,12 @@ mod tenyr;
 
 use jvmtypes::*;
 
-fn parse_method(code : &[u8]) -> Vec<Operation> {
+use classfile_parser::code_attribute::{code_parser, Instruction};
+
+fn parse_method(code : &[(usize, Instruction)]) -> Vec<Operation> {
     let mut vec = Vec::new();
-    let mut addr = 0;
-    while code[addr..].len() > 0 {
-        let (op, consumed) = decode_op(&code[addr..], addr as u16);
-        assert!(consumed > 0, "no progress made while parsing");
-        vec.push(op.expect("need opcode"));
-        addr += consumed;
+    for insn in code {
+        vec.push(decode_insn(&insn));
     }
 
     vec
@@ -32,7 +30,7 @@ fn test_parse_methods(stem : &str) {
         let c = &method.attributes[0].info;
         let (_, code) = code_attribute_parser(c).unwrap();
 
-        let vec = parse_method(&code.code);
+        let vec = parse_method(&code_parser(&code.code).unwrap().1);
         assert!(vec.len() > 0);
     }
 }
