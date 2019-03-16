@@ -8,13 +8,8 @@ use jvmtypes::*;
 
 use classfile_parser::code_attribute::{code_parser, Instruction};
 
-fn parse_method(code : &[(usize, Instruction)]) -> Vec<Operation> {
-    let mut vec = Vec::new();
-    for insn in code {
-        vec.push(decode_insn(&insn));
-    }
-
-    vec
+fn parse_method(mut code : Vec<(usize, Instruction)>) -> Vec<Operation> {
+    code.drain(..).map(decode_insn).collect()
 }
 
 #[cfg(test)]
@@ -30,7 +25,7 @@ fn test_parse_methods(stem : &str) {
         let c = &method.attributes[0].info;
         let (_, code) = code_attribute_parser(c).unwrap();
 
-        let vec = parse_method(&code_parser(&code.code).unwrap().1);
+        let vec = parse_method(code_parser(&code.code).unwrap().1);
         assert!(vec.len() > 0);
     }
 }

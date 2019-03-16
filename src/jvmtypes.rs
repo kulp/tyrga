@@ -128,15 +128,14 @@ pub enum Operation {
 }
 
 // returns any Operation parsed and the number of bytes consumed
-pub fn decode_insn(insn : &(usize, Instruction)) -> Operation {
+pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
     use JType::*;
     use Instruction::*;
     use Operation::*;
 
     let (addr, insn) = insn;
-    let addr = *addr;
 
-    return match *insn {
+    return match insn {
         Nop => Noop,
 
         Aconstnull => Constant { kind : Object, value :  0 },
@@ -157,7 +156,7 @@ pub fn decode_insn(insn : &(usize, Instruction)) -> Operation {
 
         Bipush(v) => Constant { kind : Int, value : v as i32 },
         Sipush(v) => Constant { kind : Int, value : v as i32 },
-        Ldc(_) | LdcW(_) | Ldc2W(_) => Unhandled(insn.clone()),
+        Ldc(_) | LdcW(_) | Ldc2W(_) => Unhandled(insn),
 
         Iload(index) => LoadLocal { kind : Int   , index },
         Lload(index) => LoadLocal { kind : Long  , index },
@@ -356,13 +355,13 @@ pub fn decode_insn(insn : &(usize, Instruction)) -> Operation {
             },
 
         Goto(off) => Jump { target : (addr as isize + off as isize) as u16 }, // TODO remove casts
-        GotoW(_)  => Unhandled(insn.clone()),
-        Jsr(_)    => Unhandled(insn.clone()),
-        JsrW(_)   => Unhandled(insn.clone()),
-        Ret(_)    => Unhandled(insn.clone()),
+        GotoW(_)  => Unhandled(insn),
+        Jsr(_)    => Unhandled(insn),
+        JsrW(_)   => Unhandled(insn),
+        Ret(_)    => Unhandled(insn),
 
-        Tableswitch { .. } => Unhandled(insn.clone()),
-        Lookupswitch { .. } => Unhandled(insn.clone()),
+        Tableswitch { .. } => Unhandled(insn),
+        Lookupswitch { .. } => Unhandled(insn),
 
         Ireturn | Lreturn | Freturn | Dreturn | Areturn | Return
             => {
@@ -392,7 +391,7 @@ pub fn decode_insn(insn : &(usize, Instruction)) -> Operation {
 
         New(index) => Allocation { index },
         Newarray(kind) => ArrayAlloc { kind : ArrayKind::from_u8(kind).unwrap() },
-        Anewarray(_) => Unhandled(insn.clone()),
+        Anewarray(_) => Unhandled(insn),
 
         Arraylength => Length,
 
@@ -414,7 +413,7 @@ pub fn decode_insn(insn : &(usize, Instruction)) -> Operation {
             | LloadWide(_)
             | LstoreWide(_)
             | RetWide(_)
-            => Unhandled(insn.clone()),
+            => Unhandled(insn),
     };
 }
 
