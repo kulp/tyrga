@@ -30,9 +30,9 @@ fn test_parse_methods(stem : &str) {
     let class = parse_class(name).unwrap();
     for method in &class.methods {
         let c = &method.attributes[0].info;
-        let code = code_attribute_parser(c).to_result().unwrap().code;
+        let (_, code) = code_attribute_parser(c).unwrap();
 
-        let vec = parse_method(&code);
+        let vec = parse_method(&code.code);
         assert!(vec.len() > 0);
     }
 }
