@@ -34,13 +34,24 @@ fn test_parse_methods(stem : &str) {
     }
 }
 
-#[test] fn test_parse_except() { test_parse_methods("Except") }
-#[test] fn test_parse_expr()   { test_parse_methods("Expr") }
-#[test] fn test_parse_gcd()    { test_parse_methods("GCD") }
-#[test] fn test_parse_nest()   { test_parse_methods("Nest") }
-#[test] fn test_parse_sieve()  { test_parse_methods("Sieve") }
-#[test] fn test_parse_switch() { test_parse_methods("Switch") }
-#[test] fn test_parse_tiny()   { test_parse_methods("Tiny") }
+#[cfg(test)]
+const CLASS_LIST : &[&'static str] = &[
+    "Except",
+    "Expr",
+    "GCD",
+    "Nest",
+    "Sieve",
+    "Switch",
+    "Tiny",
+];
+
+#[test]
+fn test_parse_classes()
+{
+    for name in CLASS_LIST {
+        test_parse_methods(name);
+    }
+}
 
 fn main() {
 }
