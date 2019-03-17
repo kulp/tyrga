@@ -41,7 +41,11 @@ fn test_stack_map_table(stem : &str) {
 
     let class = parse_class(stem);
     let get_constant = |n| &class.const_pool[n as usize - 1];
-    let name_of = |a : &AttributeInfo| { if let Utf8(u) = get_constant(a.attribute_name_index) { u.utf8_string.to_string() } else { panic!("not a name") } };
+    let name_of = |a : &AttributeInfo|
+        match get_constant(a.attribute_name_index) {
+            Utf8(u) => u.utf8_string.to_string(),
+            _ => panic!("not a name")
+        };
 
     let method = &class.methods.last().unwrap();
     let code = code_attribute_parser(&method.attributes[0].info).unwrap().1;
