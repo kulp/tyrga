@@ -6,6 +6,7 @@ mod tenyr;
 
 use jvmtypes::*;
 
+use classfile_parser::ClassFile;
 use classfile_parser::code_attribute::{code_parser, Instruction};
 
 fn parse_method(mut code : Vec<(usize, Instruction)>) -> Vec<Operation> {
@@ -13,15 +14,18 @@ fn parse_method(mut code : Vec<(usize, Instruction)>) -> Vec<Operation> {
 }
 
 #[cfg(test)]
-fn test_parse_methods(stem : &str) {
-    use classfile_parser::parse_class;
-    use classfile_parser::attribute_info::code_attribute_parser;
-
+fn parse_class(stem : &str) -> ClassFile {
     let mut name = String::from(concat!(env!("OUT_DIR"), "/"));
     name.push_str(stem);
     let name = &name;
-    let class = parse_class(name).unwrap();
-    for method in &class.methods {
+    classfile_parser::parse_class(name).unwrap()
+}
+
+#[cfg(test)]
+fn test_parse_methods(stem : &str) {
+    use classfile_parser::attribute_info::code_attribute_parser;
+
+    for method in &parse_class(stem).methods {
         let c = &method.attributes[0].info;
         let (_, code) = code_attribute_parser(c).unwrap();
 
