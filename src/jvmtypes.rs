@@ -356,7 +356,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
             },
 
         Goto(off) => Jump { target : (addr as isize + off as isize) as u16 }, // TODO remove casts
-        GotoW(_)  => Unhandled(insn),
+        GotoW(off) => Jump { target : (addr as isize + off as isize) as u16 }, // TODO remove casts
         Jsr(_)    => Unhandled(insn),
         JsrW(_)   => Unhandled(insn),
         Ret(_)    => Unhandled(insn),
