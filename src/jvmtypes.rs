@@ -110,7 +110,7 @@ pub enum Operation {
     Compare     { kind : JType, nans : Option<NanComparisons> },
     Constant    { kind : JType, value : i32 },
     Conversion  { from : JType, to : JType },
-    Increment   { index : u8, value : i8 },
+    Increment   { index : u16, value : i16 },
     Invocation  { kind : InvokeKind, index : u16, count : u8 },
     Jump        { target : u16 },
     Leave,      /* i.e. void return */
@@ -286,7 +286,8 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
                 Arithmetic { kind, op }
             },
 
-        Iinc { index, value } => Increment { index, value },
+        Iinc     { index, value } => Increment { index : index.into(), value : value.into() },
+        IincWide { index, value } => Increment { index, value },
 
         I2l | I2f | I2d | L2i | L2f | L2d | F2i | F2l | F2d | D2i | D2l | D2f | I2b | I2c | I2s
             => {
@@ -408,7 +409,6 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
             | DstoreWide(_)
             | FloadWide(_)
             | FstoreWide(_)
-            | IincWide { .. }
             | IloadWide(_)
             | IstoreWide(_)
             | LloadWide(_)
