@@ -136,7 +136,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
 
     let (addr, insn) = insn;
 
-    return match insn {
+    match insn {
         Nop => Noop,
 
         Aconstnull => Constant { kind : Object, value :  0 },
@@ -415,6 +415,6 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
             | LstoreWide(_)
             | RetWide(_)
             => Unhandled(insn),
-    };
+    }
 }
 
