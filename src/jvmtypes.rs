@@ -157,7 +157,6 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
 
         Bipush(v) => Constant { kind : Int, value : v as i32 },
         Sipush(v) => Constant { kind : Int, value : v as i32 },
-        Ldc(_) | LdcW(_) | Ldc2W(_) => Unhandled(insn),
 
         Iload(index) => LoadLocal { kind : Int   , index : index.into() },
         Lload(index) => LoadLocal { kind : Long  , index : index.into() },
@@ -370,9 +369,6 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
         Goto(off) => Jump { target : (addr as isize + off as isize) as u16 }, // TODO remove casts
         GotoW(off) => Jump { target : (addr as isize + off as isize) as u16 }, // TODO remove casts
 
-        Tableswitch { .. } => Unhandled(insn),
-        Lookupswitch { .. } => Unhandled(insn),
-
         Ireturn | Lreturn | Freturn | Dreturn | Areturn | Return
             => {
                 let kind = match insn {
@@ -409,10 +405,10 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
         Jsr(_) | JsrW(_) | Ret(_) | RetWide(_) => Unhandled(insn),
 
         Athrow
-            | Checkcast(_)
-            | Instanceof(_)
-            | Monitorenter
-            | Monitorexit
+            | Checkcast(_) | Instanceof(_)
+            | Monitorenter | Monitorexit
+            | Ldc(_) | LdcW(_) | Ldc2W(_)
+            | Tableswitch { .. } | Lookupswitch { .. }
             => Unhandled(insn),
     }
 }
