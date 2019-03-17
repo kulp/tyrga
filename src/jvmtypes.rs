@@ -401,7 +401,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
 
         New(index) => Allocation { index },
         Newarray(kind) => ArrayAlloc { kind : ArrayKind::from_u8(kind).unwrap() },
-        Anewarray(_) => Unhandled(insn),
+        Multianewarray { .. } | Anewarray(_) => Unhandled(insn),
 
         Arraylength => Length,
 
@@ -413,7 +413,6 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
             | Instanceof(_)
             | Monitorenter
             | Monitorexit
-            | Multianewarray { .. }
             => Unhandled(insn),
     }
 }
