@@ -369,9 +369,6 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
 
         Goto(off) => Jump { target : (addr as isize + off as isize) as u16 }, // TODO remove casts
         GotoW(off) => Jump { target : (addr as isize + off as isize) as u16 }, // TODO remove casts
-        Jsr(_)    => Unhandled(insn),
-        JsrW(_)   => Unhandled(insn),
-        Ret(_)    => Unhandled(insn),
 
         Tableswitch { .. } => Unhandled(insn),
         Lookupswitch { .. } => Unhandled(insn),
@@ -408,13 +405,15 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
 
         Arraylength => Length,
 
+        // We do not intend ever to handle Jsr and Ret
+        Jsr(_) | JsrW(_) | Ret(_) | RetWide(_) => Unhandled(insn),
+
         Athrow
             | Checkcast(_)
             | Instanceof(_)
             | Monitorenter
             | Monitorexit
             | Multianewarray { .. }
-            | RetWide(_)
             => Unhandled(insn),
     }
 }
