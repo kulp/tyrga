@@ -354,13 +354,12 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
                     }
                 };
                 let ops = {
-                    use OperandCount::{_1,_2};
                     match insn {
                         Ifeq(_) | Ifne(_) | Iflt(_) | Ifge(_) | Ifgt(_) | Ifle(_)
                             | Ifnull(_) | Ifnonnull(_)
-                            => _1,
+                            => OperandCount::_1,
                         IfIcmpeq(_) | IfIcmpne(_) | IfIcmplt(_) | IfIcmpge(_) | IfIcmpgt(_) | IfIcmple(_) | IfAcmpeq(_) | IfAcmpne(_)
-                            => _2,
+                            => OperandCount::_2,
                         _ => unreachable!(),
                     }
                 };
