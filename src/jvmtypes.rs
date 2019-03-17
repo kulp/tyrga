@@ -116,11 +116,11 @@ pub enum Operation {
     Leave,      /* i.e. void return */
     Length,     /* i.e. arraylength */
     LoadArray   (JType),
-    LoadLocal   { kind : JType, index : u8 },
+    LoadLocal   { kind : JType, index : u16 },
     Noop,
     StackOp     { size : u8, op : StackOperation },
     StoreArray  (JType),
-    StoreLocal  { kind : JType, index : u8 },
+    StoreLocal  { kind : JType, index : u16 },
     Subtract    { kind : JType },
     VarAction   { op : VarOp, kind : VarKind, index : u16 },
     Yield       { kind : JType }, /* i.e. return */
@@ -159,11 +159,17 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
         Sipush(v) => Constant { kind : Int, value : v as i32 },
         Ldc(_) | LdcW(_) | Ldc2W(_) => Unhandled(insn),
 
-        Iload(index) => LoadLocal { kind : Int   , index },
-        Lload(index) => LoadLocal { kind : Long  , index },
-        Fload(index) => LoadLocal { kind : Float , index },
-        Dload(index) => LoadLocal { kind : Double, index },
-        Aload(index) => LoadLocal { kind : Object, index },
+        Iload(index) => LoadLocal { kind : Int   , index : index.into() },
+        Lload(index) => LoadLocal { kind : Long  , index : index.into() },
+        Fload(index) => LoadLocal { kind : Float , index : index.into() },
+        Dload(index) => LoadLocal { kind : Double, index : index.into() },
+        Aload(index) => LoadLocal { kind : Object, index : index.into() },
+
+        IloadWide(index) => LoadLocal { kind : Int   , index },
+        LloadWide(index) => LoadLocal { kind : Long  , index },
+        FloadWide(index) => LoadLocal { kind : Float , index },
+        DloadWide(index) => LoadLocal { kind : Double, index },
+        AloadWide(index) => LoadLocal { kind : Object, index },
 
         Iload0 => LoadLocal { kind : Int   , index : 0 },
         Iload1 => LoadLocal { kind : Int   , index : 1 },
@@ -195,11 +201,17 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
         Caload => LoadArray(Char),
         Saload => LoadArray(Short),
 
-        Istore(index) => StoreLocal { kind : Int   , index },
-        Lstore(index) => StoreLocal { kind : Long  , index },
-        Fstore(index) => StoreLocal { kind : Float , index },
-        Dstore(index) => StoreLocal { kind : Double, index },
-        Astore(index) => StoreLocal { kind : Object, index },
+        Istore(index) => StoreLocal { kind : Int   , index : index.into() },
+        Lstore(index) => StoreLocal { kind : Long  , index : index.into() },
+        Fstore(index) => StoreLocal { kind : Float , index : index.into() },
+        Dstore(index) => StoreLocal { kind : Double, index : index.into() },
+        Astore(index) => StoreLocal { kind : Object, index : index.into() },
+
+        IstoreWide(index) => StoreLocal { kind : Int   , index },
+        LstoreWide(index) => StoreLocal { kind : Long  , index },
+        FstoreWide(index) => StoreLocal { kind : Float , index },
+        DstoreWide(index) => StoreLocal { kind : Double, index },
+        AstoreWide(index) => StoreLocal { kind : Object, index },
 
         Istore0 => StoreLocal { kind : Int   , index : 0 },
         Istore1 => StoreLocal { kind : Int   , index : 1 },
@@ -403,16 +415,6 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
             | Monitorenter
             | Monitorexit
             | Multianewarray { .. }
-            | AloadWide(_)
-            | AstoreWide(_)
-            | DloadWide(_)
-            | DstoreWide(_)
-            | FloadWide(_)
-            | FstoreWide(_)
-            | IloadWide(_)
-            | IstoreWide(_)
-            | LloadWide(_)
-            | LstoreWide(_)
             | RetWide(_)
             => Unhandled(insn),
     }
