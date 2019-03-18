@@ -49,14 +49,10 @@ fn test_stack_map_table(stem : &str) {
 
     let method = &class.methods.last().unwrap();
     let code = code_attribute_parser(&method.attributes[0].info).unwrap().1;
-    let attr = &code.attributes
-                    .iter()
-                    .find(|a| name_of(a) == "StackMapTable")
-                    .unwrap();
+    let attr = &code.attributes.iter().find(|a| name_of(a) == "StackMapTable").unwrap();
     let map = stack_map_table_attribute_parser(&attr.info);
 
-    use classfile_parser::attribute_info::StackMapFrame::*;
-    use classfile_parser::attribute_info::StackMapFrame;
+    use classfile_parser::attribute_info::StackMapFrame::{self,*};
     let get_delta = |f : &StackMapFrame| match *f {
         SameFrame { frame_type } => frame_type as u16,
         SameLocals1StackItemFrame { frame_type, .. } => frame_type as u16 - 64,
