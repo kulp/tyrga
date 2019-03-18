@@ -54,7 +54,21 @@ fn test_stack_map_table(stem : &str) {
                     .find(|a| name_of(a) == "StackMapTable")
                     .unwrap();
     let map = stack_map_table_attribute_parser(&attr.info);
-    assert!(map.is_ok());
+
+    use classfile_parser::attribute_info::StackMapFrame::*;
+    use classfile_parser::attribute_info::StackMapFrame;
+    let get_delta = |f : &StackMapFrame| match *f {
+        SameFrame { frame_type } => frame_type as u16,
+        SameLocals1StackItemFrame { frame_type, .. } => frame_type as u16 - 64,
+        SameLocals1StackItemFrameExtended { offset_delta, .. }
+            | ChopFrame { offset_delta, .. }
+            | SameFrameExtended { offset_delta, .. }
+            | AppendFrame { offset_delta, .. }
+            | FullFrame { offset_delta, .. }
+            => offset_delta,
+    };
+    let _deltas : Vec<u16> = map.unwrap().1.entries.iter().map(get_delta).collect();
+    // for now, getting here without panicking is enough
 }
 
 const CLASS_LIST : &[&'static str] = &[
