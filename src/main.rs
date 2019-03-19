@@ -6,9 +6,9 @@ mod tenyr;
 
 use jvmtypes::*;
 
+#[cfg(test)]
 use classfile_parser::ClassFile;
-use classfile_parser::attribute_info::code_attribute_parser;
-use classfile_parser::code_attribute::{code_parser, Instruction};
+use classfile_parser::code_attribute::Instruction;
 
 fn parse_method(mut code : Vec<(usize, Instruction)>) -> Vec<Operation> {
     code.drain(..).map(decode_insn).collect()
@@ -24,6 +24,8 @@ fn parse_class(stem : &str) -> ClassFile {
 
 #[cfg(test)]
 fn test_parse_methods(stem : &str) {
+    use classfile_parser::attribute_info::code_attribute_parser;
+    use classfile_parser::code_attribute::code_parser;
     for method in &parse_class(stem).methods {
         let c = &method.attributes[0].info;
         let (_, code) = code_attribute_parser(c).unwrap();
@@ -35,9 +37,10 @@ fn test_parse_methods(stem : &str) {
 
 #[cfg(test)]
 fn test_stack_map_table(stem : &str) {
+    use classfile_parser::attribute_info::AttributeInfo;
+    use classfile_parser::attribute_info::code_attribute_parser;
     use classfile_parser::attribute_info::stack_map_table_attribute_parser;
     use classfile_parser::constant_info::ConstantInfo::Utf8;
-    use classfile_parser::attribute_info::AttributeInfo;
 
     let class = parse_class(stem);
     let get_constant = |n| &class.const_pool[n as usize - 1];
@@ -85,6 +88,7 @@ fn test_stack_map_table(stem : &str) {
     // for now, getting here without panicking is enough
 }
 
+#[cfg(test)]
 const CLASS_LIST : &[&'static str] = &[
     "Except",
     "Expr",
