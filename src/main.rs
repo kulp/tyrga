@@ -63,7 +63,25 @@ fn test_stack_map_table(stem : &str) {
             | FullFrame { offset_delta, .. }
             => offset_delta,
     };
-    let _deltas : Vec<u16> = map.unwrap().1.entries.iter().map(get_delta).collect();
+    let deltas : Vec<u16> = map.unwrap().1.entries.iter().map(get_delta).collect();
+
+    let _slices = {
+        let mut body = &code.code[..];
+        let splitter = |n| {
+            let (first, b) = body.split_at(n as usize);
+            body = b;
+            first
+        };
+        let before = deltas.iter().take(1);
+        let after  = deltas.iter().skip(1);
+        let mut slices : Vec<&[u8]> =
+            before.map(|&n| n)
+                .chain(after.map(|&n| n + 1))
+                .map(splitter)
+                .collect();
+        slices.push(body);
+        slices
+    };
     // for now, getting here without panicking is enough
 }
 
