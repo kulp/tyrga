@@ -35,6 +35,37 @@ fn test_parse_methods(stem : &str) {
     }
 }
 
+use classfile_parser::attribute_info::StackMapFrame;
+fn derive_slices<'a>(mut body : &'a [u8], table : &[StackMapFrame]) -> Vec<&'a [u8]> {
+    use classfile_parser::attribute_info::StackMapFrame::{self,*};
+    let get_delta = |f : &StackMapFrame| match *f {
+        SameFrame { frame_type } => frame_type as u16,
+        SameLocals1StackItemFrame { frame_type, .. } => frame_type as u16 - 64,
+        SameLocals1StackItemFrameExtended { offset_delta, .. }
+            | ChopFrame { offset_delta, .. }
+            | SameFrameExtended { offset_delta, .. }
+            | AppendFrame { offset_delta, .. }
+            | FullFrame { offset_delta, .. }
+            => offset_delta,
+    };
+    let deltas : Vec<u16> = table.iter().map(get_delta).collect();
+
+    let splitter = |n| {
+        let (first, b) = body.split_at(n as usize);
+        body = b;
+        first
+    };
+    let before = deltas.iter().take(1);
+    let after  = deltas.iter().skip(1);
+    let mut slices : Vec<&[u8]> =
+        before.map(|&n| n)
+            .chain(after.map(|&n| n + 1))
+            .map(splitter)
+            .collect();
+    slices.push(body);
+    slices
+}
+
 #[cfg(test)]
 fn test_stack_map_table(stem : &str) {
     use classfile_parser::attribute_info::AttributeInfo;
@@ -53,38 +84,9 @@ fn test_stack_map_table(stem : &str) {
     let method = &class.methods.last().unwrap();
     let code = code_attribute_parser(&method.attributes[0].info).unwrap().1;
     let attr = &code.attributes.iter().find(|a| name_of(a) == "StackMapTable").unwrap();
-    let map = stack_map_table_attribute_parser(&attr.info);
+    let table = stack_map_table_attribute_parser(&attr.info).unwrap().1.entries;
 
-    use classfile_parser::attribute_info::StackMapFrame::{self,*};
-    let get_delta = |f : &StackMapFrame| match *f {
-        SameFrame { frame_type } => frame_type as u16,
-        SameLocals1StackItemFrame { frame_type, .. } => frame_type as u16 - 64,
-        SameLocals1StackItemFrameExtended { offset_delta, .. }
-            | ChopFrame { offset_delta, .. }
-            | SameFrameExtended { offset_delta, .. }
-            | AppendFrame { offset_delta, .. }
-            | FullFrame { offset_delta, .. }
-            => offset_delta,
-    };
-    let deltas : Vec<u16> = map.unwrap().1.entries.iter().map(get_delta).collect();
-
-    let _slices = {
-        let mut body = &code.code[..];
-        let splitter = |n| {
-            let (first, b) = body.split_at(n as usize);
-            body = b;
-            first
-        };
-        let before = deltas.iter().take(1);
-        let after  = deltas.iter().skip(1);
-        let mut slices : Vec<&[u8]> =
-            before.map(|&n| n)
-                .chain(after.map(|&n| n + 1))
-                .map(splitter)
-                .collect();
-        slices.push(body);
-        slices
-    };
+    let _slices = derive_slices(&code.code[..], &table);
     // for now, getting here without panicking is enough
 }
 
