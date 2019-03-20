@@ -36,7 +36,7 @@ fn test_parse_methods(stem : &str) {
 }
 
 use classfile_parser::attribute_info::StackMapFrame;
-fn derive_slices<'a>(mut body : &'a [u8], table : &[StackMapFrame]) -> Vec<&'a [u8]> {
+fn derive_slices<'a, T>(mut body : &'a [T], table : &[StackMapFrame]) -> Vec<&'a [T]> {
     use classfile_parser::attribute_info::StackMapFrame::{self,*};
     let get_delta = |f : &StackMapFrame| match *f {
         SameFrame { frame_type } => frame_type as u16,
@@ -57,7 +57,7 @@ fn derive_slices<'a>(mut body : &'a [u8], table : &[StackMapFrame]) -> Vec<&'a [
     };
     let before = deltas.iter().take(1);
     let after  = deltas.iter().skip(1);
-    let mut slices : Vec<&[u8]> =
+    let mut slices : Vec<&[T]> =
         before.map(|&n| n)
             .chain(after.map(|&n| n + 1))
             .map(splitter)
