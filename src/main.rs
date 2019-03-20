@@ -37,7 +37,7 @@ fn test_parse_methods(stem : &str) {
 
 use classfile_parser::attribute_info::StackMapFrame;
 fn derive_slices<'a, T>(mut body : &'a [T], table : &[StackMapFrame]) -> Vec<&'a [T]> {
-    use classfile_parser::attribute_info::StackMapFrame::{self,*};
+    use classfile_parser::attribute_info::StackMapFrame::*;
     let get_delta = |f : &StackMapFrame| match *f {
         SameFrame { frame_type } => frame_type as u16,
         SameLocals1StackItemFrame { frame_type, .. } => frame_type as u16 - 64,
