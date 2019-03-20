@@ -18,8 +18,7 @@ fn parse_method(mut code : Vec<(usize, Instruction)>) -> Vec<Operation> {
 fn parse_class(stem : &str) -> ClassFile {
     let mut name = String::from(concat!(env!("OUT_DIR"), "/"));
     name.push_str(stem);
-    let name = &name;
-    classfile_parser::parse_class(name).unwrap()
+    classfile_parser::parse_class(&name).unwrap()
 }
 
 #[cfg(test)]
@@ -58,8 +57,8 @@ fn derive_slices<'a, T>(mut body : &'a [T], table : &[StackMapFrame]) -> Vec<&'a
     let before = deltas.iter().take(1);
     let after  = deltas.iter().skip(1);
     let mut slices : Vec<&[T]> =
-        before.map(|&n| n)
-            .chain(after.map(|&n| n + 1))
+        before
+            .map(|&n| n).chain(after.map(|&n| n + 1))
             .map(splitter)
             .collect();
     slices.push(body);
