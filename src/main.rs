@@ -38,14 +38,15 @@ use classfile_parser::attribute_info::StackMapFrame;
 fn derive_slices<'a, T>(mut body : &'a [T], table : &[StackMapFrame]) -> Vec<&'a [T]> {
     use classfile_parser::attribute_info::StackMapFrame::*;
     let get_delta = |f : &StackMapFrame| match *f {
-        SameFrame { frame_type } => frame_type as u16,
-        SameLocals1StackItemFrame { frame_type, .. } => frame_type as u16 - 64,
-        SameLocals1StackItemFrameExtended { offset_delta, .. }
-            | ChopFrame { offset_delta, .. }
-            | SameFrameExtended { offset_delta, .. }
-            | AppendFrame { offset_delta, .. }
-            | FullFrame { offset_delta, .. }
-            => offset_delta,
+        SameFrame                           { frame_type }       => frame_type as u16,
+
+        SameLocals1StackItemFrame           { frame_type, .. }   => frame_type as u16 - 64,
+
+        SameLocals1StackItemFrameExtended   { offset_delta, .. }
+            | ChopFrame                     { offset_delta, .. }
+            | SameFrameExtended             { offset_delta, .. }
+            | AppendFrame                   { offset_delta, .. }
+            | FullFrame                     { offset_delta, .. } => offset_delta,
     };
     let deltas : Vec<u16> = table.iter().map(get_delta).collect();
 
