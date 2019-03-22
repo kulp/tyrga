@@ -31,6 +31,8 @@ fn test_parse_methods(stem : &str) {
 
         let vec = parse_method(code_parser(&code.code).unwrap().1);
         assert!(vec.len() > 0);
+        use std::collections::BTreeMap;
+        let _bt : BTreeMap<_,_> = vec.into_iter().collect();
     }
 }
 
