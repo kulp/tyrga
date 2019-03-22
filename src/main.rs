@@ -6,14 +6,14 @@ mod tenyr;
 
 use jvmtypes::*;
 
-#[cfg(test)]
-use classfile_parser::ClassFile;
 use classfile_parser::code_attribute::Instruction;
 
 fn parse_method(mut code : Vec<(usize, Instruction)>) -> Vec<(usize, Operation)> {
     code.drain(..).map(decode_insn).collect()
 }
 
+#[cfg(test)]
+use classfile_parser::ClassFile;
 #[cfg(test)]
 fn parse_class(stem : &str) -> ClassFile {
     let mut name = String::from(concat!(env!("OUT_DIR"), "/"));
