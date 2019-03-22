@@ -145,9 +145,9 @@ pub struct BasicBlock {
 
 impl fmt::Display for BasicBlock {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}:\n", self.label)?;
+        writeln!(f, "{}:", self.label)?;
         for insn in &self.insns {
-            write!(f, "    {}\n", insn.to_string())?;
+            writeln!(f, "    {}", insn.to_string())?;
         }
         Ok(())
     }

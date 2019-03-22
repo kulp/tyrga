@@ -155,8 +155,8 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Dconst0    => Constant { kind : Double, value :  0 },
         Dconst1    => Constant { kind : Double, value :  1 },
 
-        Bipush(v) => Constant { kind : Int, value : v as i32 },
-        Sipush(v) => Constant { kind : Int, value : v as i32 },
+        Bipush(v) => Constant { kind : Int, value : i32::from(v) },
+        Sipush(v) => Constant { kind : Int, value : i32::from(v) },
 
         Iload(index) => LoadLocal { kind : Int   , index : index.into() },
         Lload(index) => LoadLocal { kind : Long  , index : index.into() },

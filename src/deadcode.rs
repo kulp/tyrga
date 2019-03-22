@@ -2,13 +2,13 @@
 
 use classfile_parser::constant_info::*;
 
-fn stringify(pool : &Vec<ConstantInfo>, index : u16) -> Result<String,&str> {
+fn stringify(pool : &[ConstantInfo], index : u16) -> Result<String,&str> {
     let ci = &pool[(index - 1) as usize];
     let st = stringify;
     let p = pool;
 
     use classfile_parser::constant_info::ConstantInfo::*;
-    return match *ci {
+    match *ci {
         Utf8(ref x)               => Ok(x.utf8_string.clone()),
         Integer(ref x)            => Ok(format!("{}", x.value)),
         Float(ref x)              => Ok(format!("{}", x.value)),
@@ -25,6 +25,6 @@ fn stringify(pool : &Vec<ConstantInfo>, index : u16) -> Result<String,&str> {
         //InvokeDynamic
 
         _ => Err("Unsupported constant p item type"),
-    };
+    }
 }
 

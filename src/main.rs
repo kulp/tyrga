@@ -40,9 +40,9 @@ use classfile_parser::attribute_info::StackMapFrame;
 fn derive_slices<'a, T>(mut body : &'a [T], table : &[StackMapFrame]) -> Vec<&'a [T]> {
     use classfile_parser::attribute_info::StackMapFrame::*;
     let get_delta = |f : &StackMapFrame| match *f {
-        SameFrame                           { frame_type }       => frame_type as u16,
+        SameFrame                           { frame_type }       => u16::from(frame_type),
 
-        SameLocals1StackItemFrame           { frame_type, .. }   => frame_type as u16 - 64,
+        SameLocals1StackItemFrame           { frame_type, .. }   => u16::from(frame_type) - 64,
 
         SameLocals1StackItemFrameExtended   { offset_delta, .. }
             | ChopFrame                     { offset_delta, .. }
@@ -53,7 +53,7 @@ fn derive_slices<'a, T>(mut body : &'a [T], table : &[StackMapFrame]) -> Vec<&'a
     let deltas : Vec<u16> = table.iter().map(get_delta).collect();
 
     let splitter = |n| {
-        let (first, b) = body.split_at(n as usize);
+        let (first, b) = body.split_at(usize::from(n));
         body = b;
         first
     };
@@ -61,7 +61,7 @@ fn derive_slices<'a, T>(mut body : &'a [T], table : &[StackMapFrame]) -> Vec<&'a
     let after  = deltas.iter().skip(1);
     let mut slices : Vec<&[T]> =
         before
-            .map(|&n| n).chain(after.map(|&n| n + 1))
+            .cloned().chain(after.map(|&n| n + 1))
             .map(splitter)
             .collect();
     slices.push(body);
@@ -76,7 +76,7 @@ fn test_stack_map_table(stem : &str) {
     use classfile_parser::constant_info::ConstantInfo::Utf8;
 
     let class = parse_class(stem);
-    let get_constant = |n| &class.const_pool[n as usize - 1];
+    let get_constant = |n| &class.const_pool[usize::from(n) - 1];
     let name_of = |a : &AttributeInfo|
         match get_constant(a.attribute_name_index) {
             Utf8(u) => u.utf8_string.to_string(),
