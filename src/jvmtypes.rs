@@ -129,14 +129,14 @@ pub enum Operation {
 }
 
 // returns any Operation parsed and the number of bytes consumed
-pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
+pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
     use JType::*;
     use Instruction::*;
     use Operation::*;
 
     let (addr, insn) = insn;
 
-    match insn {
+    let op = match insn {
         Nop => Noop,
 
         Aconstnull => Constant { kind : Object, value :  0 },
@@ -410,6 +410,8 @@ pub fn decode_insn(insn : (usize, Instruction)) -> Operation {
             | Ldc(_) | LdcW(_) | Ldc2W(_)
             | Tableswitch { .. } | Lookupswitch { .. }
             => Unhandled(insn),
-    }
+    };
+
+    (addr, op)
 }
 

@@ -10,7 +10,7 @@ use jvmtypes::*;
 use classfile_parser::ClassFile;
 use classfile_parser::code_attribute::Instruction;
 
-fn parse_method(mut code : Vec<(usize, Instruction)>) -> Vec<Operation> {
+fn parse_method(mut code : Vec<(usize, Instruction)>) -> Vec<(usize, Operation)> {
     code.drain(..).map(decode_insn).collect()
 }
 
