@@ -38,8 +38,9 @@ fn test_parse_methods(stem : &str) {
 
 use classfile_parser::attribute_info::StackMapFrame;
 use std::ops::Range;
+use std::collections::BTreeMap;
 fn derive_ranges<'a, T>(body : &'a [T], table : &[StackMapFrame])
-    -> Vec<Range<usize>>
+    -> (Vec<Range<usize>>, BTreeMap<usize, &'a T>)
 {
     use classfile_parser::attribute_info::StackMapFrame::*;
     let get_delta = |f : &StackMapFrame| match *f {
@@ -66,7 +67,9 @@ fn derive_ranges<'a, T>(body : &'a [T], table : &[StackMapFrame])
             .windows(2)
             .map(|x| x[0]..x[1])
             .collect::<Vec<_>>();
-    ranges
+
+    let tree = body.iter().enumerate().collect::<BTreeMap<_,_>>();
+    (ranges, tree)
 }
 
 #[cfg(test)]
