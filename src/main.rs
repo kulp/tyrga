@@ -39,7 +39,7 @@ fn test_parse_methods(stem : &str) {
 use classfile_parser::attribute_info::StackMapFrame;
 use std::ops::Range;
 use std::collections::BTreeMap;
-fn derive_ranges<'a, T>(body : &'a [T], table : &[StackMapFrame])
+fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
     -> (Vec<Range<usize>>, BTreeMap<usize, &'a T>)
 {
     use classfile_parser::attribute_info::StackMapFrame::*;
@@ -68,7 +68,7 @@ fn derive_ranges<'a, T>(body : &'a [T], table : &[StackMapFrame])
             .map(|x| x[0]..x[1])
             .collect::<Vec<_>>();
 
-    let tree = body.iter().enumerate().collect::<BTreeMap<_,_>>();
+    let tree = body.iter().cloned().collect();
     (ranges, tree)
 }
 
@@ -92,7 +92,8 @@ fn test_stack_map_table(stem : &str) {
     let attr = &code.attributes.iter().find(|a| name_of(a) == "StackMapTable").unwrap();
     let table = stack_map_table_attribute_parser(&attr.info).unwrap().1.entries;
 
-    let _ranges = derive_ranges(&code.code, &table);
+    let vec = code.code.iter().clone().enumerate().collect::<Vec<_>>();
+    let (_ranges, _map) = derive_ranges(&vec, &table);
 }
 
 #[cfg(test)]
