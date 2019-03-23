@@ -37,7 +37,10 @@ fn test_parse_methods(stem : &str) {
 }
 
 use classfile_parser::attribute_info::StackMapFrame;
-fn derive_slices<'a, T>(mut body : &'a [T], table : &[StackMapFrame]) -> Vec<&'a [T]> {
+use std::ops::Range;
+fn derive_ranges<'a, T>(body : &'a [T], table : &[StackMapFrame])
+    -> Vec<Range<usize>>
+{
     use classfile_parser::attribute_info::StackMapFrame::*;
     let get_delta = |f : &StackMapFrame| match *f {
         SameFrame                           { frame_type }       => u16::from(frame_type),
@@ -52,20 +55,18 @@ fn derive_slices<'a, T>(mut body : &'a [T], table : &[StackMapFrame]) -> Vec<&'a
     };
     let deltas : Vec<u16> = table.iter().map(get_delta).collect();
 
-    let splitter = |n| {
-        let (first, b) = body.split_at(usize::from(n));
-        body = b;
-        first
-    };
     let before = deltas.iter().take(1);
     let after  = deltas.iter().skip(1);
-    let mut slices : Vec<&[T]> =
+    let ranges =
         before
             .cloned().chain(after.map(|&n| n + 1))
-            .map(splitter)
-            .collect();
-    slices.push(body);
-    slices
+            .scan(0, |state, x| { *state += x; Some(usize::from(*state)) })
+            .chain(std::iter::once(body.len()))
+            .collect::<Vec<_>>()
+            .windows(2)
+            .map(|x| x[0]..x[1])
+            .collect::<Vec<_>>();
+    ranges
 }
 
 #[cfg(test)]
@@ -88,8 +89,7 @@ fn test_stack_map_table(stem : &str) {
     let attr = &code.attributes.iter().find(|a| name_of(a) == "StackMapTable").unwrap();
     let table = stack_map_table_attribute_parser(&attr.info).unwrap().1.entries;
 
-    let slices = derive_slices(&code.code, &table);
-    assert_eq!(code.code.iter().count(), slices.into_iter().flatten().count());
+    let _ranges = derive_ranges(&code.code, &table);
 }
 
 #[cfg(test)]
