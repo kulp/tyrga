@@ -100,8 +100,9 @@ fn test_stack_map_table(stem : &str) {
     use classfile_parser::code_attribute::code_parser;
     let vec = code_parser(&code.code).unwrap().1;
     let refed = vec.iter().map(|(s, x)| (*s, x)).collect::<Vec<_>>();
-    let (_ranges, map) = derive_ranges(&refed, &table);
-    let _ops = map.into_iter().map(decode_insn).collect::<BTreeMap<_,_>>();
+    let (ranges, map) = derive_ranges(&refed, &table);
+    let ops = map.into_iter().map(decode_insn).collect::<BTreeMap<_,_>>();
+    let _ranged = ranges.into_iter().map(|x| ops.range(x)).collect::<Vec<_>>();
 }
 
 #[cfg(test)]
