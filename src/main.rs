@@ -92,8 +92,10 @@ fn test_stack_map_table(stem : &str) {
     let attr = &code.attributes.iter().find(|a| name_of(a) == "StackMapTable").unwrap();
     let table = stack_map_table_attribute_parser(&attr.info).unwrap().1.entries;
 
-    let vec = code.code.iter().clone().enumerate().collect::<Vec<_>>();
-    let (_ranges, _map) = derive_ranges(&vec, &table);
+    use classfile_parser::code_attribute::code_parser;
+    let vec = code_parser(&code.code).unwrap().1;
+    let refed = vec.iter().map(|(s, x)| (*s, x)).collect::<Vec<_>>();
+    let (_ranges, _map) = derive_ranges(&refed, &table);
 }
 
 #[cfg(test)]
