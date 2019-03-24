@@ -71,6 +71,7 @@ fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
             .collect::<Vec<_>>()
             .windows(2)
             .map(|x| x[0]..x[1])
+            .filter(|x| x.len() > 0)
             .collect::<Vec<_>>();
 
     let tree = body.iter().cloned().collect();
