@@ -129,14 +129,14 @@ pub enum Operation {
 }
 
 // returns any Operation parsed and the number of bytes consumed
-pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
+pub fn decode_insn(insn : (usize, &Instruction)) -> (usize, Operation) {
     use JType::*;
     use Instruction::*;
     use Operation::*;
 
     let (addr, insn) = insn;
 
-    let op = match insn {
+    let op = match *insn {
         Nop => Noop,
 
         Aconstnull => Constant { kind : Object, value :  0 },
@@ -397,19 +397,19 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
 
         New(index) => Allocation { index },
         Newarray(kind) => ArrayAlloc { kind : ArrayKind::from_u8(kind).unwrap() },
-        Multianewarray { .. } | Anewarray(_) => Unhandled(insn),
+        Multianewarray { .. } | Anewarray(_) => Unhandled(insn.clone()),
 
         Arraylength => Length,
 
         // We do not intend ever to handle Jsr and Ret
-        Jsr(_) | JsrW(_) | Ret(_) | RetWide(_) => Unhandled(insn),
+        Jsr(_) | JsrW(_) | Ret(_) | RetWide(_) => Unhandled(insn.clone()),
 
         Athrow
             | Checkcast(_) | Instanceof(_)
             | Monitorenter | Monitorexit
             | Ldc(_) | LdcW(_) | Ldc2W(_)
             | Tableswitch { .. } | Lookupswitch { .. }
-            => Unhandled(insn),
+            => Unhandled(insn.clone()),
     };
 
     (addr, op)

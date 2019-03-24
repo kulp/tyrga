@@ -8,8 +8,8 @@ use jvmtypes::*;
 
 use classfile_parser::code_attribute::Instruction;
 
-fn parse_method(mut code : Vec<(usize, Instruction)>) -> Vec<(usize, Operation)> {
-    code.drain(..).map(decode_insn).collect()
+fn parse_method(code : &[(usize, &Instruction)]) -> Vec<(usize, Operation)> {
+    code.into_iter().cloned().map(decode_insn).collect()
 }
 
 #[cfg(test)]
@@ -29,7 +29,9 @@ fn test_parse_methods(stem : &str) {
         let c = &method.attributes[0].info;
         let (_, code) = code_attribute_parser(c).unwrap();
 
-        let vec = parse_method(code_parser(&code.code).unwrap().1);
+        let c = code_parser(&code.code).unwrap();
+        let c = c.1.iter().map(|(s, x)| (*s, x)).collect::<Vec<_>>();
+        let vec = parse_method(&c);
         assert!(vec.len() > 0);
         use std::collections::BTreeMap;
         let _bt : BTreeMap<_,_> = vec.into_iter().collect();
