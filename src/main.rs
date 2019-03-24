@@ -60,11 +60,14 @@ fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
 
     let before = deltas.iter().take(1);
     let after  = deltas.iter().skip(1);
+    let max = body.last().unwrap().0 + 1;
+    use std::iter::once;
     let ranges =
-        before
-            .cloned().chain(after.map(|&n| n + 1))
+        once(0)
+            .chain(before.cloned())
+            .chain(once(0)).chain(after.map(|&n| n + 1))
             .scan(0, |state, x| { *state += x; Some(usize::from(*state)) })
-            .chain(std::iter::once(body.len()))
+            .chain(once(max))
             .collect::<Vec<_>>()
             .windows(2)
             .map(|x| x[0]..x[1])
