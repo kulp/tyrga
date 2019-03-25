@@ -12,8 +12,8 @@ fn parse_method(code : &[(usize, &Instruction)]) -> Vec<(usize, Operation)> {
     code.into_iter().cloned().map(decode_insn).collect()
 }
 
-#[cfg(test)]
 use classfile_parser::ClassFile;
+
 #[cfg(test)]
 fn parse_class(stem : &str) -> ClassFile {
     let mut name = String::from(concat!(env!("OUT_DIR"), "/"));
@@ -78,14 +78,13 @@ fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
     (ranges, tree)
 }
 
-#[cfg(test)]
-fn test_stack_map_table(stem : &str) {
+use classfile_parser::method_info::MethodInfo;
+fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo) { // TODO return value
     use classfile_parser::attribute_info::AttributeInfo;
     use classfile_parser::attribute_info::code_attribute_parser;
     use classfile_parser::attribute_info::stack_map_table_attribute_parser;
     use classfile_parser::constant_info::ConstantInfo::Utf8;
 
-    let class = parse_class(stem);
     let get_constant = |n| &class.const_pool[usize::from(n) - 1];
     let name_of = |a : &AttributeInfo|
         match get_constant(a.attribute_name_index) {
@@ -93,7 +92,6 @@ fn test_stack_map_table(stem : &str) {
             _ => panic!("not a name")
         };
 
-    let method = &class.methods.last().unwrap();
     let code = code_attribute_parser(&method.attributes[0].info).unwrap().1;
     let attr = &code.attributes.iter().find(|a| name_of(a) == "StackMapTable").unwrap();
     let table = stack_map_table_attribute_parser(&attr.info).unwrap().1.entries;
@@ -103,7 +101,16 @@ fn test_stack_map_table(stem : &str) {
     let refed = vec.iter().map(|(s, x)| (*s, x)).collect::<Vec<_>>();
     let (ranges, map) = derive_ranges(&refed, &table);
     let ops = map.into_iter().map(decode_insn).collect::<BTreeMap<_,_>>();
-    let _ranged = ranges.into_iter().map(|x| ops.range(x)).collect::<Vec<_>>();
+    let _r = ranges.into_iter().map(|x| ops.range(x)).collect::<Vec<_>>();
+    // TODO return something
+}
+
+#[cfg(test)]
+fn test_stack_map_table(stem : &str) {
+
+    let class = parse_class(stem);
+    let method = class.methods.last().unwrap();
+    get_ranges_for_method(&class, &method);
 }
 
 #[cfg(test)]
