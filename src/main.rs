@@ -6,12 +6,6 @@ mod tenyr;
 
 use jvmtypes::*;
 
-use classfile_parser::code_attribute::Instruction;
-
-fn parse_method(code : &[(usize, &Instruction)]) -> Vec<(usize, Operation)> {
-    code.into_iter().cloned().map(decode_insn).collect()
-}
-
 use classfile_parser::ClassFile;
 
 #[cfg(test)]
@@ -19,23 +13,6 @@ fn parse_class(stem : &str) -> ClassFile {
     let mut name = String::from(concat!(env!("OUT_DIR"), "/"));
     name.push_str(stem);
     classfile_parser::parse_class(&name).unwrap()
-}
-
-#[cfg(test)]
-fn test_parse_methods(stem : &str) {
-    use classfile_parser::attribute_info::code_attribute_parser;
-    use classfile_parser::code_attribute::code_parser;
-    for method in &parse_class(stem).methods {
-        let c = &method.attributes[0].info;
-        let (_, code) = code_attribute_parser(c).unwrap();
-
-        let c = code_parser(&code.code).unwrap();
-        let c = c.1.iter().map(|(s, x)| (*s, x)).collect::<Vec<_>>();
-        let vec = parse_method(&c);
-        assert!(vec.len() > 0);
-        use std::collections::BTreeMap;
-        let _bt : BTreeMap<_,_> = vec.into_iter().collect();
-    }
 }
 
 use classfile_parser::attribute_info::StackMapFrame;
@@ -130,7 +107,6 @@ const CLASS_LIST : &[&'static str] = &[
 fn test_parse_classes()
 {
     for name in CLASS_LIST {
-        test_parse_methods(name);
         test_stack_map_table(name);
     }
 }
