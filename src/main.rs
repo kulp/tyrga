@@ -72,8 +72,11 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
         };
 
     let code = code_attribute_parser(&method.attributes[0].info).unwrap().1;
-    let attr = &code.attributes.iter().find(|a| name_of(a) == "StackMapTable").unwrap();
-    let table = stack_map_table_attribute_parser(&attr.info).unwrap().1.entries;
+    let attr = &code.attributes.iter().find(|a| name_of(a) == "StackMapTable");
+    let table = match attr {
+        Some(attr) => stack_map_table_attribute_parser(&attr.info).unwrap().1.entries,
+        _ => Vec::new(),
+    };
 
     use classfile_parser::code_attribute::code_parser;
     let vec = code_parser(&code.code).unwrap().1;
