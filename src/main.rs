@@ -79,7 +79,9 @@ fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
 }
 
 use classfile_parser::method_info::MethodInfo;
-fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo) { // TODO return value
+fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
+    -> (Vec<Range<usize>>, BTreeMap<usize, Operation>)
+{
     use classfile_parser::attribute_info::AttributeInfo;
     use classfile_parser::attribute_info::code_attribute_parser;
     use classfile_parser::attribute_info::stack_map_table_attribute_parser;
@@ -101,8 +103,7 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo) { // TODO ret
     let refed = vec.iter().map(|(s, x)| (*s, x)).collect::<Vec<_>>();
     let (ranges, map) = derive_ranges(&refed, &table);
     let ops = map.into_iter().map(decode_insn).collect::<BTreeMap<_,_>>();
-    let _r = ranges.into_iter().map(|x| ops.range(x)).collect::<Vec<_>>();
-    // TODO return something
+    (ranges, ops)
 }
 
 #[cfg(test)]
@@ -110,7 +111,8 @@ fn test_stack_map_table(stem : &str) {
 
     let class = parse_class(stem);
     let method = class.methods.last().unwrap();
-    get_ranges_for_method(&class, &method);
+    let (ranges, ops) = get_ranges_for_method(&class, &method);
+    let _r = ranges.into_iter().map(|x| ops.range(x)).collect::<Vec<_>>();
 }
 
 #[cfg(test)]
