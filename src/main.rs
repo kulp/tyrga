@@ -91,7 +91,8 @@ fn test_stack_map_table(stem : &str) {
     let class = parse_class(stem);
     for method in &class.methods {
         let (ranges, ops) = get_ranges_for_method(&class, &method);
-        let _r = ranges.into_iter().map(|x| ops.range(x)).collect::<Vec<_>>();
+        let r = ranges.into_iter().map(|x| ops.range(x)).collect::<Vec<_>>();
+        assert!(r.len() > 0);
     }
 }
 
