@@ -94,8 +94,16 @@ impl fmt::Display for Instruction {
             _     => (self.x  .to_string() , self.y   .to_string(), self.imm.to_string()),
         };
         let rhs = match self.p {
-            Type3 => format!("{a} + {c}", a=a, c=c),
-            _     => format!("{a} {op:^3} {b} + {c}", a=a, b=b, c=c, op=self.op.to_string()),
+            Type3 if self.imm == 0
+                => format!("{a}", a=a),
+            Type3
+                => format!("{a} + {c}", a=a, c=c),
+            Type0 if self.imm == 0
+                => format!("{a} {op:^3} {b}", a=a, b=b, op=self.op.to_string()),
+            Type1 | Type2 if self.y == Register::A
+                => format!("{a} {op:^3} {b}", a=a, b=b, op=self.op.to_string()),
+            _
+                => format!("{a} {op:^3} {b} + {c}", a=a, b=b, c=c, op=self.op.to_string()),
         };
 
         use MemoryOpType::*;
@@ -117,17 +125,17 @@ fn instruction_test_cases() -> &'static [(&'static str, Instruction)] {
 
     return &[
         (" B  <-  C >>  D + -3" , Instruction { p : Type0, dd : NoLoad, z : B, x : C, y : D, op : ShiftRightArith , imm : -3 }),
-        (" B  <-  C >>  D + 0"  , Instruction { p : Type0, dd : NoLoad, z : B, x : C, y : D, op : ShiftRightArith , imm :  0 }),
+        (" B  <-  C >>  D"      , Instruction { p : Type0, dd : NoLoad, z : B, x : C, y : D, op : ShiftRightArith , imm :  0 }),
         (" B  <-  C  |  D + -3" , Instruction { p : Type0, dd : NoLoad, z : B, x : C, y : D, op : BitwiseOr       , imm : -3 }),
-        (" B  <-  C  |  D + 0"  , Instruction { p : Type0, dd : NoLoad, z : B, x : C, y : D, op : BitwiseOr       , imm :  0 }),
+        (" B  <-  C  |  D"      , Instruction { p : Type0, dd : NoLoad, z : B, x : C, y : D, op : BitwiseOr       , imm :  0 }),
         (" B  <-  C  |  -3 + D" , Instruction { p : Type1, dd : NoLoad, z : B, x : C, y : D, op : BitwiseOr       , imm : -3 }),
         (" B  <-  C  |  0 + D"  , Instruction { p : Type1, dd : NoLoad, z : B, x : C, y : D, op : BitwiseOr       , imm :  0 }),
         (" B  <-  -3  |  C + D" , Instruction { p : Type2, dd : NoLoad, z : B, x : C, y : D, op : BitwiseOr       , imm : -3 }),
         (" B  <-  0  |  C + D"  , Instruction { p : Type2, dd : NoLoad, z : B, x : C, y : D, op : BitwiseOr       , imm :  0 }),
         (" B  <-  C  |  A + -3" , Instruction { p : Type0, dd : NoLoad, z : B, x : C, y : A, op : BitwiseOr       , imm : -3 }),
-        (" B  <-  C  |  A + 0"  , Instruction { p : Type0, dd : NoLoad, z : B, x : C, y : A, op : BitwiseOr       , imm :  0 }),
+        (" B  <-  C  |  A"      , Instruction { p : Type0, dd : NoLoad, z : B, x : C, y : A, op : BitwiseOr       , imm :  0 }),
         (" P  <-  C + -4"       , Instruction { p : Type3, dd : NoLoad, z : P, x : C, y : A, op : Add             , imm : -4 }),
-        (" P  <-  C + 0"        , Instruction { p : Type3, dd : NoLoad, z : P, x : C, y : A, op : Add             , imm :  0 }),
+        (" P  <-  C"            , Instruction { p : Type3, dd : NoLoad, z : P, x : C, y : A, op : Add             , imm :  0 }),
     ];
 }
 
