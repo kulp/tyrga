@@ -53,17 +53,6 @@ impl fmt::Display for Opcode {
 enum_from_primitive! {
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum InstructionType {
-    Type0, // [Z] <- [X f Y + I]
-    Type1, // [Z] <- [X f I + Y]
-    Type2, // [Z] <- [I f X + Y]
-    Type3, // [Z] <- [X     + I]
-}
-}
-
-enum_from_primitive! {
-#[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MemoryOpType {
     NoLoad,     //  Z  <-  ...
     StoreRight, //  Z  -> [...]
@@ -74,36 +63,51 @@ pub enum MemoryOpType {
 
 type Immediate = i32;
 
-#[derive(Copy, Clone)]
-pub struct Instruction {
-    p   : InstructionType,
-    dd  : MemoryOpType,
-    z   : Register,
-    x   : Register,
+#[derive(Clone)]
+pub struct InsnGeneral {
     y   : Register,
     op  : Opcode,
-    imm : Immediate,
+}
+
+#[derive(Clone)]
+pub enum InstructionType {
+    Type0(InsnGeneral), // [Z] <- [X f Y + I]
+    Type1(InsnGeneral), // [Z] <- [X f I + Y]
+    Type2(InsnGeneral), // [Z] <- [I f X + Y]
+    Type3,              // [Z] <- [X     + I]
+}
+
+#[derive(Clone)]
+pub struct Instruction {
+    kind : InstructionType,
+    z    : Register,
+    x    : Register,
+    dd   : MemoryOpType,
+    imm  : Immediate,
 }
 
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use InstructionType::*;
-        let (a, b, c) = match self.p {
-            Type1 => (self.x  .to_string() , self.imm .to_string(), self.y  .to_string()),
-            Type2 => (self.imm.to_string() , self.x   .to_string(), self.y  .to_string()),
-            _     => (self.x  .to_string() , self.y   .to_string(), self.imm.to_string()),
+        let (a, b, c) = match self.kind {
+            Type0(InsnGeneral { y, .. }) => (self.x  .to_string() ,      y   .to_string(), self.imm.to_string()),
+            Type1(InsnGeneral { y, .. }) => (self.x  .to_string() , self.imm .to_string(),      y  .to_string()),
+            Type2(InsnGeneral { y, .. }) => (self.imm.to_string() , self.x   .to_string(),      y  .to_string()),
+            Type3                        => (self.x  .to_string() , "unused" .to_string(), self.imm.to_string()),
         };
-        let rhs = match self.p {
+        let rhs = match self.kind {
             Type3 if self.imm == 0
                 => format!("{a}", a=a),
             Type3
                 => format!("{a} + {c}", a=a, c=c),
-            Type0 if self.imm == 0
-                => format!("{a} {op:^3} {b}", a=a, b=b, op=self.op.to_string()),
-            Type1 | Type2 if self.y == Register::A
-                => format!("{a} {op:^3} {b}", a=a, b=b, op=self.op.to_string()),
-            _
-                => format!("{a} {op:^3} {b} + {c}", a=a, b=b, c=c, op=self.op.to_string()),
+            Type0(InsnGeneral { op, .. }) if self.imm == 0
+                => format!("{a} {op:^3} {b}", a=a, b=b, op=op.to_string()),
+            Type1(InsnGeneral { op, y }) | Type2(InsnGeneral { op, y }) if y == Register::A
+                => format!("{a} {op:^3} {b}", a=a, b=b, op=op.to_string()),
+            Type0(InsnGeneral { op, .. }) |
+            Type1(InsnGeneral { op, .. }) |
+            Type2(InsnGeneral { op, .. })
+                => format!("{a} {op:^3} {b} + {c}", a=a, b=b, c=c, op=op.to_string()),
         };
 
         use MemoryOpType::*;
@@ -124,21 +128,21 @@ fn instruction_test_cases() -> &'static [(&'static str, Instruction)] {
     use Register::*;
 
     return &[
-        (" B  <-  C >>  D + -3" , Instruction { p : Type0, dd : NoLoad    , z : B, x : C, y : D, op : ShiftRightArith , imm : -3 }),
-        (" B  <-  C >>  D"      , Instruction { p : Type0, dd : NoLoad    , z : B, x : C, y : D, op : ShiftRightArith , imm :  0 }),
-        (" B  <-  C  |  D + -3" , Instruction { p : Type0, dd : NoLoad    , z : B, x : C, y : D, op : BitwiseOr       , imm : -3 }),
-        (" B  <-  C  |  D"      , Instruction { p : Type0, dd : NoLoad    , z : B, x : C, y : D, op : BitwiseOr       , imm :  0 }),
-        (" B  <-  C  |  -3 + D" , Instruction { p : Type1, dd : NoLoad    , z : B, x : C, y : D, op : BitwiseOr       , imm : -3 }),
-        (" B  <-  C  |  0 + D"  , Instruction { p : Type1, dd : NoLoad    , z : B, x : C, y : D, op : BitwiseOr       , imm :  0 }),
-        (" B  <-  -3  |  C + D" , Instruction { p : Type2, dd : NoLoad    , z : B, x : C, y : D, op : BitwiseOr       , imm : -3 }),
-        (" B  <-  0  |  C + D"  , Instruction { p : Type2, dd : NoLoad    , z : B, x : C, y : D, op : BitwiseOr       , imm :  0 }),
-        (" B  <-  C  |  A + -3" , Instruction { p : Type0, dd : NoLoad    , z : B, x : C, y : A, op : BitwiseOr       , imm : -3 }),
-        (" B  <-  C  |  A"      , Instruction { p : Type0, dd : NoLoad    , z : B, x : C, y : A, op : BitwiseOr       , imm :  0 }),
-        (" P  <-  C + -4"       , Instruction { p : Type3, dd : NoLoad    , z : P, x : C, y : A, op : Add             , imm : -4 }),
-        (" P  <-  C"            , Instruction { p : Type3, dd : NoLoad    , z : P, x : C, y : A, op : Add             , imm :  0 }),
-        (" P  -> [C]"           , Instruction { p : Type3, dd : StoreRight, z : P, x : C, y : A, op : Add             , imm :  0 }),
-        (" P  <- [C]"           , Instruction { p : Type3, dd : LoadRight , z : P, x : C, y : A, op : Add             , imm :  0 }),
-        ("[P] <-  C"            , Instruction { p : Type3, dd : StoreLeft , z : P, x : C, y : A, op : Add             , imm :  0 }),
+        (" B  <-  C >>  D + -3" , Instruction { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type0(InsnGeneral { y : D, op : ShiftRightArith }) }),
+        (" B  <-  C >>  D"      , Instruction { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type0(InsnGeneral { y : D, op : ShiftRightArith }) }),
+        (" B  <-  C  |  D + -3" , Instruction { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type0(InsnGeneral { y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  D"      , Instruction { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type0(InsnGeneral { y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  -3 + D" , Instruction { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type1(InsnGeneral { y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  0 + D"  , Instruction { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type1(InsnGeneral { y : D, op : BitwiseOr       }) }),
+        (" B  <-  -3  |  C + D" , Instruction { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type2(InsnGeneral { y : D, op : BitwiseOr       }) }),
+        (" B  <-  0  |  C + D"  , Instruction { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type2(InsnGeneral { y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  A + -3" , Instruction { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type0(InsnGeneral { y : A, op : BitwiseOr       }) }),
+        (" B  <-  C  |  A"      , Instruction { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type0(InsnGeneral { y : A, op : BitwiseOr       }) }),
+        (" P  <-  C + -4"       , Instruction { dd : NoLoad    , z : P, x : C, imm : -4, kind : Type3                                              }),
+        (" P  <-  C"            , Instruction { dd : NoLoad    , z : P, x : C, imm :  0, kind : Type3                                              }),
+        (" P  -> [C]"           , Instruction { dd : StoreRight, z : P, x : C, imm :  0, kind : Type3                                              }),
+        (" P  <- [C]"           , Instruction { dd : LoadRight , z : P, x : C, imm :  0, kind : Type3                                              }),
+        ("[P] <-  C"            , Instruction { dd : StoreLeft , z : P, x : C, imm :  0, kind : Type3                                              }),
     ];
 }
 
