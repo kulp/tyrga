@@ -50,15 +50,12 @@ impl fmt::Display for Opcode {
     }
 }
 
-enum_from_primitive! {
-#[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MemoryOpType {
     NoLoad,     //  Z  <-  ...
     StoreRight, //  Z  -> [...]
     StoreLeft,  // [Z] <-  ...
     LoadRight,  //  Z  <- [...]
-}
 }
 
 type Immediate = i32;
