@@ -86,24 +86,25 @@ pub struct Instruction {
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use InstructionType::*;
+        use InsnGeneral as Gen;
         let (a, b, c) = match self.kind {
-            Type0(InsnGeneral { y, .. }) => (self.x  .to_string() ,      y   .to_string(), self.imm.to_string()),
-            Type1(InsnGeneral { y, .. }) => (self.x  .to_string() , self.imm .to_string(),      y  .to_string()),
-            Type2(InsnGeneral { y, .. }) => (self.imm.to_string() , self.x   .to_string(),      y  .to_string()),
-            Type3                        => (self.x  .to_string() , "unused" .to_string(), self.imm.to_string()),
+            Type0(Gen { y, .. }) => (self.x  .to_string() ,      y   .to_string(), self.imm.to_string()),
+            Type1(Gen { y, .. }) => (self.x  .to_string() , self.imm .to_string(),      y  .to_string()),
+            Type2(Gen { y, .. }) => (self.imm.to_string() , self.x   .to_string(),      y  .to_string()),
+            Type3                => (self.x  .to_string() , "unused" .to_string(), self.imm.to_string()),
         };
         let rhs = match self.kind {
             Type3 if self.imm == 0
                 => format!("{a}", a=a),
             Type3
                 => format!("{a} + {c}", a=a, c=c),
-            Type0(InsnGeneral { op, .. }) if self.imm == 0
+            Type0(Gen { op, .. }) if self.imm == 0
                 => format!("{a} {op:^3} {b}", a=a, b=b, op=op.to_string()),
-            Type1(InsnGeneral { op, y }) | Type2(InsnGeneral { op, y }) if y == Register::A
+            Type1(Gen { op, y }) | Type2(Gen { op, y }) if y == Register::A
                 => format!("{a} {op:^3} {b}", a=a, b=b, op=op.to_string()),
-            Type0(InsnGeneral { op, .. }) |
-            Type1(InsnGeneral { op, .. }) |
-            Type2(InsnGeneral { op, .. })
+            Type0(Gen { op, .. }) |
+            Type1(Gen { op, .. }) |
+            Type2(Gen { op, .. })
                 => format!("{a} {op:^3} {b} + {c}", a=a, b=b, c=c, op=op.to_string()),
         };
 
@@ -124,22 +125,24 @@ fn instruction_test_cases() -> &'static [(&'static str, Instruction)] {
     use Opcode::*;
     use Register::*;
 
+    use Instruction as Insn;
+    use InsnGeneral as Gen;
     return &[
-        (" B  <-  C >>  D + -3" , Instruction { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type0(InsnGeneral { y : D, op : ShiftRightArith }) }),
-        (" B  <-  C >>  D"      , Instruction { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type0(InsnGeneral { y : D, op : ShiftRightArith }) }),
-        (" B  <-  C  |  D + -3" , Instruction { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type0(InsnGeneral { y : D, op : BitwiseOr       }) }),
-        (" B  <-  C  |  D"      , Instruction { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type0(InsnGeneral { y : D, op : BitwiseOr       }) }),
-        (" B  <-  C  |  -3 + D" , Instruction { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type1(InsnGeneral { y : D, op : BitwiseOr       }) }),
-        (" B  <-  C  |  0 + D"  , Instruction { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type1(InsnGeneral { y : D, op : BitwiseOr       }) }),
-        (" B  <-  -3  |  C + D" , Instruction { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type2(InsnGeneral { y : D, op : BitwiseOr       }) }),
-        (" B  <-  0  |  C + D"  , Instruction { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type2(InsnGeneral { y : D, op : BitwiseOr       }) }),
-        (" B  <-  C  |  A + -3" , Instruction { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type0(InsnGeneral { y : A, op : BitwiseOr       }) }),
-        (" B  <-  C  |  A"      , Instruction { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type0(InsnGeneral { y : A, op : BitwiseOr       }) }),
-        (" P  <-  C + -4"       , Instruction { dd : NoLoad    , z : P, x : C, imm : -4, kind : Type3                                              }),
-        (" P  <-  C"            , Instruction { dd : NoLoad    , z : P, x : C, imm :  0, kind : Type3                                              }),
-        (" P  -> [C]"           , Instruction { dd : StoreRight, z : P, x : C, imm :  0, kind : Type3                                              }),
-        (" P  <- [C]"           , Instruction { dd : LoadRight , z : P, x : C, imm :  0, kind : Type3                                              }),
-        ("[P] <-  C"            , Instruction { dd : StoreLeft , z : P, x : C, imm :  0, kind : Type3                                              }),
+        (" B  <-  C >>  D + -3" , Insn { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type0(Gen { y : D, op : ShiftRightArith }) }),
+        (" B  <-  C >>  D"      , Insn { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type0(Gen { y : D, op : ShiftRightArith }) }),
+        (" B  <-  C  |  D + -3" , Insn { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type0(Gen { y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  D"      , Insn { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type0(Gen { y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  -3 + D" , Insn { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type1(Gen { y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  0 + D"  , Insn { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type1(Gen { y : D, op : BitwiseOr       }) }),
+        (" B  <-  -3  |  C + D" , Insn { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type2(Gen { y : D, op : BitwiseOr       }) }),
+        (" B  <-  0  |  C + D"  , Insn { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type2(Gen { y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  A + -3" , Insn { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type0(Gen { y : A, op : BitwiseOr       }) }),
+        (" B  <-  C  |  A"      , Insn { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type0(Gen { y : A, op : BitwiseOr       }) }),
+        (" P  <-  C + -4"       , Insn { dd : NoLoad    , z : P, x : C, imm : -4, kind : Type3                                      }),
+        (" P  <-  C"            , Insn { dd : NoLoad    , z : P, x : C, imm :  0, kind : Type3                                      }),
+        (" P  -> [C]"           , Insn { dd : StoreRight, z : P, x : C, imm :  0, kind : Type3                                      }),
+        (" P  <- [C]"           , Insn { dd : LoadRight , z : P, x : C, imm :  0, kind : Type3                                      }),
+        ("[P] <-  C"            , Insn { dd : StoreLeft , z : P, x : C, imm :  0, kind : Type3                                      }),
     ];
 }
 
