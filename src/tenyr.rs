@@ -64,11 +64,11 @@ pub struct TwelveBit;
 pub struct TwentyBit;
 
 pub trait BitWidth {
-    fn size() -> usize;
+    const BITS : usize;
 }
 
-impl BitWidth for TwelveBit { fn size() -> usize { 12 } }
-impl BitWidth for TwentyBit { fn size() -> usize { 20 } }
+impl BitWidth for TwelveBit { const BITS : usize = 12; }
+impl BitWidth for TwentyBit { const BITS : usize = 20; }
 
 use std::marker::PhantomData;
 
@@ -80,15 +80,15 @@ use num::Bounded;
 impl<T> Bounded for SizedImmediate<T>
     where T: BitWidth
 {
-    fn min_value() -> Self { SizedImmediate(-(1 << (T::size() - 1))    , PhantomData) }
-    fn max_value() -> Self { SizedImmediate( (1 << (T::size() - 1)) - 1, PhantomData) }
+    fn min_value() -> Self { SizedImmediate(-(1 << (T::BITS - 1))    , PhantomData) }
+    fn max_value() -> Self { SizedImmediate( (1 << (T::BITS - 1)) - 1, PhantomData) }
 }
 
 impl<T> SizedImmediate<T>
     where T: BitWidth
 {
     fn new(val : i32) -> Option<SizedImmediate<T>> {
-        if val >= -(1 << (T::size() - 1)) && val < (1 << (T::size() - 1)) {
+        if val >= -(1 << (T::BITS - 1)) && val < (1 << (T::BITS - 1)) {
             Some(SizedImmediate(val, PhantomData))
         } else {
             None
