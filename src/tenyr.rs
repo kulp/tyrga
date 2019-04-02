@@ -60,31 +60,37 @@ pub enum MemoryOpType {
 
 type Immediate = i32;
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Immediate12(i32);
+#[derive(Clone)]
+pub struct TwelveBit;
+#[derive(Clone)]
+pub struct TwentyBit;
 
-impl Immediate12 {
-    fn new(val : i32) -> Option<Immediate12> {
-        if val >= -(1 << 11) && val < (1 << 11) {
-            Some(Immediate12(val))
+pub trait BitWidth {
+    fn size() -> usize;
+}
+
+impl BitWidth for TwelveBit { fn size() -> usize { 12 } }
+impl BitWidth for TwentyBit { fn size() -> usize { 20 } }
+
+use std::marker::PhantomData;
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SizedImmediate<T>(i32, PhantomData<T>);
+
+impl<T> SizedImmediate<T>
+    where T: BitWidth
+{
+    fn new(val : i32) -> Option<SizedImmediate<T>> {
+        if val >= -(1 << (T::size() - 1)) && val < (1 << (T::size() - 1)) {
+            Some(SizedImmediate(val, PhantomData))
         } else {
             None
         }
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Immediate20(i32);
-
-impl Immediate20 {
-    fn new(val : i32) -> Option<Immediate20> {
-        if val >= -(1 << 19) && val < (1 << 19) {
-            Some(Immediate20(val))
-        } else {
-            None
-        }
-    }
-}
+type Immediate12 = SizedImmediate<TwelveBit>;
+type Immediate20 = SizedImmediate<TwentyBit>;
 
 #[derive(Clone)]
 pub struct InsnGeneral {
