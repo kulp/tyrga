@@ -98,6 +98,13 @@ impl<T> Display for SizedImmediate<T> {
     }
 }
 
+impl<T> PartialEq<i32> for SizedImmediate<T> {
+    fn eq(&self, other : &i32) -> bool {
+        let SizedImmediate(x, ..) = self;
+        *x == *other
+    }
+}
+
 type Immediate12 = SizedImmediate<TwelveBit>;
 type Immediate20 = SizedImmediate<TwentyBit>;
 
