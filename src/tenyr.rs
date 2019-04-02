@@ -60,9 +60,9 @@ pub enum MemoryOpType {
 
 type Immediate = i32;
 
-#[derive(Clone)]
+#[derive(Copy,Clone)]
 pub struct TwelveBit;
-#[derive(Clone)]
+#[derive(Copy,Clone)]
 pub struct TwentyBit;
 
 pub trait BitWidth {
@@ -86,6 +86,15 @@ impl<T> SizedImmediate<T>
         } else {
             None
         }
+    }
+}
+
+use std::fmt::{Display, Error, Formatter};
+
+impl<T> Display for SizedImmediate<T> {
+    fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
+        let SizedImmediate(x, ..) = self;
+        write!(f, "{}", x.to_string())
     }
 }
 
