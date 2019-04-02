@@ -60,6 +60,32 @@ pub enum MemoryOpType {
 
 type Immediate = i32;
 
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Immediate12(i32);
+
+impl Immediate12 {
+    fn new(val : i32) -> Option<Immediate12> {
+        if val >= -(1 << 11) && val < (1 << 11) {
+            Some(Immediate12(val))
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Immediate20(i32);
+
+impl Immediate20 {
+    fn new(val : i32) -> Option<Immediate20> {
+        if val >= -(1 << 19) && val < (1 << 19) {
+            Some(Immediate20(val))
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct InsnGeneral {
     y   : Register,
