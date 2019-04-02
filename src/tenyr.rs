@@ -58,8 +58,6 @@ pub enum MemoryOpType {
     LoadRight,  //  Z  <- [...]
 }
 
-type Immediate = i32;
-
 #[derive(Copy,Clone)]
 pub struct TwelveBit;
 #[derive(Copy,Clone)]
@@ -125,6 +123,7 @@ fn test_immediates() {
 pub struct InsnGeneral {
     y   : Register,
     op  : Opcode,
+    imm : Immediate12,
 }
 
 #[derive(Clone)]
@@ -132,7 +131,7 @@ pub enum InstructionType {
     Type0(InsnGeneral), // [Z] <- [X f Y + I]
     Type1(InsnGeneral), // [Z] <- [X f I + Y]
     Type2(InsnGeneral), // [Z] <- [I f X + Y]
-    Type3,              // [Z] <- [X     + I]
+    Type3(Immediate20), // [Z] <- [X     + I]
 }
 
 #[derive(Clone)]
@@ -141,7 +140,6 @@ pub struct Instruction {
     z    : Register,
     x    : Register,
     dd   : MemoryOpType,
-    imm  : Immediate,
 }
 
 impl fmt::Display for Instruction {
@@ -149,19 +147,19 @@ impl fmt::Display for Instruction {
         use InstructionType::*;
         use InsnGeneral as Gen;
         let (a, b, c) = match self.kind {
-            Type0(Gen { y, .. }) => (self.x  .to_string() ,      y   .to_string(), self.imm.to_string()),
-            Type1(Gen { y, .. }) => (self.x  .to_string() , self.imm .to_string(),      y  .to_string()),
-            Type2(Gen { y, .. }) => (self.imm.to_string() , self.x   .to_string(),      y  .to_string()),
-            Type3                => (self.x  .to_string() , "unused" .to_string(), self.imm.to_string()),
+            Type0(Gen { y, imm, .. }) => (self.x  .to_string() ,      y   .to_string(), imm.to_string()),
+            Type1(Gen { y, imm, .. }) => (self.x  .to_string() ,      imm .to_string(), y  .to_string()),
+            Type2(Gen { y, imm, .. }) => (     imm.to_string() , self.x   .to_string(), y  .to_string()),
+            Type3(imm)                => (self.x  .to_string() , "unused" .to_string(), imm.to_string()),
         };
         let rhs = match self.kind {
-            Type3 if self.imm == 0
+            Type3(ref imm) if *imm == 0i32
                 => format!("{a}", a=a),
-            Type3
+            Type3(..)
                 => format!("{a} + {c}", a=a, c=c),
-            Type0(Gen { op, .. }) if self.imm == 0
+            Type0(Gen { op, ref imm, .. }) if *imm == 0i32
                 => format!("{a} {op:^3} {b}", a=a, b=b, op=op.to_string()),
-            Type1(Gen { op, y }) | Type2(Gen { op, y }) if y == Register::A
+            Type1(Gen { op, y, .. }) | Type2(Gen { op, y, .. }) if y == Register::A
                 => format!("{a} {op:^3} {b}", a=a, b=b, op=op.to_string()),
             Type0(Gen { op, .. }) |
             Type1(Gen { op, .. }) |
@@ -180,7 +178,7 @@ impl fmt::Display for Instruction {
 }
 
 #[cfg(test)]
-fn instruction_test_cases() -> &'static [(&'static str, Instruction)] {
+fn instruction_test_cases() -> Vec<(&'static str, Instruction)> {
     use InstructionType::*;
     use MemoryOpType::*;
     use Opcode::*;
@@ -188,23 +186,29 @@ fn instruction_test_cases() -> &'static [(&'static str, Instruction)] {
 
     use Instruction as Insn;
     use InsnGeneral as Gen;
-    return &[
-        (" B  <-  C >>  D + -3" , Insn { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type0(Gen { y : D, op : ShiftRightArith }) }),
-        (" B  <-  C >>  D"      , Insn { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type0(Gen { y : D, op : ShiftRightArith }) }),
-        (" B  <-  C  |  D + -3" , Insn { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type0(Gen { y : D, op : BitwiseOr       }) }),
-        (" B  <-  C  |  D"      , Insn { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type0(Gen { y : D, op : BitwiseOr       }) }),
-        (" B  <-  C  |  -3 + D" , Insn { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type1(Gen { y : D, op : BitwiseOr       }) }),
-        (" B  <-  C  |  0 + D"  , Insn { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type1(Gen { y : D, op : BitwiseOr       }) }),
-        (" B  <-  -3  |  C + D" , Insn { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type2(Gen { y : D, op : BitwiseOr       }) }),
-        (" B  <-  0  |  C + D"  , Insn { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type2(Gen { y : D, op : BitwiseOr       }) }),
-        (" B  <-  C  |  A + -3" , Insn { dd : NoLoad    , z : B, x : C, imm : -3, kind : Type0(Gen { y : A, op : BitwiseOr       }) }),
-        (" B  <-  C  |  A"      , Insn { dd : NoLoad    , z : B, x : C, imm :  0, kind : Type0(Gen { y : A, op : BitwiseOr       }) }),
-        (" P  <-  C + -4"       , Insn { dd : NoLoad    , z : P, x : C, imm : -4, kind : Type3                                      }),
-        (" P  <-  C"            , Insn { dd : NoLoad    , z : P, x : C, imm :  0, kind : Type3                                      }),
-        (" P  -> [C]"           , Insn { dd : StoreRight, z : P, x : C, imm :  0, kind : Type3                                      }),
-        (" P  <- [C]"           , Insn { dd : LoadRight , z : P, x : C, imm :  0, kind : Type3                                      }),
-        ("[P] <-  C"            , Insn { dd : StoreLeft , z : P, x : C, imm :  0, kind : Type3                                      }),
-    ];
+
+    let zero_20 : Immediate20 = Immediate20::new(0).unwrap();
+    let zero_12 : Immediate12 = Immediate12::new(0).unwrap();
+    let neg3_12 : Immediate12 = Immediate12::new(-3).unwrap();
+    let neg4_20 : Immediate20 = Immediate20::new(-4).unwrap();
+
+    vec![
+        (" B  <-  C >>  D + -3" , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12, y : D, op : ShiftRightArith }) }),
+        (" B  <-  C >>  D"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12, y : D, op : ShiftRightArith }) }),
+        (" B  <-  C  |  D + -3" , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12, y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  D"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12, y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  -3 + D" , Insn { dd : NoLoad    , z : B, x : C, kind : Type1(Gen { imm : neg3_12, y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  0 + D"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type1(Gen { imm : zero_12, y : D, op : BitwiseOr       }) }),
+        (" B  <-  -3  |  C + D" , Insn { dd : NoLoad    , z : B, x : C, kind : Type2(Gen { imm : neg3_12, y : D, op : BitwiseOr       }) }),
+        (" B  <-  0  |  C + D"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type2(Gen { imm : zero_12, y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  A + -3" , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12, y : A, op : BitwiseOr       }) }),
+        (" B  <-  C  |  A"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12, y : A, op : BitwiseOr       }) }),
+        (" P  <-  C + -4"       , Insn { dd : NoLoad    , z : P, x : C, kind : Type3(neg4_20) }),
+        (" P  <-  C"            , Insn { dd : NoLoad    , z : P, x : C, kind : Type3(zero_20) }),
+        (" P  -> [C]"           , Insn { dd : StoreRight, z : P, x : C, kind : Type3(zero_20) }),
+        (" P  <- [C]"           , Insn { dd : LoadRight , z : P, x : C, kind : Type3(zero_20) }),
+        ("[P] <-  C"            , Insn { dd : StoreLeft , z : P, x : C, kind : Type3(zero_20) }),
+    ]
 }
 
 #[test]
