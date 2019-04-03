@@ -100,8 +100,7 @@ impl<T> SizedImmediate<T>
 
 impl<T> From<SizedImmediate<T>> for i32 {
     fn from(what : SizedImmediate<T>) -> i32 {
-        let SizedImmediate(x, ..) = what;
-        x
+        what.0
     }
 }
 
@@ -109,15 +108,13 @@ use std::fmt::{Display, Error, Formatter};
 
 impl<T> Display for SizedImmediate<T> {
     fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
-        let SizedImmediate(x, ..) = self;
-        write!(f, "{}", x.to_string())
+        write!(f, "{}", self.0.to_string())
     }
 }
 
 impl<T> PartialEq<i32> for SizedImmediate<T> {
     fn eq(&self, other : &i32) -> bool {
-        let SizedImmediate(x, ..) = self;
-        *x == *other
+        self.0 == *other
     }
 }
 
