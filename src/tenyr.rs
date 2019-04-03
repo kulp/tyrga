@@ -88,7 +88,9 @@ impl<T> SizedImmediate<T>
     where T: BitWidth
 {
     fn new(val : i32) -> Option<SizedImmediate<T>> {
-        if val >= -(1 << (T::BITS - 1)) && val < (1 << (T::BITS - 1)) {
+        let b = T::BITS - 1;
+        let r = 1 << b;
+        if val >= -r && val < r {
             Some(SizedImmediate(val, PhantomData))
         } else {
             None
