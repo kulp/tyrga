@@ -92,6 +92,19 @@ impl<T> SizedImmediate<T>
 type Immediate12 = SizedImmediate<TwelveBit>;
 type Immediate20 = SizedImmediate<TwentyBit>;
 
+#[test]
+fn test_immediates() {
+    assert!(Immediate12::new(-(1 << 11) - 1).is_none());
+    assert!(Immediate12::new(-(1 << 11) - 0).is_some());
+    assert!(Immediate12::new( (1 << 11) - 1).is_some());
+    assert!(Immediate12::new( (1 << 11) - 0).is_none());
+
+    assert!(Immediate20::new(-(1 << 19) - 1).is_none());
+    assert!(Immediate20::new(-(1 << 19) - 0).is_some());
+    assert!(Immediate20::new( (1 << 19) - 1).is_some());
+    assert!(Immediate20::new( (1 << 19) - 0).is_none());
+}
+
 #[derive(Clone)]
 pub struct InsnGeneral {
     y   : Register,
