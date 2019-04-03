@@ -96,6 +96,13 @@ impl<T> SizedImmediate<T>
     }
 }
 
+impl<T> From<SizedImmediate<T>> for i32 {
+    fn from(what : SizedImmediate<T>) -> i32 {
+        let SizedImmediate(x, ..) = what;
+        x
+    }
+}
+
 use std::fmt::{Display, Error, Formatter};
 
 impl<T> Display for SizedImmediate<T> {
