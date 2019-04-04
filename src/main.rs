@@ -36,14 +36,14 @@ pub type Result<T> = std::result::Result<T, Box<Error>>;
 fn parse_class(stem : &str) -> ClassFile {
     let mut name = String::from(concat!(env!("OUT_DIR"), "/"));
     name.push_str(stem);
-    classfile_parser::parse_class(&name).unwrap()
+    classfile_parser::parse_class(&name).expect("failed to parse class")
 }
 
 use classfile_parser::attribute_info::StackMapFrame;
 use std::ops::Range;
 use std::collections::BTreeMap;
 fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
-    -> (Vec<Range<usize>>, BTreeMap<usize, &'a T>)
+    -> Result<(Vec<Range<usize>>, BTreeMap<usize, &'a T>)>
 {
     use classfile_parser::attribute_info::StackMapFrame::*;
     let get_delta = |f : &StackMapFrame| match *f {
@@ -76,12 +76,12 @@ fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
             .collect::<Vec<_>>();
 
     let tree = body.iter().cloned().collect();
-    (ranges, tree)
+    Ok((ranges, tree))
 }
 
 use classfile_parser::method_info::MethodInfo;
 fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
-    -> (Vec<Range<usize>>, BTreeMap<usize, Operation>)
+    -> Result<(Vec<Range<usize>>, BTreeMap<usize, Operation>)>
 {
     use classfile_parser::attribute_info::AttributeInfo;
     use classfile_parser::attribute_info::code_attribute_parser;
@@ -109,16 +109,16 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
     use classfile_parser::code_attribute::code_parser;
     let vec = code_parser(&code.code).unwrap().1;
     let refed = vec.iter().map(|(s, x)| (*s, x)).collect::<Vec<_>>();
-    let (ranges, map) = derive_ranges(&refed, table);
+    let (ranges, map) = derive_ranges(&refed, table)?;
     let ops = map.into_iter().map(decode_insn).collect::<BTreeMap<_,_>>();
-    (ranges, ops)
+    Ok((ranges, ops))
 }
 
 #[cfg(test)]
 fn test_stack_map_table(stem : &str) {
     let class = parse_class(stem);
     for method in &class.methods {
-        let (ranges, ops) = get_ranges_for_method(&class, &method);
+        let (ranges, ops) = get_ranges_for_method(&class, &method).expect("failed to get ranges for map");
         let r = ranges.into_iter().map(|x| ops.range(x)).collect::<Vec<_>>();
         assert!(r.len() > 0);
     }
