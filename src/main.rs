@@ -4,9 +4,33 @@ mod jvmtypes;
 mod mangling;
 mod tenyr;
 
+use std::error::Error;
+use std::fmt;
+
 use jvmtypes::*;
 
 use classfile_parser::ClassFile;
+
+#[derive(Debug)]
+pub struct TranslationError(String);
+
+impl TranslationError {
+    fn new(msg: &str) -> TranslationError {
+        TranslationError(msg.to_string())
+    }
+}
+
+impl fmt::Display for TranslationError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Error for TranslationError {
+    fn description(&self) -> &str { &self.0 }
+}
+
+pub type Result<T> = std::result::Result<T, Box<Error>>;
 
 #[cfg(test)]
 fn parse_class(stem : &str) -> ClassFile {
