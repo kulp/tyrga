@@ -32,6 +32,12 @@ impl Error for TranslationError {
 
 pub type Result<T> = std::result::Result<T, Box<Error>>;
 
+fn generic_error<E>(e : E) -> Box<TranslationError>
+    where E : std::error::Error
+{
+    Box::new(TranslationError::new(&format!("unknown error: {}", e)))
+}
+
 #[cfg(test)]
 fn parse_class(stem : &str) -> ClassFile {
     let mut name = String::from(concat!(env!("OUT_DIR"), "/"));
@@ -61,7 +67,8 @@ fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
 
     let before = deltas.iter().take(1);
     let after  = deltas.iter().skip(1);
-    let max = body.last().unwrap().0 + 1;
+    let err = Box::new(TranslationError::new("body unexpectedly empty"));
+    let max = body.last().ok_or(err)?.0 + 1;
     use std::iter::once;
     let ranges =
         once(0)
@@ -95,19 +102,19 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
             _ => panic!("not a name")
         };
 
-    let code = code_attribute_parser(&method.attributes[0].info).unwrap().1;
+    let code = code_attribute_parser(&method.attributes[0].info).map_err(generic_error)?.1;
     let attr = &code.attributes.iter().find(|a| name_of(a) == "StackMapTable");
     let keep;
     let table = match attr {
         Some(attr) => {
-            keep = stack_map_table_attribute_parser(&attr.info).unwrap();
+            keep = stack_map_table_attribute_parser(&attr.info).map_err(generic_error)?;
             &keep.1.entries
         },
         _ => &[] as &[StackMapFrame],
     };
 
     use classfile_parser::code_attribute::code_parser;
-    let vec = code_parser(&code.code).unwrap().1;
+    let vec = code_parser(&code.code).map_err(generic_error)?.1;
     let refed = vec.iter().map(|(s, x)| (*s, x)).collect::<Vec<_>>();
     let (ranges, map) = derive_ranges(&refed, table)?;
     let ops = map.into_iter().map(decode_insn).collect::<BTreeMap<_,_>>();
