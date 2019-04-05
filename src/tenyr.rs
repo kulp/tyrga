@@ -254,8 +254,8 @@ fn test_basicblock_display() {
     let label = "testbb".to_string();
     let bb = BasicBlock { label, insns };
     let ss = bb.to_string();
-    let first_line = ss.lines().nth(0).unwrap();
-    assert_eq!(':', first_line.chars().last().unwrap());
+    let first_line = ss.lines().nth(0).expect("unexpectedly empty input");
+    assert_eq!(':', first_line.chars().last().expect("unexpected empty line"));
     assert_eq!(bb.label, first_line[..first_line.len()-1]);
     assert_eq!(bb.insns.len() + 1, ss.lines().count());
 }
