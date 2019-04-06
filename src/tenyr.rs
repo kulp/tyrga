@@ -176,6 +176,8 @@ impl fmt::Display for Instruction {
             Type3(imm)                => (self.x  .to_string() , "unused" .to_string(), imm.to_string()),
         };
         let rhs = match self.kind {
+            Type3(..) if self.x == Register::A
+                => format!("{c}", c=c),
             Type3(ref imm) if *imm == 0i32
                 => format!("{a}", a=a),
             Type3(..)
@@ -231,6 +233,7 @@ fn instruction_test_cases() -> Vec<(&'static str, Instruction)> {
         (" P  -> [C]"           , Insn { dd : StoreRight, z : P, x : C, kind : Type3(zero_20) }),
         (" P  <- [C]"           , Insn { dd : LoadRight , z : P, x : C, kind : Type3(zero_20) }),
         ("[P] <-  C"            , Insn { dd : StoreLeft , z : P, x : C, kind : Type3(zero_20) }),
+        (" P  <-  0"            , Insn { dd : NoLoad    , z : P, x : A, kind : Type3(zero_20) }),
     ]
 }
 
