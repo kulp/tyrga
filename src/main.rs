@@ -19,6 +19,16 @@ pub struct StackManager {
     top : usize,
 }
 
+// Someday we will be able to find operands in a stack frame
+#[derive(Copy,Clone,Debug,PartialEq,Eq)]
+pub enum OperandLocation {
+    Register(tenyr::Register),
+}
+
+impl From<Register> for OperandLocation {
+    fn from(r : Register) -> OperandLocation { OperandLocation::Register(r) }
+}
+
 // This simple StackManager implementation does not do spilling to nor reloading from memory.
 // For now, it panics if we run out of free registers.
 impl StackManager {
@@ -36,9 +46,10 @@ impl StackManager {
         self.top -= n;
     }
 
-    pub fn get(&self, which : Range<usize>) -> &[Register] {
+    pub fn get(&self, which : Range<usize>) -> Vec<OperandLocation> {
         // indexing is relative to top of stack, counting backward
-        &self.stack[(self.top - which.end) .. (self.top - which.start + 1)]
+        self.stack[(self.top - which.end) .. (self.top - which.start + 1)]
+            .into_iter().map(|&o| o.into()).collect()
     }
 }
 
