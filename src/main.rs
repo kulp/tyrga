@@ -42,6 +42,16 @@ impl StackManager {
     }
 }
 
+#[test]
+#[should_panic(expected=">= n")]
+fn test_underflow() {
+    use Register::*;
+    let v = vec![ C, D, E, F, G ];
+    let mut sm = StackManager::new(v);
+    sm.reserve(3);
+    sm.release(4);
+}
+
 #[derive(Debug)]
 pub struct TranslationError(String);
 
