@@ -58,12 +58,12 @@ pub enum MemoryOpType {
     LoadRight,  //  Z  <- [...]
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct TwelveBit;
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct TwentyBit;
 
-pub trait BitWidth {
+pub trait BitWidth : Clone + PartialEq + Eq {
     const BITS : usize;
 }
 
