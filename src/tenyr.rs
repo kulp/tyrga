@@ -87,7 +87,7 @@ impl<T> Bounded for SizedImmediate<T>
 impl<T> SizedImmediate<T>
     where T: BitWidth
 {
-    fn new(val : i32) -> Option<SizedImmediate<T>> {
+    pub fn new(val : i32) -> Option<SizedImmediate<T>> {
         let b = T::BITS - 1;
         let r = 1 << b;
         if val >= -r && val < r {
@@ -136,9 +136,9 @@ fn test_immediates() {
 
 #[derive(Clone)]
 pub struct InsnGeneral {
-    y   : Register,
-    op  : Opcode,
-    imm : Immediate12,
+    pub y   : Register,
+    pub op  : Opcode,
+    pub imm : Immediate12,
 }
 
 #[derive(Clone)]
@@ -151,10 +151,10 @@ pub enum InstructionType {
 
 #[derive(Clone)]
 pub struct Instruction {
-    kind : InstructionType,
-    z    : Register,
-    x    : Register,
-    dd   : MemoryOpType,
+    pub kind : InstructionType,
+    pub z    : Register,
+    pub x    : Register,
+    pub dd   : MemoryOpType,
 }
 
 impl fmt::Display for Instruction {
