@@ -46,7 +46,12 @@ impl StackManager {
         self.top -= n;
     }
 
-    pub fn get(&self, which : Range<usize>) -> Vec<OperandLocation> {
+    pub fn get(&self, which : usize) -> OperandLocation {
+        // indexing is relative to top of stack, counting backward
+        self.stack[self.top - which].into()
+    }
+
+    pub fn get_range(&self, which : Range<usize>) -> Vec<OperandLocation> {
         // indexing is relative to top of stack, counting backward
         self.stack[(self.top - which.end + 1) .. (self.top - which.start + 1)]
             .into_iter().rev().map(|&o| o.into()).collect()
@@ -81,7 +86,7 @@ fn test_normal_stack() {
     let mut sm = StackManager::new(v);
     let off = 3;
     sm.reserve(off);
-    assert_eq!(sm.get(0..1)[0], t[off].into());
+    assert_eq!(sm.get_range(0..1)[0], t[off].into());
 }
 
 fn make_instructions(sm : &mut StackManager, op : &Operation) -> Vec<tenyr::Instruction> {
@@ -94,7 +99,7 @@ fn make_instructions(sm : &mut StackManager, op : &Operation) -> Vec<tenyr::Inst
         Constant { kind, value } if kind == JType::Int => {
             let kind = Type3(SizedImmediate::new(value).expect("immediate too large"));
             sm.reserve(1);
-            let z = match sm.get(0..1)[0] {
+            let z = match sm.get_range(0..1)[0] {
                 OperandLocation::Register(r) => r,
             };
             vec![ Instruction { kind, z, x : Register::A, dd : NoLoad } ]
