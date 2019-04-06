@@ -58,9 +58,9 @@ pub enum MemoryOpType {
     LoadRight,  //  Z  <- [...]
 }
 
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct TwelveBit;
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct TwentyBit;
 
 pub trait BitWidth {
@@ -72,7 +72,7 @@ impl BitWidth for TwentyBit { const BITS : usize = 20; }
 
 use std::marker::PhantomData;
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SizedImmediate<T>(i32, PhantomData<T>);
 
 use num::Bounded;
@@ -134,14 +134,14 @@ fn test_immediates() {
     assert!(Immediate20::new( (1 << 19) - 0).is_none());
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct InsnGeneral {
     pub y   : Register,
     pub op  : Opcode,
     pub imm : Immediate12,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum InstructionType {
     Type0(InsnGeneral), // [Z] <- [X f Y + I]
     Type1(InsnGeneral), // [Z] <- [X f I + Y]
@@ -149,7 +149,7 @@ pub enum InstructionType {
     Type3(Immediate20), // [Z] <- [X     + I]
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Instruction {
     pub kind : InstructionType,
     pub z    : Register,
