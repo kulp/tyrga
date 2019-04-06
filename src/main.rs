@@ -6,10 +6,41 @@ mod tenyr;
 
 use std::error::Error;
 use std::fmt;
+use std::ops::Range;
 
 use jvmtypes::*;
 
 use classfile_parser::ClassFile;
+
+use tenyr::Register;
+
+pub struct StackManager {
+    stack : Vec<Register>,
+    top : usize,
+}
+
+// This simple StackManager implementation does not do spilling to nor reloading from memory.
+// For now, it panics if we run out of free registers.
+impl StackManager {
+    pub fn new(r : Vec<Register>) -> StackManager {
+        StackManager { top : 0, stack : r }
+    }
+
+    pub fn reserve(&mut self, n : usize) {
+        assert!(self.top + n <= self.stack.len());
+        self.top += n;
+    }
+
+    pub fn release(&mut self, n : usize) {
+        assert!(self.top >= n);
+        self.top -= n;
+    }
+
+    pub fn get(&self, which : Range<usize>) -> &[Register] {
+        // indexing is relative to top of stack, counting backward
+        &self.stack[(self.top - which.end) .. (self.top - which.start + 1)]
+    }
+}
 
 #[derive(Debug)]
 pub struct TranslationError(String);
@@ -46,7 +77,6 @@ fn parse_class(stem : &str) -> ClassFile {
 }
 
 use classfile_parser::attribute_info::StackMapFrame;
-use std::ops::Range;
 use std::collections::BTreeMap;
 fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
     -> Result<(Vec<Range<usize>>, BTreeMap<usize, &'a T>)>
