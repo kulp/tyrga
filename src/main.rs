@@ -52,6 +52,16 @@ fn test_underflow() {
     sm.release(4);
 }
 
+#[test]
+#[should_panic(expected="n <=")]
+fn test_overflow() {
+    use Register::*;
+    let v = vec![ C, D, E, F, G ];
+    let len = v.len();
+    let mut sm = StackManager::new(v);
+    sm.reserve(len + 1);
+}
+
 #[derive(Debug)]
 pub struct TranslationError(String);
 
