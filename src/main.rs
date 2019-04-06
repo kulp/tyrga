@@ -86,7 +86,7 @@ fn test_normal_stack() {
     let mut sm = StackManager::new(v);
     let off = 3;
     sm.reserve(off);
-    assert_eq!(sm.get_range(0..1)[0], t[off].into());
+    assert_eq!(sm.get(0), t[off].into());
 }
 
 fn make_instructions(sm : &mut StackManager, op : &Operation) -> Vec<tenyr::Instruction> {
@@ -99,7 +99,7 @@ fn make_instructions(sm : &mut StackManager, op : &Operation) -> Vec<tenyr::Inst
         Constant { kind, value } if kind == JType::Int => {
             let kind = Type3(SizedImmediate::new(value).expect("immediate too large"));
             sm.reserve(1);
-            let z = match sm.get_range(0..1)[0] {
+            let z = match sm.get(0) {
                 OperandLocation::Register(r) => r,
             };
             vec![ Instruction { kind, z, x : Register::A, dd : NoLoad } ]
