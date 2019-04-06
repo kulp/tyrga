@@ -116,6 +116,7 @@ fn test_make_instruction() {
     let insn = make_instructions(&mut sm, &op);
     let imm = SizedImmediate::new(5).unwrap();
     assert_eq!(insn, vec![ Instruction { kind: Type3(imm), z: D, x: A, dd: NoLoad } ]);
+    assert_eq!(insn[0].to_string(), " D  <-  5");
 }
 
 #[derive(Debug)]
