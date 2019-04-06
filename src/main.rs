@@ -84,6 +84,12 @@ fn test_normal_stack() {
     assert_eq!(sm.get(0..1)[0], t[off].into());
 }
 
+fn make_instructions(sm : &mut StackManager, op : &Operation) -> Vec<tenyr::Instruction> {
+    match *op {
+        _ => panic!("unhandled operation {:?}", op),
+    }
+}
+
 #[derive(Debug)]
 pub struct TranslationError(String);
 
