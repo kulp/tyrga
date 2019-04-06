@@ -103,6 +103,21 @@ fn make_instructions(sm : &mut StackManager, op : &Operation) -> Vec<tenyr::Inst
     }
 }
 
+#[test]
+fn test_make_instruction() {
+    use tenyr::MemoryOpType::*;
+    use Register::*;
+    use tenyr::Instruction;
+    use tenyr::InstructionType::*;
+    use tenyr::SizedImmediate;
+    let v = vec![ C, D, E, F, G ];
+    let mut sm = StackManager::new(v);
+    let op = Operation::Constant { kind : JType::Int, value : 5 };
+    let insn = make_instructions(&mut sm, &op);
+    let imm = SizedImmediate::new(5).unwrap();
+    assert_eq!(insn, vec![ Instruction { kind: Type3(imm), z: D, x: A, dd: NoLoad } ]);
+}
+
 #[derive(Debug)]
 pub struct TranslationError(String);
 
