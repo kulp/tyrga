@@ -73,7 +73,7 @@ impl BitWidth for TwentyBit { const BITS : usize = 20; }
 use std::marker::PhantomData;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct SizedImmediate<T>(i32, PhantomData<T>);
+pub struct SizedImmediate<T>(i32, PhantomData<T>) where T : BitWidth;
 
 use num::Bounded;
 
@@ -98,7 +98,9 @@ impl<T> SizedImmediate<T>
     }
 }
 
-impl<T> From<SizedImmediate<T>> for i32 {
+impl<T> From<SizedImmediate<T>> for i32
+    where T: BitWidth
+{
     fn from(what : SizedImmediate<T>) -> i32 {
         what.0
     }
@@ -106,13 +108,17 @@ impl<T> From<SizedImmediate<T>> for i32 {
 
 use std::fmt::{Display, Error, Formatter};
 
-impl<T> Display for SizedImmediate<T> {
+impl<T> Display for SizedImmediate<T>
+    where T : BitWidth
+{
     fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
         write!(f, "{}", self.0.to_string())
     }
 }
 
-impl<T> PartialEq<i32> for SizedImmediate<T> {
+impl<T> PartialEq<i32> for SizedImmediate<T>
+    where T : BitWidth
+{
     fn eq(&self, other : &i32) -> bool {
         self.0 == *other
     }
