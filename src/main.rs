@@ -73,6 +73,17 @@ fn test_overflow() {
     sm.reserve(len + 1);
 }
 
+#[test]
+fn test_normal_stack() {
+    use Register::*;
+    let v = vec![ C, D, E, F, G ];
+    let t = v.clone();
+    let mut sm = StackManager::new(v);
+    let off = 3;
+    sm.reserve(off);
+    assert_eq!(sm.get(0..1)[0], t[off].into());
+}
+
 #[derive(Debug)]
 pub struct TranslationError(String);
 
