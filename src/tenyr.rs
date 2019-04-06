@@ -142,14 +142,14 @@ fn test_immediates() {
     assert!(Immediate20::new( (1 << 19) - 0).is_none());
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct InsnGeneral {
     pub y   : Register,
     pub op  : Opcode,
     pub imm : Immediate12,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum InstructionType {
     Type0(InsnGeneral), // [Z] <- [X f Y + I]
     Type1(InsnGeneral), // [Z] <- [X f I + Y]
@@ -157,7 +157,7 @@ pub enum InstructionType {
     Type3(Immediate20), // [Z] <- [X     + I]
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Instruction {
     pub kind : InstructionType,
     pub z    : Register,
