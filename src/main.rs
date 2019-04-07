@@ -47,6 +47,7 @@ impl StackManager {
     }
 
     pub fn get(&self, which : usize) -> OperandLocation {
+        assert!(which <= self.top);
         // indexing is relative to top of stack, counting backward
         self.stack[self.top - which].into()
     }
