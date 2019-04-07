@@ -50,12 +50,6 @@ impl StackManager {
         // indexing is relative to top of stack, counting backward
         self.stack[self.top - which].into()
     }
-
-    pub fn get_range(&self, which : Range<usize>) -> Vec<OperandLocation> {
-        // indexing is relative to top of stack, counting backward
-        self.stack[(self.top - which.end + 1) .. (self.top - which.start + 1)]
-            .into_iter().rev().map(|&o| o.into()).collect()
-    }
 }
 
 #[test]
