@@ -86,10 +86,15 @@ fn test_normal_stack() {
 
 fn make_instructions(sm : &mut StackManager, op : &Operation) -> Vec<tenyr::Instruction> {
     use Operation::*;
+    use tenyr::Immediate20;
     use tenyr::Instruction;
     use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::*;
     use tenyr::SizedImmediate;
+
+    let stack_ptr = Register::O;
+    let frame_ptr = Register::N;
+
     match *op {
         Constant { kind, value } if kind == JType::Int => {
             let kind = Type3(SizedImmediate::new(value).expect("immediate too large"));
@@ -99,6 +104,12 @@ fn make_instructions(sm : &mut StackManager, op : &Operation) -> Vec<tenyr::Inst
             };
             vec![ Instruction { kind, z, x : Register::A, dd : NoLoad } ]
         },
+        Yield { kind } if kind == JType::Void
+            => vec![
+                Instruction { kind : Type3(Immediate20::ZERO), z : stack_ptr, x : frame_ptr, dd : NoLoad },
+                Instruction { kind : Type3(Immediate20::ZERO), z : Register::P, x : stack_ptr, dd : LoadRight },
+                ],
+
         _ => panic!("unhandled operation {:?}", op),
     }
 }
