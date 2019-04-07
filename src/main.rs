@@ -238,7 +238,9 @@ fn test_stack_map_table(stem : &str) {
     let class = parse_class(stem);
     for method in &class.methods {
         let (ranges, ops) = get_ranges_for_method(&class, &method).expect("failed to get ranges for map");
-        let r = ranges.into_iter().map(|x| ops.range(x)).collect::<Vec<_>>();
+        let it = ranges.into_iter().map(|x| ops.range(x).map(|(_,op)| op.clone()).collect::<Vec<_>>());
+        let vov : Vec<_> = it.collect();
+        let r : Vec<_> = vov.concat();
         assert!(r.len() > 0);
     }
 }
