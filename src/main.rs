@@ -49,7 +49,7 @@ impl StackManager {
     pub fn get(&self, which : usize) -> OperandLocation {
         assert!(which <= self.top);
         // indexing is relative to top of stack, counting backward
-        self.stack[self.top - which].into()
+        self.stack[self.top - which - 1].into()
     }
 }
 
@@ -81,7 +81,7 @@ fn test_normal_stack() {
     let mut sm = StackManager::new(v);
     let off = 3;
     sm.reserve(off);
-    assert_eq!(sm.get(0), t[off].into());
+    assert_eq!(sm.get(0), t[off - 1].into());
 }
 
 fn make_instructions(sm : &mut StackManager, op : &Operation) -> Vec<tenyr::Instruction> {
@@ -115,8 +115,8 @@ fn test_make_instruction() {
     let op = Operation::Constant { kind : JType::Int, value : 5 };
     let insn = make_instructions(&mut sm, &op);
     let imm = SizedImmediate::new(5).unwrap();
-    assert_eq!(insn, vec![ Instruction { kind: Type3(imm), z: D, x: A, dd: NoLoad } ]);
-    assert_eq!(insn[0].to_string(), " D  <-  5");
+    assert_eq!(insn, vec![ Instruction { kind: Type3(imm), z: C, x: A, dd: NoLoad } ]);
+    assert_eq!(insn[0].to_string(), " C  <-  5");
 }
 
 #[derive(Debug)]
