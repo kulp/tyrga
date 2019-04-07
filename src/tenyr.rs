@@ -126,8 +126,8 @@ impl<T,U> PartialEq<U> for SizedImmediate<T>
     }
 }
 
-type Immediate12 = SizedImmediate<TwelveBit>;
-type Immediate20 = SizedImmediate<TwentyBit>;
+pub type Immediate12 = SizedImmediate<TwelveBit>;
+pub type Immediate20 = SizedImmediate<TwentyBit>;
 
 impl Immediate12 {
     pub const ZERO : Immediate12 = SizedImmediate(0, PhantomData);
