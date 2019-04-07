@@ -129,6 +129,14 @@ impl<T,U> PartialEq<U> for SizedImmediate<T>
 type Immediate12 = SizedImmediate<TwelveBit>;
 type Immediate20 = SizedImmediate<TwentyBit>;
 
+impl Immediate12 {
+    pub const ZERO : Immediate12 = SizedImmediate(0, PhantomData);
+}
+
+impl Immediate20 {
+    pub const ZERO : Immediate20 = SizedImmediate(0, PhantomData);
+}
+
 #[test]
 fn test_immediates() {
     assert!(Immediate12::new(-(1 << 11) - 1).is_none());
@@ -212,8 +220,8 @@ fn instruction_test_cases() -> Vec<(&'static str, Instruction)> {
     use Instruction as Insn;
     use InsnGeneral as Gen;
 
-    let zero_20 : Immediate20 = Immediate20::new(0).unwrap();
-    let zero_12 : Immediate12 = Immediate12::new(0).unwrap();
+    let zero_20 : Immediate20 = Immediate20::ZERO;
+    let zero_12 : Immediate12 = Immediate12::ZERO;
     let neg3_12 : Immediate12 = Immediate12::new(-3).unwrap();
     let neg4_20 : Immediate20 = Immediate20::new(-4).unwrap();
 
