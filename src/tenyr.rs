@@ -87,7 +87,10 @@ impl<T> Bounded for SizedImmediate<T>
 impl<T> SizedImmediate<T>
     where T: BitWidth
 {
-    pub fn new(val : i32) -> Option<SizedImmediate<T>> {
+    pub fn new<U>(val : U) -> Option<SizedImmediate<T>>
+        where i32 : std::convert::From<U>
+    {
+        let val = i32::from(val);
         let b = T::BITS - 1;
         let r = 1 << b;
         if val >= -r && val < r {
