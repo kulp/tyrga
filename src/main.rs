@@ -108,6 +108,23 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
     // While the only valid OperandLocation is Register, this shorthand is convenient.
     let get_reg = |x| match x { OperandLocation::Register(r) => r };
 
+    let translate_arithmetic_op =
+        |x| {
+            use tenyr::Opcode::*;
+            match x {
+                ArithmeticOperation::Add  => Some(Add),
+                ArithmeticOperation::Sub  => Some(Subtract),
+                ArithmeticOperation::Mul  => Some(Multiply),
+                ArithmeticOperation::Shl  => Some(ShiftLeft),
+                ArithmeticOperation::Shr  => Some(ShiftRightArith),
+                ArithmeticOperation::Ushr => Some(ShiftRightLogic),
+                ArithmeticOperation::And  => Some(BitwiseAnd),
+                ArithmeticOperation::Or   => Some(BitwiseOr),
+                ArithmeticOperation::Xor  => Some(BitwiseXor),
+                _ => None,
+            }
+        };
+
     match *op {
         Constant { kind, value } if kind == JType::Int => {
             let kind = Type3(SizedImmediate::new(value).expect("immediate too large"));
