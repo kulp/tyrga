@@ -149,6 +149,20 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
                 let v = vec![ Instruction { kind : Type1(InsnGeneral { y, op, imm }), x, z, dd } ];
                 (v, default_dest)
             },
+        StoreLocal { kind, index } if kind == JType::Int
+            => {
+                use tenyr::*;
+                let y = Register::A;
+                let x = frame_ptr;
+                let z = get_reg(sm.get(0));
+                let op = Opcode::Subtract;
+                let dd = MemoryOpType::StoreRight;
+                let imm = Immediate12::new(index).unwrap();
+                let v = vec![ Instruction { kind : Type1(InsnGeneral { y, op, imm }), x, z, dd } ];
+                sm.release(1);
+                (v, default_dest)
+            },
+
 
         _ => panic!("unhandled operation {:?}", op),
     }
