@@ -140,13 +140,13 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
                 Instruction { kind : Type3(Immediate20::ZERO), z : Register::P, x : stack_ptr, dd : LoadRight },
                 ], default_dest),
 
-        Arithmetic { kind, op } if kind == JType::Int && op == ArithmeticOperation::Add
+        Arithmetic { kind, op } if kind == JType::Int && translate_arithmetic_op(op).is_some()
             => {
                 use tenyr::*;
                 let y = get_reg(sm.get(0));
                 let x = get_reg(sm.get(1));
                 let z = x;
-                let op = Opcode::Add;
+                let op = translate_arithmetic_op(op).unwrap();
                 let dd = MemoryOpType::NoLoad;
                 let imm = Immediate12::ZERO;
                 let v = vec![ Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd } ];
