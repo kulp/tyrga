@@ -105,6 +105,9 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
 
     let default_dest = vec![Destination::Successor];
 
+    // While the only valid OperandLocation is Register, this shorthand is convenient.
+    let get_reg = |x| match x { OperandLocation::Register(r) => r };
+
     match *op {
         Constant { kind, value } if kind == JType::Int => {
             let kind = Type3(SizedImmediate::new(value).expect("immediate too large"));
@@ -119,6 +122,20 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
                 Instruction { kind : Type3(Immediate20::ZERO), z : stack_ptr, x : frame_ptr, dd : NoLoad },
                 Instruction { kind : Type3(Immediate20::ZERO), z : Register::P, x : stack_ptr, dd : LoadRight },
                 ], default_dest),
+
+        Arithmetic { kind, op } if kind == JType::Int && op == ArithmeticOperation::Add
+            => {
+                use tenyr::*;
+                let y = get_reg(sm.get(0));
+                let x = get_reg(sm.get(1));
+                let z = x;
+                let op = Opcode::Add;
+                let dd = MemoryOpType::NoLoad;
+                let imm = Immediate12::ZERO;
+                let v = vec![ Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd } ];
+                sm.release(1);
+                (v, default_dest)
+            },
 
         _ => panic!("unhandled operation {:?}", op),
     }
