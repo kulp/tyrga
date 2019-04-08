@@ -84,7 +84,7 @@ fn test_normal_stack() {
     assert_eq!(sm.get(0), t[off - 1].into());
 }
 
-fn make_instructions(sm : &mut StackManager, op : &Operation) -> Vec<tenyr::Instruction> {
+fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation)) -> Vec<tenyr::Instruction> {
     use Operation::*;
     use tenyr::Immediate20;
     use tenyr::Instruction;
@@ -124,7 +124,7 @@ fn test_make_instruction() {
     let v = vec![ C, D, E, F, G ];
     let mut sm = StackManager::new(v);
     let op = Operation::Constant { kind : JType::Int, value : 5 };
-    let insn = make_instructions(&mut sm, &op);
+    let insn = make_instructions(&mut sm, (&0, &op));
     let imm = SizedImmediate::new(5).unwrap();
     assert_eq!(insn, vec![ Instruction { kind: Type3(imm), z: C, x: A, dd: NoLoad } ]);
     assert_eq!(insn[0].to_string(), " C  <-  5");
@@ -244,7 +244,7 @@ fn test_stack_map_table(stem : &str) {
     let class = parse_class(stem);
     for method in &class.methods {
         let (ranges, ops) = get_ranges_for_method(&class, &method).expect("failed to get ranges for map");
-        let it = ranges.into_iter().map(|x| ops.range(x).map(|(_,op)| op.clone()).collect::<Vec<_>>());
+        let it = ranges.into_iter().map(|x| ops.range(x).collect::<Vec<_>>());
         let vov : Vec<_> = it.collect();
         let r : Vec<_> = vov.concat();
         assert!(r.len() > 0);
