@@ -136,33 +136,27 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
                 sm.release(1);
                 (v, default_dest)
             },
-        LoadLocal { kind, index } if kind == JType::Int
+        LoadLocal { kind, index } | StoreLocal { kind, index }
+            if kind == JType::Int
             => {
-                use tenyr::*;
-                sm.reserve(1);
-                let y = Register::A;
-                let x = frame_ptr;
-                let z = get_reg(sm.get(0));
-                let op = Opcode::Subtract;
-                let dd = MemoryOpType::LoadRight;
-                let imm = Immediate12::new(index).unwrap();
-                let v = vec![ Instruction { kind : Type1(InsnGeneral { y, op, imm }), x, z, dd } ];
+                match *op { LoadLocal { .. } => sm.reserve(1), _ => {} };
+                let v = {
+                    use tenyr::*;
+                    let y = Register::A;
+                    let x = frame_ptr;
+                    let z = get_reg(sm.get(0));
+                    let dd = match *op {
+                        LoadLocal  { .. } => MemoryOpType::LoadRight,
+                        StoreLocal { .. } => MemoryOpType::StoreRight,
+                        _ => unreachable!(),
+                    };
+                    let op = Opcode::Subtract;
+                    let imm = Immediate12::new(index).unwrap();
+                    vec![ Instruction { kind : Type1(InsnGeneral { y, op, imm }), x, z, dd } ]
+                };
+                match *op { StoreLocal { .. } => sm.release(1), _ => {} };
                 (v, default_dest)
             },
-        StoreLocal { kind, index } if kind == JType::Int
-            => {
-                use tenyr::*;
-                let y = Register::A;
-                let x = frame_ptr;
-                let z = get_reg(sm.get(0));
-                let op = Opcode::Subtract;
-                let dd = MemoryOpType::StoreRight;
-                let imm = Immediate12::new(index).unwrap();
-                let v = vec![ Instruction { kind : Type1(InsnGeneral { y, op, imm }), x, z, dd } ];
-                sm.release(1);
-                (v, default_dest)
-            },
-
 
         _ => panic!("unhandled operation {:?}", op),
     }
