@@ -84,7 +84,15 @@ fn test_normal_stack() {
     assert_eq!(sm.get(0), t[off - 1].into());
 }
 
-fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation)) -> Vec<tenyr::Instruction> {
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+enum Destination {
+    Successor,
+    Address(usize),
+}
+
+fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
+    -> (Vec<tenyr::Instruction>, Vec<Destination>)
+{
     use Operation::*;
     use tenyr::Immediate20;
     use tenyr::Instruction;
@@ -95,6 +103,8 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
     let stack_ptr = Register::O;
     let frame_ptr = Register::N;
 
+    let default_dest = vec![Destination::Successor];
+
     match *op {
         Constant { kind, value } if kind == JType::Int => {
             let kind = Type3(SizedImmediate::new(value).expect("immediate too large"));
@@ -102,13 +112,13 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
             let z = match sm.get(0) {
                 OperandLocation::Register(r) => r,
             };
-            vec![ Instruction { kind, z, x : Register::A, dd : NoLoad } ]
+            (vec![ Instruction { kind, z, x : Register::A, dd : NoLoad } ], default_dest)
         },
         Yield { kind } if kind == JType::Void
-            => vec![
+            => (vec![
                 Instruction { kind : Type3(Immediate20::ZERO), z : stack_ptr, x : frame_ptr, dd : NoLoad },
                 Instruction { kind : Type3(Immediate20::ZERO), z : Register::P, x : stack_ptr, dd : LoadRight },
-                ],
+                ], default_dest),
 
         _ => panic!("unhandled operation {:?}", op),
     }
@@ -126,8 +136,8 @@ fn test_make_instruction() {
     let op = Operation::Constant { kind : JType::Int, value : 5 };
     let insn = make_instructions(&mut sm, (&0, &op));
     let imm = SizedImmediate::new(5).unwrap();
-    assert_eq!(insn, vec![ Instruction { kind: Type3(imm), z: C, x: A, dd: NoLoad } ]);
-    assert_eq!(insn[0].to_string(), " C  <-  5");
+    assert_eq!(insn.0, vec![ Instruction { kind: Type3(imm), z: C, x: A, dd: NoLoad } ]);
+    assert_eq!(insn.0[0].to_string(), " C  <-  5");
 }
 
 #[derive(Debug)]
