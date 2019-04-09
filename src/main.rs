@@ -159,10 +159,10 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
         LoadLocal { kind, index } | StoreLocal { kind, index }
             if kind == JType::Int || kind == JType::Object
             => {
+                let index = i32::from(index);
                 match *op { LoadLocal { .. } => sm.reserve(1), _ => {} };
                 let v = {
                     use tenyr::*;
-                    let y = Register::A;
                     let x = frame_ptr;
                     let z = get_reg(sm.get(0));
                     let dd = match *op {
@@ -170,9 +170,8 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
                         StoreLocal { .. } => MemoryOpType::StoreRight,
                         _ => unreachable!(),
                     };
-                    let op = Opcode::Subtract;
-                    let imm = Immediate12::new(index).unwrap();
-                    vec![ Instruction { kind : Type1(InsnGeneral { y, op, imm }), x, z, dd } ]
+                    let imm = Immediate20::new(-index).unwrap();
+                    vec![ Instruction { kind : Type3(imm), x, z, dd } ]
                 };
                 match *op { StoreLocal { .. } => sm.release(1), _ => {} };
                 (v, default_dest)
