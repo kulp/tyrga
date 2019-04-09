@@ -154,7 +154,7 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
                 (v, default_dest)
             },
         LoadLocal { kind, index } | StoreLocal { kind, index }
-            if kind == JType::Int
+            if kind == JType::Int || kind == JType::Object
             => {
                 match *op { LoadLocal { .. } => sm.reserve(1), _ => {} };
                 let v = {
