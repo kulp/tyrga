@@ -304,6 +304,26 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
     Ok((ranges, ops))
 }
 
+fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> String {
+    use classfile_parser::constant_info::ConstantInfo::*;
+
+    let get_constant = |n| &class.const_pool[usize::from(n) - 1];
+    let get_string = |i|
+        match get_constant(i) {
+            Utf8(u) => Some(u.utf8_string.to_string()),
+            _ => None,
+        };
+
+    let cl = match get_constant(class.this_class) { Class(c) => c, _ => panic!("not a class") };
+    let s = vec![
+        get_string(cl.name_index).expect("bad class name"),
+        get_string(method.name_index).expect("bad method name"),
+        get_string(method.descriptor_index).expect("bad method descriptor"),
+    ].join(":");
+
+    mangling::mangle(s.bytes()).expect("failed to mangle")
+}
+
 #[cfg(test)]
 fn test_stack_map_table(stem : &str) {
     let class = parse_class(stem);
