@@ -113,7 +113,6 @@ pub enum Operation {
     Increment   { index : u16, value : i16 },
     Invocation  { kind : InvokeKind, index : u16, count : u8 },
     Jump        { target : u16 },
-    Leave,      /* i.e. void return */
     Length,     /* i.e. arraylength */
     LoadArray   (JType),
     LoadLocal   { kind : JType, index : u16 },
