@@ -102,6 +102,7 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
 
     let stack_ptr = Register::O;
     let frame_ptr = Register::N;
+    let temp_reg  = Register::M;
 
     let default_dest = vec![Destination::Successor];
 
@@ -126,7 +127,8 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
         };
 
     let make_mov   = |to, from| Instruction { dd : NoLoad, kind : Type3(Immediate20::ZERO), z : to, x : from };
-    let make_load  = |to, from| Instruction { dd : LoadRight, ..make_mov(to, from) };
+    let make_load  = |to, from| Instruction { dd : LoadRight , ..make_mov(to, from) };
+    let make_store = |lhs, rhs| Instruction { dd : StoreRight, ..make_mov(lhs, rhs) };
 
     match *op {
         Constant { kind, value } if kind == JType::Int => {
@@ -176,6 +178,22 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
                 match *op { StoreLocal { .. } => sm.release(1), _ => {} };
                 (v, default_dest)
             },
+        Increment { index, value } => {
+            use tenyr::*;
+            let make_imm20 = |n| Immediate20::new(n).unwrap();
+            let make_imm12 = |n| Immediate12::new(n).unwrap();
+            let index = i32::from(index);
+            let imm = make_imm12(value);
+            let y = Register::A;
+            let op = Opcode::Add;
+            let v = vec![
+                Instruction { kind : Type3(make_imm20(-index)), ..make_load(temp_reg, frame_ptr) },
+                Instruction { kind : Type1(InsnGeneral { y, op, imm }), ..make_mov(temp_reg, temp_reg) },
+                Instruction { kind : Type3(make_imm20(-index)), ..make_store(temp_reg, frame_ptr) },
+            ];
+
+            (v, default_dest)
+        },
 
         _ => panic!("unhandled operation {:?}", op),
     }
