@@ -125,6 +125,9 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
             }
         };
 
+    let make_mov   = |to, from| Instruction { dd : NoLoad, kind : Type3(Immediate20::ZERO), z : to, x : from };
+    let make_load  = |to, from| Instruction { dd : LoadRight, ..make_mov(to, from) };
+
     match *op {
         Constant { kind, value } if kind == JType::Int => {
             let kind = Type3(SizedImmediate::new(value).expect("immediate too large"));
@@ -136,8 +139,8 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
         },
         Yield { kind } if kind == JType::Void
             => (vec![
-                Instruction { kind : Type3(Immediate20::ZERO), z : stack_ptr, x : frame_ptr, dd : NoLoad },
-                Instruction { kind : Type3(Immediate20::ZERO), z : Register::P, x : stack_ptr, dd : LoadRight },
+                    make_mov(stack_ptr, frame_ptr),
+                    make_load(Register::P, stack_ptr),
                 ], default_dest),
 
         Arithmetic { kind, op } if kind == JType::Int && translate_arithmetic_op(op).is_some()
