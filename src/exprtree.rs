@@ -2,6 +2,7 @@
 
 use std::fmt;
 
+#[derive(Debug)]
 pub enum Operation {
     Add,
     Sub,
@@ -19,6 +20,7 @@ impl fmt::Display for Operation {
     }
 }
 
+#[derive(Debug)]
 pub enum Operand<'e, 's> {
     Variable(&'s str),
     Immediate(i32),
@@ -36,6 +38,7 @@ impl <'a, 's> fmt::Display for Operand<'a, 's> {
     }
 }
 
+#[derive(Debug)]
 pub struct Expr<'a, 's> {
     a  : Operand<'a, 's>,
     b  : Operand<'a, 's>,
