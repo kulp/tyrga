@@ -207,7 +207,7 @@ pub struct Instruction<'a> {
     pub dd   : MemoryOpType,
 }
 
-impl<'a> fmt::Display for Instruction<'a> {
+impl fmt::Display for Instruction<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use InstructionType::*;
         use InsnGeneral as Gen;
@@ -291,7 +291,7 @@ pub struct BasicBlock<'a> {
     insns : Vec<Instruction<'a>>,
 }
 
-impl<'a> fmt::Display for BasicBlock<'a> {
+impl fmt::Display for BasicBlock<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "{}:", self.label)?;
         for insn in &self.insns {
