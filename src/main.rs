@@ -100,7 +100,6 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation),
     use tenyr::Instruction;
     use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::*;
-    use tenyr::SizedImmediate;
 
     let stack_ptr = Register::O;
     let frame_ptr = Register::N;
@@ -134,7 +133,7 @@ fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation),
 
     match *op {
         Constant { kind, value } if kind == JType::Int => {
-            let kind = Type3(SizedImmediate::new(value).expect("immediate too large"));
+            let kind = Type3(Immediate20::new(value).expect("immediate too large"));
             sm.reserve(1);
             let z = match sm.get(0) {
                 OperandLocation::Register(r) => r,
@@ -207,13 +206,13 @@ fn test_make_instruction() {
     use Register::*;
     use tenyr::Instruction;
     use tenyr::InstructionType::*;
-    use tenyr::SizedImmediate;
+    use tenyr::Immediate20;
     let v = vec![ C, D, E, F, G ];
     let mut sm = StackManager::new(v);
     let op = Operation::Constant { kind : JType::Int, value : 5 };
     let namer = |x| format!("{}:{}", "test", x);
     let insn = make_instructions(&mut sm, (&0, &op), &namer);
-    let imm = SizedImmediate::new(5).unwrap();
+    let imm = Immediate20::new(5).unwrap();
     assert_eq!(insn.0, vec![ Instruction { kind: Type3(imm), z: C, x: A, dd: NoLoad } ]);
     assert_eq!(insn.0[0].to_string(), " C  <-  5");
 }
