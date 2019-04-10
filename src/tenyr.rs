@@ -2,6 +2,8 @@ use enum_primitive::*;
 
 use std::fmt;
 
+use crate::exprtree;
+
 enum_from_primitive! {
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -126,6 +128,24 @@ impl<T,U> PartialEq<U> for SizedImmediate<T>
 {
     fn eq(&self, other : &U) -> bool {
         self.0 == i32::from(other.clone())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Immediate<'e, 's, T>
+    where T : BitWidth
+{
+    Fixed(SizedImmediate<T>),
+    Expr(exprtree::Expr<'e, 's>),
+}
+
+impl<'e, 's, T> Immediate<'e, 's, T>
+    where T : BitWidth
+{
+    pub fn new<U>(val : U) -> Option<Immediate<'e, 's, T>>
+        where i32 : std::convert::From<U>
+    {
+        SizedImmediate::new(val).map(Immediate::Fixed)
     }
 }
 
