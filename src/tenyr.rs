@@ -149,6 +149,17 @@ impl<'e, 's, T> Immediate<'e, 's, T>
     }
 }
 
+impl<'e, 's, T> fmt::Display for Immediate<'e, 's, T>
+    where T : BitWidth
+{
+    fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
+        match self {
+            Immediate::Fixed(x) => write!(f, "{}", x.to_string()),
+            Immediate::Expr(x)  => write!(f, "{}", x.to_string()),
+        }
+    }
+}
+
 pub type Immediate12 = SizedImmediate<TwelveBit>;
 pub type Immediate20 = SizedImmediate<TwentyBit>;
 
