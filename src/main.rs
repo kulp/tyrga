@@ -90,7 +90,9 @@ enum Destination {
     Address(usize),
 }
 
-fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation))
+type Namer = Fn(usize) -> String;
+
+fn make_instructions(sm : &mut StackManager, (_addr, op) : (&usize, &Operation), _target_namer : &Namer)
     -> (Vec<tenyr::Instruction>, Vec<Destination>)
 {
     use Operation::*;
@@ -209,7 +211,8 @@ fn test_make_instruction() {
     let v = vec![ C, D, E, F, G ];
     let mut sm = StackManager::new(v);
     let op = Operation::Constant { kind : JType::Int, value : 5 };
-    let insn = make_instructions(&mut sm, (&0, &op));
+    let namer = |x| format!("{}:{}", "test", x);
+    let insn = make_instructions(&mut sm, (&0, &op), &namer);
     let imm = SizedImmediate::new(5).unwrap();
     assert_eq!(insn.0, vec![ Instruction { kind: Type3(imm), z: C, x: A, dd: NoLoad } ]);
     assert_eq!(insn.0[0].to_string(), " C  <-  5");
@@ -359,6 +362,7 @@ fn test_stack_map_table(stem : &str) {
         let vov : Vec<_> = it.collect();
         let r : Vec<_> = vov.concat();
         assert!(r.len() > 0);
+        let _namer = |x : &fmt::Display| make_label(&class, &method, &x.to_string());
     }
 }
 
