@@ -160,15 +160,15 @@ impl<'e, 's, T> fmt::Display for Immediate<'e, 's, T>
     }
 }
 
-pub type Immediate12 = SizedImmediate<TwelveBit>;
-pub type Immediate20 = SizedImmediate<TwentyBit>;
+pub type Immediate12<'a> = Immediate<'a, 'a, TwelveBit>;
+pub type Immediate20<'a> = Immediate<'a, 'a, TwentyBit>;
 
-impl Immediate12 {
-    pub const ZERO : Immediate12 = SizedImmediate(0, PhantomData);
+impl<'a> Immediate12<'a> {
+    pub const ZERO : Immediate12<'a> = Immediate::Fixed(SizedImmediate(0, PhantomData));
 }
 
-impl Immediate20 {
-    pub const ZERO : Immediate20 = SizedImmediate(0, PhantomData);
+impl<'a> Immediate20<'a> {
+    pub const ZERO : Immediate20<'a> = Immediate::Fixed(SizedImmediate(0, PhantomData));
 }
 
 #[test]
@@ -185,33 +185,33 @@ fn test_immediates() {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct InsnGeneral {
+pub struct InsnGeneral<'a> {
     pub y   : Register,
     pub op  : Opcode,
-    pub imm : Immediate12,
+    pub imm : Immediate12<'a>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum InstructionType {
-    Type0(InsnGeneral), // [Z] <- [X f Y + I]
-    Type1(InsnGeneral), // [Z] <- [X f I + Y]
-    Type2(InsnGeneral), // [Z] <- [I f X + Y]
-    Type3(Immediate20), // [Z] <- [X     + I]
+pub enum InstructionType<'a> {
+    Type0(InsnGeneral<'a>), // [Z] <- [X f Y + I]
+    Type1(InsnGeneral<'a>), // [Z] <- [X f I + Y]
+    Type2(InsnGeneral<'a>), // [Z] <- [I f X + Y]
+    Type3(Immediate20<'a>), // [Z] <- [X     + I]
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Instruction {
-    pub kind : InstructionType,
+pub struct Instruction<'a> {
+    pub kind : InstructionType<'a>,
     pub z    : Register,
     pub x    : Register,
     pub dd   : MemoryOpType,
 }
 
-impl fmt::Display for Instruction {
+impl<'a> fmt::Display for Instruction<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use InstructionType::*;
         use InsnGeneral as Gen;
-        let (a, b, c) = match self.kind {
+        let (a, b, c) = match &self.kind {
             Type0(Gen { y, imm, .. }) => (self.x  .to_string() ,      y   .to_string(), imm.to_string()),
             Type1(Gen { y, imm, .. }) => (self.x  .to_string() ,      imm .to_string(), y  .to_string()),
             Type2(Gen { y, imm, .. }) => (     imm.to_string() , self.x   .to_string(), y  .to_string()),
@@ -220,11 +220,11 @@ impl fmt::Display for Instruction {
         let rhs = match self.kind {
             Type3(..) if self.x == Register::A
                 => format!("{c}", c=c),
-            Type3(ref imm) if *imm == 0i32
+            Type3(Immediate::Fixed(ref imm)) if *imm == 0i32
                 => format!("{a}", a=a),
             Type3(..)
                 => format!("{a} + {c}", a=a, c=c),
-            Type0(Gen { op, ref imm, .. }) if *imm == 0i32
+            Type0(Gen { op, imm : Immediate::Fixed(ref imm), .. }) if *imm == 0i32
                 => format!("{a} {op:^3} {b}", a=a, b=b, op=op.to_string()),
             Type1(Gen { op, y, .. }) | Type2(Gen { op, y, .. }) if y == Register::A
                 => format!("{a} {op:^3} {b}", a=a, b=b, op=op.to_string()),
@@ -245,7 +245,7 @@ impl fmt::Display for Instruction {
 }
 
 #[cfg(test)]
-fn instruction_test_cases() -> Vec<(&'static str, Instruction)> {
+fn instruction_test_cases() -> Vec<(&'static str, Instruction<'static>)> {
     use InstructionType::*;
     use MemoryOpType::*;
     use Opcode::*;
@@ -260,22 +260,22 @@ fn instruction_test_cases() -> Vec<(&'static str, Instruction)> {
     let neg4_20 : Immediate20 = Immediate20::new(-4).unwrap();
 
     vec![
-        (" B  <-  C >>  D + -3" , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12, y : D, op : ShiftRightArith }) }),
-        (" B  <-  C >>  D"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12, y : D, op : ShiftRightArith }) }),
-        (" B  <-  C  |  D + -3" , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12, y : D, op : BitwiseOr       }) }),
-        (" B  <-  C  |  D"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12, y : D, op : BitwiseOr       }) }),
-        (" B  <-  C  |  -3 + D" , Insn { dd : NoLoad    , z : B, x : C, kind : Type1(Gen { imm : neg3_12, y : D, op : BitwiseOr       }) }),
-        (" B  <-  C  |  0 + D"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type1(Gen { imm : zero_12, y : D, op : BitwiseOr       }) }),
-        (" B  <-  -3  |  C + D" , Insn { dd : NoLoad    , z : B, x : C, kind : Type2(Gen { imm : neg3_12, y : D, op : BitwiseOr       }) }),
-        (" B  <-  0  |  C + D"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type2(Gen { imm : zero_12, y : D, op : BitwiseOr       }) }),
-        (" B  <-  C  |  A + -3" , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12, y : A, op : BitwiseOr       }) }),
-        (" B  <-  C  |  A"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12, y : A, op : BitwiseOr       }) }),
-        (" P  <-  C + -4"       , Insn { dd : NoLoad    , z : P, x : C, kind : Type3(neg4_20) }),
-        (" P  <-  C"            , Insn { dd : NoLoad    , z : P, x : C, kind : Type3(zero_20) }),
-        (" P  -> [C]"           , Insn { dd : StoreRight, z : P, x : C, kind : Type3(zero_20) }),
-        (" P  <- [C]"           , Insn { dd : LoadRight , z : P, x : C, kind : Type3(zero_20) }),
-        ("[P] <-  C"            , Insn { dd : StoreLeft , z : P, x : C, kind : Type3(zero_20) }),
-        (" P  <-  0"            , Insn { dd : NoLoad    , z : P, x : A, kind : Type3(zero_20) }),
+        (" B  <-  C >>  D + -3" , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : D, op : ShiftRightArith }) }),
+        (" B  <-  C >>  D"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12.clone(), y : D, op : ShiftRightArith }) }),
+        (" B  <-  C  |  D + -3" , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  D"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12.clone(), y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  -3 + D" , Insn { dd : NoLoad    , z : B, x : C, kind : Type1(Gen { imm : neg3_12.clone(), y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  0 + D"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type1(Gen { imm : zero_12.clone(), y : D, op : BitwiseOr       }) }),
+        (" B  <-  -3  |  C + D" , Insn { dd : NoLoad    , z : B, x : C, kind : Type2(Gen { imm : neg3_12.clone(), y : D, op : BitwiseOr       }) }),
+        (" B  <-  0  |  C + D"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type2(Gen { imm : zero_12.clone(), y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  A + -3" , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : A, op : BitwiseOr       }) }),
+        (" B  <-  C  |  A"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12.clone(), y : A, op : BitwiseOr       }) }),
+        (" P  <-  C + -4"       , Insn { dd : NoLoad    , z : P, x : C, kind : Type3(neg4_20.clone()) }),
+        (" P  <-  C"            , Insn { dd : NoLoad    , z : P, x : C, kind : Type3(zero_20.clone()) }),
+        (" P  -> [C]"           , Insn { dd : StoreRight, z : P, x : C, kind : Type3(zero_20.clone()) }),
+        (" P  <- [C]"           , Insn { dd : LoadRight , z : P, x : C, kind : Type3(zero_20.clone()) }),
+        ("[P] <-  C"            , Insn { dd : StoreLeft , z : P, x : C, kind : Type3(zero_20.clone()) }),
+        (" P  <-  0"            , Insn { dd : NoLoad    , z : P, x : A, kind : Type3(zero_20.clone()) }),
     ]
 }
 
@@ -286,12 +286,12 @@ fn test_instruction_display() {
     }
 }
 
-pub struct BasicBlock {
+pub struct BasicBlock<'a> {
     label : String,
-    insns : Vec<Instruction>,
+    insns : Vec<Instruction<'a>>,
 }
 
-impl fmt::Display for BasicBlock {
+impl<'a> fmt::Display for BasicBlock<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "{}:", self.label)?;
         for insn in &self.insns {
