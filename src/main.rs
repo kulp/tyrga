@@ -91,9 +91,9 @@ enum Destination {
 }
 
 type Namer = Fn(usize) -> String;
-type MakeInsnResult<'a> = (Vec<tenyr::Instruction<'a>>, Vec<Destination>);
+type MakeInsnResult<'a> = (usize, Vec<tenyr::Instruction<'a>>, Vec<Destination>);
 
-fn make_instructions<'a>(sm : &mut StackManager, (_addr, op) : (&usize, &Operation), _target_namer : &Namer)
+fn make_instructions<'a>(sm : &mut StackManager, (addr, op) : (&usize, &Operation), _target_namer : &Namer)
     -> MakeInsnResult<'a>
 {
     use Operation::*;
@@ -139,10 +139,10 @@ fn make_instructions<'a>(sm : &mut StackManager, (_addr, op) : (&usize, &Operati
             let z = match sm.get(0) {
                 OperandLocation::Register(r) => r,
             };
-            (vec![ Instruction { kind, z, x : Register::A, dd : NoLoad } ], default_dest)
+            (addr.clone(), vec![ Instruction { kind, z, x : Register::A, dd : NoLoad } ], default_dest)
         },
         Yield { kind } if kind == JType::Void
-            => (vec![
+            => (addr.clone(), vec![
                     make_mov(stack_ptr, frame_ptr),
                     make_load(Register::P, stack_ptr),
                 ], default_dest),
@@ -158,7 +158,7 @@ fn make_instructions<'a>(sm : &mut StackManager, (_addr, op) : (&usize, &Operati
                 let imm = Immediate12::ZERO;
                 let v = vec![ Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd } ];
                 sm.release(1);
-                (v, default_dest)
+                (addr.clone(), v, default_dest)
             },
         LoadLocal { kind, index } | StoreLocal { kind, index }
             if kind == JType::Int || kind == JType::Object
@@ -178,7 +178,7 @@ fn make_instructions<'a>(sm : &mut StackManager, (_addr, op) : (&usize, &Operati
                     vec![ Instruction { kind : Type3(imm), x, z, dd } ]
                 };
                 match *op { StoreLocal { .. } => sm.release(1), _ => {} };
-                (v, default_dest)
+                (addr.clone(), v, default_dest)
             },
         Increment { index, value } => {
             use tenyr::*;
@@ -194,7 +194,7 @@ fn make_instructions<'a>(sm : &mut StackManager, (_addr, op) : (&usize, &Operati
                 Instruction { kind : Type3(make_imm20(-index)), ..make_store(temp_reg, frame_ptr) },
             ];
 
-            (v, default_dest)
+            (addr.clone(), v, default_dest)
         },
 
         _ => panic!("unhandled operation {:?}", op),
@@ -214,8 +214,8 @@ fn test_make_instruction() {
     let namer = |x| format!("{}:{}", "test", x);
     let insn = make_instructions(&mut sm, (&0, &op), &namer);
     let imm = Immediate20::new(5).unwrap();
-    assert_eq!(insn.0, vec![ Instruction { kind: Type3(imm), z: C, x: A, dd: NoLoad } ]);
-    assert_eq!(insn.0[0].to_string(), " C  <-  5");
+    assert_eq!(insn.1, vec![ Instruction { kind: Type3(imm), z: C, x: A, dd: NoLoad } ]);
+    assert_eq!(insn.1[0].to_string(), " C  <-  5");
 }
 
 #[derive(Debug)]
