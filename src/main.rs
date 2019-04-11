@@ -91,9 +91,10 @@ enum Destination {
 }
 
 type Namer = Fn(usize) -> String;
+type MakeInsnResult<'a> = (Vec<tenyr::Instruction<'a>>, Vec<Destination>);
 
 fn make_instructions<'a>(sm : &mut StackManager, (_addr, op) : (&usize, &Operation), _target_namer : &Namer)
-    -> (Vec<tenyr::Instruction<'a>>, Vec<Destination>)
+    -> MakeInsnResult<'a>
 {
     use Operation::*;
     use tenyr::Immediate20;
