@@ -366,7 +366,7 @@ fn test_stack_map_table(stem : &str) {
 }
 
 #[cfg(test)]
-const CLASS_LIST : &[&'static str] = &[
+const CLASS_LIST : &[&str] = &[
     "Except",
     "Expr",
     "GCD",
