@@ -40,9 +40,9 @@ impl <'a, 's> fmt::Display for Operand<'a, 's> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Expr<'a, 's> {
-    a  : Operand<'a, 's>,
-    b  : Operand<'a, 's>,
-    op : Operation,
+    pub a  : Operand<'a, 's>,
+    pub b  : Operand<'a, 's>,
+    pub op : Operation,
 }
 
 impl <'a, 's> fmt::Display for Expr<'a, 's> {
