@@ -104,7 +104,6 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
     let stack_ptr = Register::O;
     let frame_ptr = Register::N;
-    let temp_reg  = Register::M;
 
     let default_dest = vec![Destination::Successor];
 
@@ -186,11 +185,16 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let imm = make_imm12(value);
             let y = Register::A;
             let op = Opcode::Add;
+            // This reserving of a stack slot may exceed the "maximum depth" statistic on the
+            // method, but we should try to avoid dedicated temporary registers.
+            sm.reserve(1);
+            let OperandLocation::Register(temp_reg) = sm.get(0);
             let v = vec![
                 Instruction { kind : Type3(make_imm20(-index)), ..make_load(temp_reg, frame_ptr) },
                 Instruction { kind : Type1(InsnGeneral { y, op, imm }), ..make_mov(temp_reg, temp_reg) },
                 Instruction { kind : Type3(make_imm20(-index)), ..make_store(temp_reg, frame_ptr) },
             ];
+            sm.release(1);
 
             (addr.clone(), v, default_dest)
         },
