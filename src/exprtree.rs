@@ -21,13 +21,13 @@ impl fmt::Display for Operation {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Operand<'e, 's> {
-    Variable(&'s str),
+pub enum Operand<'e> {
+    Variable(String),
     Immediate(i32),
-    Expression(&'e Expr<'e, 's>),
+    Expression(&'e Expr<'e>),
 }
 
-impl <'a, 's> fmt::Display for Operand<'a, 's> {
+impl <'a> fmt::Display for Operand<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Operand::*;
         match self {
@@ -39,13 +39,13 @@ impl <'a, 's> fmt::Display for Operand<'a, 's> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Expr<'a, 's> {
-    pub a  : Operand<'a, 's>,
-    pub b  : Operand<'a, 's>,
+pub struct Expr<'a> {
+    pub a  : Operand<'a>,
+    pub b  : Operand<'a>,
     pub op : Operation,
 }
 
-impl <'a, 's> fmt::Display for Expr<'a, 's> {
+impl <'a> fmt::Display for Expr<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{a} {op} {b}", a=self.a, b=self.b, op=self.op)
     }
@@ -56,9 +56,9 @@ fn test_expr_display() {
     use Operand::*;
     use Operation::*;
 
-    let e = Expr { a : Variable("A") , op : Add, b : Immediate(3)   };
-    let f = Expr { a : Expression(&e), op : Mul, b : Variable("B")  };
-    let g = Expr { a : Expression(&e), op : Sub, b : Expression(&f) };
+    let e = Expr { a : Variable("A".to_string()), op : Add, b : Immediate(3)              };
+    let f = Expr { a : Expression(&e)           , op : Mul, b : Variable("B".to_string()) };
+    let g = Expr { a : Expression(&e)           , op : Sub, b : Expression(&f)            };
 
     assert_eq!(e.to_string(), "A + 3");
     assert_eq!(f.to_string(), "(A + 3) * B");

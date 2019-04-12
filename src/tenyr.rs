@@ -132,24 +132,24 @@ impl<T,U> PartialEq<U> for SizedImmediate<T>
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Immediate<'e, 's, T>
+pub enum Immediate<'e, T>
     where T : BitWidth
 {
     Fixed(SizedImmediate<T>),
-    Expr(exprtree::Operand<'e, 's>),
+    Expr(exprtree::Operand<'e>),
 }
 
-impl<'e, 's, T> Immediate<'e, 's, T>
+impl<'e, T> Immediate<'e, T>
     where T : BitWidth
 {
-    pub fn new<U>(val : U) -> Option<Immediate<'e, 's, T>>
+    pub fn new<U>(val : U) -> Option<Immediate<'e, T>>
         where i32 : std::convert::From<U>
     {
         SizedImmediate::new(val).map(Immediate::Fixed)
     }
 }
 
-impl<'e, 's, T> fmt::Display for Immediate<'e, 's, T>
+impl<'e, T> fmt::Display for Immediate<'e, T>
     where T : BitWidth
 {
     fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
@@ -160,8 +160,8 @@ impl<'e, 's, T> fmt::Display for Immediate<'e, 's, T>
     }
 }
 
-pub type Immediate12<'a> = Immediate<'a, 'a, TwelveBit>;
-pub type Immediate20<'a> = Immediate<'a, 'a, TwentyBit>;
+pub type Immediate12<'a> = Immediate<'a, TwelveBit>;
+pub type Immediate20<'a> = Immediate<'a, TwentyBit>;
 
 impl<'a> Immediate12<'a> {
     pub const ZERO : Immediate12<'a> = Immediate::Fixed(SizedImmediate(0, PhantomData));
