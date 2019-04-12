@@ -93,7 +93,7 @@ enum Destination {
 type Namer = Fn(usize) -> String;
 type MakeInsnResult = (usize, Vec<tenyr::Instruction>, Vec<Destination>);
 
-fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), _target_namer : &Namer)
+fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), target_namer : &Namer)
     -> MakeInsnResult
 {
     use Operation::*;
@@ -195,6 +195,57 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             ];
 
             (addr.clone(), v, default_dest)
+        },
+        Branch { kind : JType::Int, ops : OperandCount::_2, way, target } => {
+            let mut dest = default_dest.clone();
+            dest.push(Destination::Address(target.into()));
+            use tenyr::*;
+            use exprtree::Atom::*;
+            use exprtree::Expr;
+            use exprtree::Operation::*;
+            let tn = target_namer(target.into());
+            let a = Variable(tn);
+            use std::rc::Rc;
+            let b = Expression(Rc::new(Expr { a : Variable(".".to_owned()), op : Add, b : Immediate(1) }));
+            let o = Expression(Rc::new(Expr { a, op : Sub, b }));
+            let (op, swap, invert) = match way {
+                Comparison::Eq => (Opcode::CompareEq, false, false),
+                Comparison::Ne => (Opcode::CompareEq, false, true ),
+                Comparison::Lt => (Opcode::CompareLt, false, false),
+                Comparison::Ge => (Opcode::CompareGe, false, false),
+                Comparison::Gt => (Opcode::CompareLt, true , false),
+                Comparison::Le => (Opcode::CompareGe, true , false),
+            };
+
+            let top = match sm.get(0) { OperandLocation::Register(r) => r };
+            let sec = match sm.get(1) { OperandLocation::Register(r) => r };
+            let (top, sec) = if swap { (sec, top) } else { (top, sec) };
+            let temp_reg = sec;
+            sm.release(2);
+            let compare = Instruction {
+                kind : Type0(
+                    InsnGeneral {
+                       y : top,
+                       op,
+                       imm : Immediate12::ZERO,
+                    }),
+                z : temp_reg,
+                x : sec,
+                dd : MemoryOpType::NoLoad,
+            };
+            let branch = Instruction {
+                kind : Type1(
+                    InsnGeneral {
+                       y : Register::P,
+                       op : if invert { Opcode::BitwiseAndn } else { Opcode::BitwiseAnd },
+                       imm : tenyr::Immediate::Expr(o),
+                    }),
+                z : Register::P,
+                x : temp_reg,
+                dd : MemoryOpType::NoLoad,
+            };
+            let v = vec![ compare, branch ];
+            (addr.clone(), v, dest)
         },
 
         _ => panic!("unhandled operation {:?}", op),
