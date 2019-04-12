@@ -133,7 +133,7 @@ fn make_instructions<'a>(sm : &mut StackManager, (addr, op) : (&usize, &Operatio
     let make_store = |lhs, rhs| Instruction { dd : StoreRight, ..make_mov(lhs, rhs) };
 
     match *op {
-        Constant { kind, value } if kind == JType::Int => {
+        Constant { kind : JType::Int, value } => {
             let kind = Type3(Immediate20::new(value).expect("immediate too large"));
             sm.reserve(1);
             let z = match sm.get(0) {
@@ -141,13 +141,13 @@ fn make_instructions<'a>(sm : &mut StackManager, (addr, op) : (&usize, &Operatio
             };
             (addr.clone(), vec![ Instruction { kind, z, x : Register::A, dd : NoLoad } ], default_dest)
         },
-        Yield { kind } if kind == JType::Void
+        Yield { kind : JType::Void }
             => (addr.clone(), vec![
                     make_mov(stack_ptr, frame_ptr),
                     make_load(Register::P, stack_ptr),
                 ], default_dest),
 
-        Arithmetic { kind, op } if kind == JType::Int && translate_arithmetic_op(op).is_some()
+        Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some()
             => {
                 use tenyr::*;
                 let y = get_reg(sm.get(0));
