@@ -136,7 +136,7 @@ pub enum Immediate<'e, 's, T>
     where T : BitWidth
 {
     Fixed(SizedImmediate<T>),
-    Expr(exprtree::Expr<'e, 's>),
+    Expr(exprtree::Operand<'e, 's>),
 }
 
 impl<'e, 's, T> Immediate<'e, 's, T>
