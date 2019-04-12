@@ -136,9 +136,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         Constant { kind : JType::Int, value } => {
             let kind = Type3(Immediate20::new(value).expect("immediate too large"));
             sm.reserve(1);
-            let z = match sm.get(0) {
-                OperandLocation::Register(r) => r,
-            };
+            let OperandLocation::Register(z) = sm.get(0);
             (addr.clone(), vec![ Instruction { kind, z, x : Register::A, dd : NoLoad } ], default_dest)
         },
         Yield { kind : JType::Void }
@@ -164,7 +162,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             if kind == JType::Int || kind == JType::Object
             => {
                 let index = i32::from(index);
-                match *op { LoadLocal { .. } => sm.reserve(1), _ => {} };
+                if let LoadLocal { .. } = *op { sm.reserve(1) }
                 let v = {
                     use tenyr::*;
                     let x = frame_ptr;
@@ -177,7 +175,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     let imm = Immediate20::new(-index).unwrap();
                     vec![ Instruction { kind : Type3(imm), x, z, dd } ]
                 };
-                match *op { StoreLocal { .. } => sm.release(1), _ => {} };
+                if let StoreLocal { .. } = *op { sm.release(1) }
                 (addr.clone(), v, default_dest)
             },
         Increment { index, value } => {
@@ -217,8 +215,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 Comparison::Le => (Opcode::CompareGe, true , false),
             };
 
-            let top = match sm.get(0) { OperandLocation::Register(r) => r };
-            let sec = match sm.get(1) { OperandLocation::Register(r) => r };
+            let OperandLocation::Register(top) = sm.get(0);
+            let OperandLocation::Register(sec) = sm.get(1);
             let (top, sec) = if swap { (sec, top) } else { (top, sec) };
             let temp_reg = sec;
             sm.release(2);
