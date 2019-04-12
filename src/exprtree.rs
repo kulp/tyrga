@@ -21,15 +21,15 @@ impl fmt::Display for Operation {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Operand<'e> {
+pub enum Atom<'e> {
     Variable(String),
     Immediate(i32),
     Expression(&'e Expr<'e>),
 }
 
-impl <'a> fmt::Display for Operand<'a> {
+impl <'a> fmt::Display for Atom<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use Operand::*;
+        use Atom::*;
         match self {
             Variable(name) => write!(f, "{}", name),
             Immediate(num) => write!(f, "{}", num),
@@ -40,8 +40,8 @@ impl <'a> fmt::Display for Operand<'a> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Expr<'a> {
-    pub a  : Operand<'a>,
-    pub b  : Operand<'a>,
+    pub a  : Atom<'a>,
+    pub b  : Atom<'a>,
     pub op : Operation,
 }
 
@@ -53,7 +53,7 @@ impl <'a> fmt::Display for Expr<'a> {
 
 #[test]
 fn test_expr_display() {
-    use Operand::*;
+    use Atom::*;
     use Operation::*;
 
     let e = Expr { a : Variable("A".to_string()), op : Add, b : Immediate(3)              };
