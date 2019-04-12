@@ -37,24 +37,24 @@ impl StackManager {
     }
 
     pub fn reserve(&mut self, n : usize) {
-        assert!(self.top + n <= self.stack.len());
+        assert!(self.top + n <= self.stack.len(), "operand stack overflow");
         self.top += n;
     }
 
     pub fn release(&mut self, n : usize) {
-        assert!(self.top >= n);
+        assert!(self.top >= n, "operand stack underflow");
         self.top -= n;
     }
 
     pub fn get(&self, which : usize) -> OperandLocation {
-        assert!(which <= self.top);
+        assert!(which <= self.top, "attempt to access nonexistent depth");
         // indexing is relative to top of stack, counting backward
         self.stack[self.top - which - 1].into()
     }
 }
 
 #[test]
-#[should_panic(expected=">= n")]
+#[should_panic(expected="underflow")]
 fn test_underflow() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
@@ -64,7 +64,7 @@ fn test_underflow() {
 }
 
 #[test]
-#[should_panic(expected="n <=")]
+#[should_panic(expected="overflow")]
 fn test_overflow() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
