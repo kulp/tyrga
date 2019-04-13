@@ -249,6 +249,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let v = vec![ compare, branch ];
             (addr.clone(), v, dest)
         },
+        Noop => (addr.clone(), vec![ make_mov(Register::A, Register::A) ], default_dest),
 
         _ => panic!("unhandled operation {:?}", op),
     }
