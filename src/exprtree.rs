@@ -21,13 +21,13 @@ impl fmt::Display for Operation {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Atom<'e> {
+pub enum Atom {
     Variable(String),
     Immediate(i32),
-    Expression(&'e Expr<'e>),
+    Expression(std::rc::Rc<Expr>),
 }
 
-impl <'a> fmt::Display for Atom<'a> {
+impl fmt::Display for Atom {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Atom::*;
         match self {
@@ -39,13 +39,13 @@ impl <'a> fmt::Display for Atom<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Expr<'a> {
-    pub a  : Atom<'a>,
-    pub b  : Atom<'a>,
+pub struct Expr {
+    pub a  : Atom,
+    pub b  : Atom,
     pub op : Operation,
 }
 
-impl <'a> fmt::Display for Expr<'a> {
+impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{a} {op} {b}", a=self.a, b=self.b, op=self.op)
     }
@@ -55,13 +55,16 @@ impl <'a> fmt::Display for Expr<'a> {
 fn test_expr_display() {
     use Atom::*;
     use Operation::*;
+    use std::rc::Rc;
 
     let e = Expr { a : Variable("A".to_string()), op : Add, b : Immediate(3)              };
-    let f = Expr { a : Expression(&e)           , op : Mul, b : Variable("B".to_string()) };
-    let g = Expr { a : Expression(&e)           , op : Sub, b : Expression(&f)            };
+    let ee = Rc::new(e);
+    let f = Expr { a : Expression(ee.clone())   , op : Mul, b : Variable("B".to_string()) };
+    let ff = Rc::new(f);
+    let g = Expr { a : Expression(ee.clone())   , op : Sub, b : Expression(ff.clone())    };
 
-    assert_eq!(e.to_string(), "A + 3");
-    assert_eq!(f.to_string(), "(A + 3) * B");
+    assert_eq!(ee.to_string(), "A + 3");
+    assert_eq!(ff.to_string(), "(A + 3) * B");
     assert_eq!(g.to_string(), "(A + 3) - ((A + 3) * B)");
 }
 

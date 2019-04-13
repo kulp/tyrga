@@ -132,24 +132,24 @@ impl<T,U> PartialEq<U> for SizedImmediate<T>
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Immediate<'e, T>
+pub enum Immediate<T>
     where T : BitWidth
 {
     Fixed(SizedImmediate<T>),
-    Expr(exprtree::Atom<'e>),
+    Expr(exprtree::Atom),
 }
 
-impl<'e, T> Immediate<'e, T>
+impl<T> Immediate<T>
     where T : BitWidth
 {
-    pub fn new<U>(val : U) -> Option<Immediate<'e, T>>
+    pub fn new<U>(val : U) -> Option<Immediate<T>>
         where i32 : std::convert::From<U>
     {
         SizedImmediate::new(val).map(Immediate::Fixed)
     }
 }
 
-impl<'e, T> fmt::Display for Immediate<'e, T>
+impl<T> fmt::Display for Immediate<T>
     where T : BitWidth
 {
     fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
@@ -160,15 +160,15 @@ impl<'e, T> fmt::Display for Immediate<'e, T>
     }
 }
 
-pub type Immediate12<'a> = Immediate<'a, TwelveBit>;
-pub type Immediate20<'a> = Immediate<'a, TwentyBit>;
+pub type Immediate12 = Immediate<TwelveBit>;
+pub type Immediate20 = Immediate<TwentyBit>;
 
-impl<'a> Immediate12<'a> {
-    pub const ZERO : Immediate12<'a> = Immediate::Fixed(SizedImmediate(0, PhantomData));
+impl Immediate12 {
+    pub const ZERO : Immediate12 = Immediate::Fixed(SizedImmediate(0, PhantomData));
 }
 
-impl<'a> Immediate20<'a> {
-    pub const ZERO : Immediate20<'a> = Immediate::Fixed(SizedImmediate(0, PhantomData));
+impl Immediate20 {
+    pub const ZERO : Immediate20 = Immediate::Fixed(SizedImmediate(0, PhantomData));
 }
 
 #[test]
@@ -185,29 +185,29 @@ fn test_immediates() {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct InsnGeneral<'a> {
+pub struct InsnGeneral {
     pub y   : Register,
     pub op  : Opcode,
-    pub imm : Immediate12<'a>,
+    pub imm : Immediate12,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum InstructionType<'a> {
-    Type0(InsnGeneral<'a>), // [Z] <- [X f Y + I]
-    Type1(InsnGeneral<'a>), // [Z] <- [X f I + Y]
-    Type2(InsnGeneral<'a>), // [Z] <- [I f X + Y]
-    Type3(Immediate20<'a>), // [Z] <- [X     + I]
+pub enum InstructionType {
+    Type0(InsnGeneral), // [Z] <- [X f Y + I]
+    Type1(InsnGeneral), // [Z] <- [X f I + Y]
+    Type2(InsnGeneral), // [Z] <- [I f X + Y]
+    Type3(Immediate20), // [Z] <- [X     + I]
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Instruction<'a> {
-    pub kind : InstructionType<'a>,
+pub struct Instruction {
+    pub kind : InstructionType,
     pub z    : Register,
     pub x    : Register,
     pub dd   : MemoryOpType,
 }
 
-impl fmt::Display for Instruction<'_> {
+impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use InstructionType::*;
         use InsnGeneral as Gen;
@@ -245,7 +245,7 @@ impl fmt::Display for Instruction<'_> {
 }
 
 #[cfg(test)]
-fn instruction_test_cases() -> Vec<(&'static str, Instruction<'static>)> {
+fn instruction_test_cases() -> Vec<(&'static str, Instruction)> {
     use InstructionType::*;
     use MemoryOpType::*;
     use Opcode::*;
@@ -286,12 +286,12 @@ fn test_instruction_display() {
     }
 }
 
-pub struct BasicBlock<'a> {
+pub struct BasicBlock {
     label : String,
-    insns : Vec<Instruction<'a>>,
+    insns : Vec<Instruction>,
 }
 
-impl fmt::Display for BasicBlock<'_> {
+impl fmt::Display for BasicBlock {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "{}:", self.label)?;
         for insn in &self.insns {
