@@ -127,6 +127,18 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             }
         };
 
+    let make_target = |target : u16| {
+        use exprtree::Atom::*;
+        use exprtree::Expr;
+        use exprtree::Operation::*;
+        use std::rc::Rc;
+
+        let tn = target_namer(target.into());
+        let a = Variable(tn);
+        let b = Expression(Rc::new(Expr { a : Variable(".".to_owned()), op : Add, b : Immediate(1) }));
+        Expression(Rc::new(Expr { a, op : Sub, b }))
+    };
+
     let make_mov   = |to, from| Instruction { dd : NoLoad, kind : Type3(Immediate20::ZERO), z : to, x : from };
     let make_load  = |to, from| Instruction { dd : LoadRight , ..make_mov(to, from) };
     let make_store = |lhs, rhs| Instruction { dd : StoreRight, ..make_mov(lhs, rhs) };
@@ -202,14 +214,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let mut dest = default_dest.clone();
             dest.push(Destination::Address(target.into()));
             use tenyr::*;
-            use exprtree::Atom::*;
-            use exprtree::Expr;
-            use exprtree::Operation::*;
-            let tn = target_namer(target.into());
-            let a = Variable(tn);
-            use std::rc::Rc;
-            let b = Expression(Rc::new(Expr { a : Variable(".".to_owned()), op : Add, b : Immediate(1) }));
-            let o = Expression(Rc::new(Expr { a, op : Sub, b }));
+            let o = make_target(target);
             let (op, swap, invert) = match way {
                 Comparison::Eq => (Opcode::CompareEq, false, false),
                 Comparison::Ne => (Opcode::CompareEq, false, true ),
@@ -274,14 +279,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         Jump { target } => {
             let dest = vec![ Destination::Address(target.into()) ];
             use tenyr::*;
-            use exprtree::Atom::*;
-            use exprtree::Expr;
-            use exprtree::Operation::*;
-            let tn = target_namer(target.into());
-            let a = Variable(tn);
-            use std::rc::Rc;
-            let b = Expression(Rc::new(Expr { a : Variable(".".to_owned()), op : Add, b : Immediate(1) }));
-            let o = Expression(Rc::new(Expr { a, op : Sub, b }));
+            let o = make_target(target);
             let go = Instruction {
                 kind : Type3(tenyr::Immediate::Expr(o)),
                 z : Register::P,
