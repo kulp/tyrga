@@ -344,6 +344,12 @@ fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> String 
     mangling::mangle(s.bytes()).expect("failed to mangle")
 }
 
+fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> String {
+    format!(".L{}{}",
+        make_mangled_method_name(class, method),
+        mangling::mangle(format!(":__{}", suffix).bytes()).expect("failed to mangle"))
+}
+
 #[cfg(test)]
 fn test_stack_map_table(stem : &str) {
     let class = parse_class(stem);
