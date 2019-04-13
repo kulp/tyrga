@@ -243,20 +243,20 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     (temp_reg, insn)
                 },
                 OperandCount::_2 => {
-                    let OperandLocation::Register(top) = sm.get(0);
-                    let OperandLocation::Register(sec) = sm.get(1);
-                    let (top, sec) = if swap { (sec, top) } else { (top, sec) };
-                    let temp_reg = sec;
+                    let OperandLocation::Register(rhs) = sm.get(0);
+                    let OperandLocation::Register(lhs) = sm.get(1);
+                    let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
+                    let temp_reg = lhs;
                     sm.release(2);
                     let insn = Instruction {
                         kind : Type0(
                             InsnGeneral {
-                               y : top,
+                               y : rhs,
                                op,
                                imm : Immediate12::ZERO,
                             }),
                         z : temp_reg,
-                        x : sec,
+                        x : lhs,
                         dd : MemoryOpType::NoLoad,
                     };
                     (temp_reg, insn)
