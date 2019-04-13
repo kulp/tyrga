@@ -287,8 +287,8 @@ fn test_instruction_display() {
 }
 
 pub struct BasicBlock {
-    label : String,
-    insns : Vec<Instruction>,
+    pub label : String,
+    pub insns : Vec<Instruction>,
 }
 
 impl fmt::Display for BasicBlock {
