@@ -97,6 +97,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     -> MakeInsnResult
 {
     use Operation::*;
+    use tenyr::Immediate12;
     use tenyr::Immediate20;
     use tenyr::Instruction;
     use tenyr::InstructionType::*;
@@ -109,6 +110,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
     // While the only valid OperandLocation is Register, this shorthand is convenient.
     let get_reg = |x| match x { OperandLocation::Register(r) => r };
+
+    let make_imm20 = |n| Immediate20::new(n).unwrap();
+    let make_imm12 = |n| Immediate12::new(n).unwrap();
 
     let translate_arithmetic_op =
         |x| {
@@ -191,8 +195,6 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             },
         Increment { index, value } => {
             use tenyr::*;
-            let make_imm20 = |n| Immediate20::new(n).unwrap();
-            let make_imm12 = |n| Immediate12::new(n).unwrap();
             let index = i32::from(index);
             let imm = make_imm12(value);
             let y = Register::A;
