@@ -271,6 +271,25 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let v = vec![ compare, branch ];
             (addr.clone(), v, dest)
         },
+        Jump { target } => {
+            let dest = vec![ Destination::Address(target.into()) ];
+            use tenyr::*;
+            use exprtree::Atom::*;
+            use exprtree::Expr;
+            use exprtree::Operation::*;
+            let tn = target_namer(target.into());
+            let a = Variable(tn);
+            use std::rc::Rc;
+            let b = Expression(Rc::new(Expr { a : Variable(".".to_owned()), op : Add, b : Immediate(1) }));
+            let o = Expression(Rc::new(Expr { a, op : Sub, b }));
+            let go = Instruction {
+                kind : Type3(tenyr::Immediate::Expr(o)),
+                z : Register::P,
+                x : Register::P,
+                dd : MemoryOpType::NoLoad,
+            };
+            (addr.clone(), vec![ go ], dest)
+        },
         Noop => (addr.clone(), vec![ make_mov(Register::A, Register::A) ], default_dest),
 
         _ => panic!("unhandled operation {:?}", op),
