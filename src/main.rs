@@ -430,8 +430,7 @@ fn test_stack_map_table(stem : &str) {
         let (ranges, ops) = get_ranges_for_method(&class, &method).expect("failed to get ranges for map");
         let it = ranges.into_iter().map(|x| ops.range(x).collect::<Vec<_>>());
         let vov : Vec<_> = it.collect();
-        let r : Vec<_> = vov.concat();
-        assert!(r.len() > 0);
+        assert!(vov.concat().len() > 0);
         let _namer = |x : &fmt::Display| make_label(&class, &method, &x.to_string());
     }
 }
