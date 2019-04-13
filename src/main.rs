@@ -290,6 +290,37 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             };
             (addr.clone(), vec![ go ], dest)
         },
+        LoadArray(kind) | StoreArray(kind) => {
+            let array_params = |sm : &mut StackManager| {
+                let OperandLocation::Register(idx) = sm.get(0);
+                let OperandLocation::Register(arr) = sm.get(1);
+                sm.release(2);
+                (idx, arr)
+            };
+            use JType::*;
+            use tenyr::*;
+            let (x, y, z, dd) = match *op {
+                LoadArray(_) => {
+                    let (idx, arr) = array_params(sm);
+                    sm.reserve(1);
+                    let OperandLocation::Register(res) = sm.get(0);
+                    (idx, arr, res, LoadRight)
+                },
+                StoreArray(_) => {
+                    let OperandLocation::Register(val) = sm.get(0);
+                    sm.release(1);
+                    let (idx, arr) = array_params(sm);
+                    (idx, arr, val, StoreRight)
+                },
+                _ => unreachable!(),
+            };
+            // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
+            // per 32-bit tenyr word)
+            let imm = make_imm12(match kind { Double | Long => 2, _ => 1 });
+            let kind = Type1(InsnGeneral { y, op : Opcode::Multiply, imm });
+            let insn = Instruction { kind, z, x, dd };
+            (addr.clone(), vec![ insn ], default_dest)
+        },
         Noop => (addr.clone(), vec![ make_mov(Register::A, Register::A) ], default_dest),
 
         _ => panic!("unhandled operation {:?}", op),
