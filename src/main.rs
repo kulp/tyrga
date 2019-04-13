@@ -406,6 +406,22 @@ fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> String
         mangling::mangle(format!(":__{}", suffix).bytes()).expect("failed to mangle"))
 }
 
+fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T) -> tenyr::BasicBlock
+    where T : IntoIterator<Item=MakeInsnResult>
+{
+    use tenyr::BasicBlock;
+
+    let mut addr = None;
+    let insns =
+        list.into_iter()
+            .map(|(a,x,_)| { if addr.is_none() { addr = Some(a) } x })
+            .flatten()
+            .collect();
+    let label = make_label(class, method, &addr.expect("no address for basic block").to_string());
+
+    BasicBlock { label, insns }
+}
+
 #[cfg(test)]
 fn test_stack_map_table(stem : &str) {
     let class = parse_class(stem);
