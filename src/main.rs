@@ -198,7 +198,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             (addr.clone(), v, default_dest)
         },
-        Branch { kind : JType::Int, ops : OperandCount::_2, way, target } => {
+        Branch { kind : JType::Int, ops, way, target } => {
             let mut dest = default_dest.clone();
             dest.push(Destination::Address(target.into()));
             use tenyr::*;
@@ -219,21 +219,43 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 Comparison::Le => (Opcode::CompareGe, true , false),
             };
 
-            let OperandLocation::Register(top) = sm.get(0);
-            let OperandLocation::Register(sec) = sm.get(1);
-            let (top, sec) = if swap { (sec, top) } else { (top, sec) };
-            let temp_reg = sec;
-            sm.release(2);
-            let compare = Instruction {
-                kind : Type0(
-                    InsnGeneral {
-                       y : top,
-                       op,
-                       imm : Immediate12::ZERO,
-                    }),
-                z : temp_reg,
-                x : sec,
-                dd : MemoryOpType::NoLoad,
+            let (temp_reg, compare) = match ops {
+                OperandCount::_1 => {
+                    let OperandLocation::Register(top) = sm.get(0);
+                    let temp_reg = top;
+                    sm.release(1);
+                    let insn = Instruction {
+                        kind : Type1(
+                            InsnGeneral {
+                               y : Register::A,
+                               op,
+                               imm : Immediate12::ZERO,
+                            }),
+                        z : temp_reg,
+                        x : top,
+                        dd : MemoryOpType::NoLoad,
+                    };
+                    (temp_reg, insn)
+                },
+                OperandCount::_2 => {
+                    let OperandLocation::Register(top) = sm.get(0);
+                    let OperandLocation::Register(sec) = sm.get(1);
+                    let (top, sec) = if swap { (sec, top) } else { (top, sec) };
+                    let temp_reg = sec;
+                    sm.release(2);
+                    let insn = Instruction {
+                        kind : Type0(
+                            InsnGeneral {
+                               y : top,
+                               op,
+                               imm : Immediate12::ZERO,
+                            }),
+                        z : temp_reg,
+                        x : sec,
+                        dd : MemoryOpType::NoLoad,
+                    };
+                    (temp_reg, insn)
+                },
             };
             let branch = Instruction {
                 kind : Type2(
