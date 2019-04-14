@@ -219,9 +219,9 @@ impl fmt::Display for Instruction {
         };
         let rhs = match self.kind {
             Type3(..) if self.x == Register::A
-                => format!("{c}", c=c),
+                => c,
             Type3(Immediate::Fixed(ref imm)) if *imm == 0i32
-                => format!("{a}", a=a),
+                => a,
             Type3(..)
                 => format!("{a} + {c}", a=a, c=c),
             Type0(Gen { op, imm : Immediate::Fixed(ref imm), .. }) if *imm == 0i32
