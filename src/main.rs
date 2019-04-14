@@ -38,12 +38,14 @@ impl StackManager {
         StackManager { top : 0, stack : r }
     }
 
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn reserve(&mut self, n : usize) -> StackActions {
         assert!(self.top + n <= self.stack.len(), "operand stack overflow");
         self.top += n;
         vec![] // TODO support spilling
     }
 
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn release(&mut self, n : usize) -> StackActions {
         assert!(self.top >= n, "operand stack underflow");
         self.top -= n;
@@ -52,6 +54,7 @@ impl StackManager {
 
     pub fn depth(&self) -> usize { self.top }
 
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn empty(&mut self) -> StackActions {
         self.release(self.top)
     }
@@ -69,8 +72,8 @@ fn test_underflow() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
     let mut sm = StackManager::new(v);
-    sm.reserve(3);
-    sm.release(4);
+    let _ = sm.reserve(3);
+    let _ = sm.release(4);
 }
 
 #[test]
@@ -80,7 +83,7 @@ fn test_overflow() {
     let v = vec![ C, D, E, F, G ];
     let len = v.len();
     let mut sm = StackManager::new(v);
-    sm.reserve(len + 1);
+    let _ = sm.reserve(len + 1);
 }
 
 #[test]
@@ -90,7 +93,7 @@ fn test_normal_stack() {
     let t = v.clone();
     let mut sm = StackManager::new(v);
     let off = 3;
-    sm.reserve(off);
+    let _ = sm.reserve(off);
     assert_eq!(sm.get(0), t[off - 1].into());
 }
 
@@ -169,9 +172,11 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     match *op {
         Constant { kind : JType::Int, value } => {
             let kind = Type3(Immediate20::new(value).expect("immediate too large"));
-            sm.reserve(1);
+            let mut v = Vec::with_capacity(10);
+            v.extend(sm.reserve(1));
             let OperandLocation::Register(z) = sm.get(0);
-            (addr.clone(), vec![ Instruction { kind, z, x : Register::A, dd : NoLoad } ], default_dest)
+            v.push(Instruction { kind, z, x : Register::A, dd : NoLoad });
+            (addr.clone(), v, default_dest)
         },
         Yield { kind } => {
             let ret = Instruction { kind : Type3(pos1_20), ..make_load(Register::P, stack_ptr) };
@@ -180,7 +185,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             // here have enough context otherwise.
 
             use JType::*;
-            let v = match kind {
+            let mut v = match kind {
                 Void => {
                     vec![ ret ]
                 },
@@ -201,7 +206,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     ]
                 },
             };
-            sm.empty();
+            v.extend(sm.empty());
             (addr.clone(), v, vec![ Destination::Return ])
         },
 
@@ -214,16 +219,17 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let op = translate_arithmetic_op(op).unwrap();
                 let dd = MemoryOpType::NoLoad;
                 let imm = Immediate12::ZERO;
-                let v = vec![ Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd } ];
-                sm.release(1);
+                let mut v = vec![ Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd } ];
+                v.extend(sm.release(1));
                 (addr.clone(), v, default_dest)
             },
         LoadLocal { kind, index } | StoreLocal { kind, index }
             if kind == JType::Int || kind == JType::Object
             => {
+                let mut v = Vec::with_capacity(10);
                 let index = i32::from(index);
-                if let LoadLocal { .. } = *op { sm.reserve(1); }
-                let v = {
+                if let LoadLocal { .. } = *op { v.extend(sm.reserve(1)); }
+                {
                     use tenyr::*;
                     let x = frame_ptr;
                     let z = get_reg(sm.get(0));
@@ -233,9 +239,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                         _ => unreachable!(),
                     };
                     let imm = Immediate20::new(-index).unwrap();
-                    vec![ Instruction { kind : Type3(imm), x, z, dd } ]
-                };
-                if let StoreLocal { .. } = *op { sm.release(1); }
+                    v.push(Instruction { kind : Type3(imm), x, z, dd });
+                }
+                if let StoreLocal { .. } = *op { v.extend(sm.release(1)); }
                 (addr.clone(), v, default_dest)
             },
         Increment { index, value } => {
@@ -246,14 +252,15 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let op = Opcode::Add;
             // This reserving of a stack slot may exceed the "maximum depth" statistic on the
             // method, but we should try to avoid dedicated temporary registers.
-            sm.reserve(1);
+            let mut v = Vec::with_capacity(10);
+            v.extend(sm.reserve(1));
             let OperandLocation::Register(temp_reg) = sm.get(0);
-            let v = vec![
+            v.extend(vec![
                 Instruction { kind : Type3(make_imm20(-index)), ..make_load(temp_reg, frame_ptr) },
                 Instruction { kind : Type1(InsnGeneral { y, op, imm }), ..make_mov(temp_reg, temp_reg) },
                 Instruction { kind : Type3(make_imm20(-index)), ..make_store(temp_reg, frame_ptr) },
-            ];
-            sm.release(1);
+            ]);
+            v.extend(sm.release(1));
 
             (addr.clone(), v, default_dest)
         },
@@ -271,12 +278,12 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 Comparison::Le => (Opcode::CompareGe, true , false),
             };
 
-            let (temp_reg, compare) = match ops {
+            let (temp_reg, sequence) = match ops {
                 OperandCount::_1 => {
                     let OperandLocation::Register(top) = sm.get(0);
                     let temp_reg = top;
-                    sm.release(1);
-                    let insn = Instruction {
+                    let mut v = sm.release(1);
+                    v.push(Instruction {
                         kind : Type1(
                             InsnGeneral {
                                y : Register::A,
@@ -286,16 +293,16 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                         z : temp_reg,
                         x : top,
                         dd : MemoryOpType::NoLoad,
-                    };
-                    (temp_reg, insn)
+                    });
+                    (temp_reg, v)
                 },
                 OperandCount::_2 => {
                     let OperandLocation::Register(rhs) = sm.get(0);
                     let OperandLocation::Register(lhs) = sm.get(1);
                     let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
                     let temp_reg = lhs;
-                    sm.release(2);
-                    let insn = Instruction {
+                    let mut v = sm.release(2);
+                    v.push(Instruction {
                         kind : Type0(
                             InsnGeneral {
                                y : rhs,
@@ -305,8 +312,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                         z : temp_reg,
                         x : lhs,
                         dd : MemoryOpType::NoLoad,
-                    };
-                    (temp_reg, insn)
+                    });
+                    (temp_reg, v)
                 },
             };
             let branch = Instruction {
@@ -320,7 +327,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 x : temp_reg,
                 dd : MemoryOpType::NoLoad,
             };
-            let v = vec![ compare, branch ];
+            let mut v = sequence;
+            v.push(branch);
             (addr.clone(), v, dest)
         },
         Jump { target } => {
@@ -336,25 +344,26 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             (addr.clone(), vec![ go ], dest)
         },
         LoadArray(kind) | StoreArray(kind) => {
-            let array_params = |sm : &mut StackManager| {
+            let mut v = Vec::with_capacity(10);
+            let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
                 let OperandLocation::Register(idx) = sm.get(0);
                 let OperandLocation::Register(arr) = sm.get(1);
-                sm.release(2);
+                v.extend(sm.release(2));
                 (idx, arr)
             };
             use JType::*;
             use tenyr::*;
             let (x, y, z, dd) = match *op {
                 LoadArray(_) => {
-                    let (idx, arr) = array_params(sm);
-                    sm.reserve(1);
+                    let (idx, arr) = array_params(sm, &mut v);
+                    v.extend(sm.reserve(1));
                     let OperandLocation::Register(res) = sm.get(0);
                     (idx, arr, res, LoadRight)
                 },
                 StoreArray(_) => {
                     let OperandLocation::Register(val) = sm.get(0);
-                    sm.release(1);
-                    let (idx, arr) = array_params(sm);
+                    v.extend(sm.release(1));
+                    let (idx, arr) = array_params(sm, &mut v);
                     (idx, arr, val, StoreRight)
                 },
                 _ => unreachable!(),
@@ -364,7 +373,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let imm = make_imm12(match kind { Double | Long => 2, _ => 1 });
             let kind = Type1(InsnGeneral { y, op : Opcode::Multiply, imm });
             let insn = Instruction { kind, z, x, dd };
-            (addr.clone(), vec![ insn ], default_dest)
+            v.push(insn);
+            (addr.clone(), v, default_dest)
         },
         Noop => (addr.clone(), vec![ make_mov(Register::A, Register::A) ], default_dest),
         Length => {
