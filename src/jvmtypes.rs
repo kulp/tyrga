@@ -134,8 +134,9 @@ pub fn decode_insn(insn : (usize, &Instruction)) -> (usize, Operation) {
     use Operation::*;
 
     let (addr, insn) = insn;
+    let insn = insn.clone(); // TODO obviate clone
 
-    let op = match *insn {
+    let op = match insn {
         Nop => Noop,
 
         Aconstnull => Constant { kind : Object, value :  0 },
@@ -396,19 +397,19 @@ pub fn decode_insn(insn : (usize, &Instruction)) -> (usize, Operation) {
 
         New(index) => Allocation { index },
         Newarray(kind) => ArrayAlloc { kind : ArrayKind::from_u8(kind).unwrap() },
-        Multianewarray { .. } | Anewarray(_) => Unhandled(insn.clone()),
+        Multianewarray { .. } | Anewarray(_) => Unhandled(insn),
 
         Arraylength => Length,
 
         // We do not intend ever to handle Jsr and Ret
-        Jsr(_) | JsrW(_) | Ret(_) | RetWide(_) => Unhandled(insn.clone()),
+        Jsr(_) | JsrW(_) | Ret(_) | RetWide(_) => Unhandled(insn),
 
         Athrow
             | Checkcast(_) | Instanceof(_)
             | Monitorenter | Monitorexit
             | Ldc(_) | LdcW(_) | Ldc2W(_)
             | Tableswitch { .. } | Lookupswitch { .. }
-            => Unhandled(insn.clone()),
+            => Unhandled(insn),
     };
 
     (addr, op)
