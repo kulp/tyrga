@@ -322,6 +322,15 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             (addr.clone(), vec![ insn ], default_dest)
         },
         Noop => (addr.clone(), vec![ make_mov(Register::A, Register::A) ], default_dest),
+        Length => {
+            // TODO document layout of arrays
+            // This implementation assumes a reference to an array points to its first element, and
+            // that one word below that element is a word containing the number of elements.
+            let neg1 = Immediate20::new(-1).unwrap(); // will not fail
+            let OperandLocation::Register(top) = sm.get(0);
+            let insn = Instruction { kind : Type3(neg1), ..make_load(top, top) };
+            (addr.clone(), vec![ insn ], default_dest)
+        },
 
         _ => panic!("unhandled operation {:?}", op),
     }
