@@ -163,6 +163,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         Yield { kind : JType::Void }
             => (addr.clone(), vec![
                     make_mov(stack_ptr, frame_ptr),
+                    // TODO load return address from the slot below all locals / above the operand
+                    // stack
                     make_load(Register::P, stack_ptr),
                 ], default_dest),
 
