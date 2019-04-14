@@ -167,14 +167,35 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let OperandLocation::Register(z) = sm.get(0);
             (addr.clone(), vec![ Instruction { kind, z, x : Register::A, dd : NoLoad } ], default_dest)
         },
-        Yield { kind : JType::Void } => {
+        Yield { kind } => {
+            let ret = Instruction { kind : Type3(pos1_20), ..make_load(Register::P, stack_ptr) };
+            // TODO how to correctly place stack pointer ?
+            // StackManager will somehow have to help us manipulate it because we do not
+            // here have enough context otherwise.
+
+            use JType::*;
+            let v = match kind {
+                Void => {
+                    vec![ ret ]
+                },
+                Int | Float | Object | Short | Char | Byte => {
+                    let OperandLocation::Register(top) = sm.get(0);
+                    vec![
+                        make_store(frame_ptr, top),
+                        ret
+                    ]
+                },
+                Double | Long => {
+                    let OperandLocation::Register(top) = sm.get(0);
+                    let OperandLocation::Register(sec) = sm.get(1);
+                    vec![
+                        make_store(frame_ptr, sec),
+                        Instruction { kind : Type3(neg1_20), ..make_store(frame_ptr, top) },
+                        ret
+                    ]
+                },
+            };
             sm.empty();
-            let v = vec![
-                    // TODO how to correctly place stack pointer ?
-                    // StackManager will somehow have to help us manipulate it because we do not
-                    // here have enough context otherwise.
-                    Instruction { kind : Type3(pos1_20), ..make_load(Register::P, stack_ptr) },
-                ];
             (addr.clone(), v, vec![ Destination::Return ])
         },
 
