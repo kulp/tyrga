@@ -29,6 +29,8 @@ impl From<Register> for OperandLocation {
     fn from(r : Register) -> OperandLocation { OperandLocation::Register(r) }
 }
 
+type StackActions = Vec<tenyr::Instruction>;
+
 // This simple StackManager implementation does not do spilling to nor reloading from memory.
 // For now, it panics if we run out of free registers.
 impl StackManager {
@@ -36,19 +38,23 @@ impl StackManager {
         StackManager { top : 0, stack : r }
     }
 
-    pub fn reserve(&mut self, n : usize) {
+    pub fn reserve(&mut self, n : usize) -> StackActions {
         assert!(self.top + n <= self.stack.len(), "operand stack overflow");
         self.top += n;
+        vec![] // TODO support spilling
     }
 
-    pub fn release(&mut self, n : usize) {
+    pub fn release(&mut self, n : usize) -> StackActions {
         assert!(self.top >= n, "operand stack underflow");
         self.top -= n;
+        vec![] // TODO support reloading
     }
 
     pub fn depth(&self) -> usize { self.top }
 
-    pub fn empty(&mut self) { self.release(self.top) }
+    pub fn empty(&mut self) -> StackActions {
+        self.release(self.top)
+    }
 
     pub fn get(&self, which : usize) -> OperandLocation {
         assert!(which <= self.top, "attempt to access nonexistent depth");
@@ -216,7 +222,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             if kind == JType::Int || kind == JType::Object
             => {
                 let index = i32::from(index);
-                if let LoadLocal { .. } = *op { sm.reserve(1) }
+                if let LoadLocal { .. } = *op { sm.reserve(1); }
                 let v = {
                     use tenyr::*;
                     let x = frame_ptr;
@@ -229,7 +235,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     let imm = Immediate20::new(-index).unwrap();
                     vec![ Instruction { kind : Type3(imm), x, z, dd } ]
                 };
-                if let StoreLocal { .. } = *op { sm.release(1) }
+                if let StoreLocal { .. } = *op { sm.release(1); }
                 (addr.clone(), v, default_dest)
             },
         Increment { index, value } => {
