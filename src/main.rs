@@ -46,6 +46,8 @@ impl StackManager {
         self.top -= n;
     }
 
+    pub fn depth(&self) -> usize { self.top }
+
     pub fn get(&self, which : usize) -> OperandLocation {
         assert!(which <= self.top, "attempt to access nonexistent depth");
         // indexing is relative to top of stack, counting backward
