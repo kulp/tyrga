@@ -111,6 +111,11 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     let stack_ptr = Register::O;
     let frame_ptr = Register::N;
 
+    // We need to track destinations and return them so that the caller can track stack state
+    // through the chain of control flow, possibly cloning the StackManager state along the way to
+    // follow multiple destinations. Each basic block needs to be visited only once, however, since
+    // the JVM guarantees that every instance of every instruction within a method always sees the
+    // same depth of the operand stack every time that instance is executed.
     let default_dest = vec![Destination::Successor];
 
     // While the only valid OperandLocation is Register, this shorthand is convenient.
