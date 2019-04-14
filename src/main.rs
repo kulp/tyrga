@@ -92,6 +92,7 @@ fn test_normal_stack() {
 enum Destination {
     Successor,
     Address(usize),
+    Return,
 }
 
 type Namer = Fn(usize) -> String;
@@ -118,6 +119,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     let make_imm20 = |n| Immediate20::new(n).unwrap();
     let make_imm12 = |n| Immediate12::new(n).unwrap();
 
+    let pos1_20 = Immediate20::new( 1).unwrap(); // will not fail
     let neg1_20 = Immediate20::new(-1).unwrap(); // will not fail
 
     let translate_arithmetic_op =
@@ -160,13 +162,16 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let OperandLocation::Register(z) = sm.get(0);
             (addr.clone(), vec![ Instruction { kind, z, x : Register::A, dd : NoLoad } ], default_dest)
         },
-        Yield { kind : JType::Void }
-            => (addr.clone(), vec![
-                    make_mov(stack_ptr, frame_ptr),
-                    // TODO load return address from the slot below all locals / above the operand
-                    // stack
-                    make_load(Register::P, stack_ptr),
-                ], default_dest),
+        Yield { kind : JType::Void } => {
+            sm.empty();
+            let v = vec![
+                    // TODO how to correctly place stack pointer ?
+                    // StackManager will somehow have to help us manipulate it because we do not
+                    // here have enough context otherwise.
+                    Instruction { kind : Type3(pos1_20), ..make_load(Register::P, stack_ptr) },
+                ];
+            (addr.clone(), v, vec![ Destination::Return ])
+        },
 
         Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some()
             => {
