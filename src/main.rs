@@ -118,6 +118,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     let make_imm20 = |n| Immediate20::new(n).unwrap();
     let make_imm12 = |n| Immediate12::new(n).unwrap();
 
+    let neg1_20 = Immediate20::new(-1).unwrap(); // will not fail
+
     let translate_arithmetic_op =
         |x| {
             use tenyr::Opcode::*;
@@ -330,9 +332,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             // TODO document layout of arrays
             // This implementation assumes a reference to an array points to its first element, and
             // that one word below that element is a word containing the number of elements.
-            let neg1 = Immediate20::new(-1).unwrap(); // will not fail
             let OperandLocation::Register(top) = sm.get(0);
-            let insn = Instruction { kind : Type3(neg1), ..make_load(top, top) };
+            let insn = Instruction { kind : Type3(neg1_20), ..make_load(top, top) };
             (addr.clone(), vec![ insn ], default_dest)
         },
 
