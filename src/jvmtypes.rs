@@ -102,6 +102,12 @@ pub enum ArrayKind {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum SwitchParams {
+    Lookup { default : i32, pairs : Vec<(i32, i32)> },
+    Table  { default : i32, low : i32, high : i32, offsets : Vec<i32> },
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum Operation {
     Allocation  { index : u16 },
     Arithmetic  { kind : JType, op : ArithmeticOperation },
@@ -121,6 +127,7 @@ pub enum Operation {
     StoreArray  (JType),
     StoreLocal  { kind : JType, index : u16 },
     Subtract    { kind : JType },
+    Switch      (SwitchParams),
     VarAction   { op : VarOp, kind : VarKind, index : u16 },
     Yield       { kind : JType }, /* i.e. return */
 
@@ -132,6 +139,7 @@ pub fn decode_insn(insn : (usize, &Instruction)) -> (usize, Operation) {
     use JType::*;
     use Instruction::*;
     use Operation::*;
+    use SwitchParams::*;
 
     let (addr, insn) = insn;
     let insn = insn.clone(); // TODO obviate clone
@@ -401,6 +409,9 @@ pub fn decode_insn(insn : (usize, &Instruction)) -> (usize, Operation) {
 
         Arraylength => Length,
 
+        Tableswitch { default, low, high, offsets } => Switch(Table { default, low, high, offsets }),
+        Lookupswitch { default, pairs } => Switch(Lookup { default, pairs }),
+
         // We do not intend ever to handle Jsr and Ret
         Jsr(_) | JsrW(_) | Ret(_) | RetWide(_) => Unhandled(insn),
 
@@ -408,7 +419,6 @@ pub fn decode_insn(insn : (usize, &Instruction)) -> (usize, Operation) {
             | Checkcast(_) | Instanceof(_)
             | Monitorenter | Monitorexit
             | Ldc(_) | LdcW(_) | Ldc2W(_)
-            | Tableswitch { .. } | Lookupswitch { .. }
             => Unhandled(insn),
     };
 
