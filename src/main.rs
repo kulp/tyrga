@@ -548,11 +548,14 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T) -> te
     use tenyr::BasicBlock;
 
     let mut addr = None;
-    let insns =
-        list.into_iter()
-            .map(|(a,x,_)| { if addr.is_none() { addr = Some(a) } x })
-            .flatten()
-            .collect();
+    let mut insns = Vec::new();
+    for insn in list {
+        let (ad, ins, _) = insn;
+        if addr.is_none() {
+            addr = Some(ad);
+        }
+        insns.extend(ins);
+    }
     let label = make_label(class, method, &addr.expect("no address for basic block").to_string());
 
     BasicBlock { label, insns }
