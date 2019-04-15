@@ -542,21 +542,19 @@ fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> String
         mangling::mangle(format!(":__{}", suffix).bytes()).expect("failed to mangle"))
 }
 
-fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T) -> tenyr::BasicBlock
+fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range : &Range<usize>) -> tenyr::BasicBlock
     where T : IntoIterator<Item=MakeInsnResult>
 {
     use tenyr::BasicBlock;
 
-    let mut addr = None;
-    let mut insns = Vec::new();
+    let mut insns = Vec::with_capacity(range.len() * 2); // heuristic
     for insn in list {
-        let (ad, ins, _) = insn;
-        if addr.is_none() {
-            addr = Some(ad);
-        }
+        let (_, ins, _) = insn;
         insns.extend(ins);
     }
-    let label = make_label(class, method, &addr.expect("no address for basic block").to_string());
+    let label = make_label(class, method, &range.start.to_string());
+
+    insns.shrink_to_fit();
 
     BasicBlock { label, insns }
 }
