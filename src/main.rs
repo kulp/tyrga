@@ -4,6 +4,7 @@ mod jvmtypes;
 mod mangling;
 mod tenyr;
 
+use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt;
 use std::ops::Range;
@@ -542,21 +543,40 @@ fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> String
         mangling::mangle(format!(":__{}", suffix).bytes()).expect("failed to mangle"))
 }
 
-fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range : &Range<usize>) -> tenyr::BasicBlock
+fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range : &Range<usize>) -> (tenyr::BasicBlock, BTreeSet<usize>)
     where T : IntoIterator<Item=MakeInsnResult>
 {
     use tenyr::BasicBlock;
 
     let mut insns = Vec::with_capacity(range.len() * 2); // heuristic
+    let mut exits = BTreeSet::new();
+
+    let inside = |addr| addr >= range.start && addr < range.end;
+
+    use Destination::*;
+
+    let mut includes_successor = false;
     for insn in list {
-        let (_, ins, _) = insn;
+        let does_branch = |&e| if let Address(n) = e { Some(n) } else { None };
+
+        let (_, ins, exs) = insn;
+
+        // update the state of includes_successor each time so that the last instruction's behavior
+        // is captured
+        includes_successor = exs.iter().any(|e| if let Successor = e { true } else { false });
+
+        exits.extend(exs.iter().filter_map(does_branch).filter(|&e| !inside(e)));
         insns.extend(ins);
     }
     let label = make_label(class, method, &range.start.to_string());
 
+    if includes_successor {
+        exits.insert(range.end);
+    }
+
     insns.shrink_to_fit();
 
-    BasicBlock { label, insns }
+    (BasicBlock { label, insns }, exits)
 }
 
 #[cfg(test)]
