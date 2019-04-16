@@ -5,6 +5,7 @@ mod mangling;
 mod tenyr;
 
 use std::collections::BTreeSet;
+use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
 use std::ops::Range;
@@ -578,6 +579,54 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range
     insns.shrink_to_fit();
 
     (BasicBlock { label, insns }, exits)
+}
+
+// The incoming StackManager represents a "prototype" StackManager which should be empty, and which
+// will be cloned each time a new BasicBlock is seen.
+fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager) -> Vec<tenyr::BasicBlock> {
+    let (ranges, ops) = get_ranges_for_method(&class, &method).expect("failed to get ranges for map");
+    use std::iter::FromIterator;
+    let rangemap = &BTreeMap::from_iter(ranges.into_iter().map(|r| (r.start, r)));
+    let ops = &ops;
+
+    struct Params<'a> {
+        class : &'a ClassFile,
+        method : &'a MethodInfo,
+        rangemap : &'a BTreeMap<usize, Range<usize>>,
+        ops : &'a BTreeMap<usize, Operation>,
+    }
+
+    let params = Params { class, method, rangemap, ops };
+
+    let mut seen = HashSet::new();
+
+    fn make_blocks(params : &Params, seen : &mut HashSet<usize>, mut sm : StackManager, which : &Range<usize>) -> Vec<tenyr::BasicBlock> {
+        let (class, method, rangemap, ops) = (params.class, params.method, params.rangemap, params.ops);
+        if seen.contains(&which.start) {
+            return vec![];
+        }
+        seen.insert(which.start);
+
+        let namer = {
+            // TODO obivate clones
+            let class = class.clone();
+            let method = method.clone();
+            move |x : usize| make_label(&class, &method, &x.to_string())
+        };
+
+        let block : Vec<_> = ops.range(which.clone()).map(|x| make_instructions(&mut sm, x, &namer)).collect();
+        let (bb, ee) = make_basic_block(&class, &method, block, which);
+        let mut out = Vec::new();
+        out.push(bb);
+
+        for exit in &ee {
+            out.extend(make_blocks(params, seen, sm.clone(), &rangemap[&exit])); // intentional clone of StackManager
+        }
+
+        out
+    }
+
+    make_blocks(&params, &mut seen, sm.clone(), &rangemap[&0]) // intentional clone of StackManager
 }
 
 #[cfg(test)]
