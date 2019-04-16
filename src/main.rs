@@ -15,6 +15,7 @@ use classfile_parser::ClassFile;
 
 use tenyr::Register;
 
+#[derive(Clone, Debug)]
 pub struct StackManager {
     stack : Vec<Register>,
     top : usize,
