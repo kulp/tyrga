@@ -635,11 +635,9 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
 fn test_stack_map_table(stem : &str) {
     let class = parse_class(stem);
     for method in class.methods.iter().filter(|m| !make_unique_method_name(&class, m).contains(":<")) {
-        let (ranges, ops) = get_ranges_for_method(&class, &method).expect("failed to get ranges for map");
-        let it = ranges.into_iter().map(|x| ops.range(x).collect::<Vec<_>>());
-        let vov : Vec<_> = it.collect();
-        assert!(vov.concat().len() > 0);
-        let _namer = |x : &fmt::Display| make_label(&class, &method, &x.to_string());
+        let v = { use Register::*; vec![ C, D, E, F, G, H, I, J, K, L, M ] }; // TODO get range working
+        let sm = StackManager::new(v);
+        let _bbs = make_blocks_for_method(&class, method, &sm);
     }
 }
 
