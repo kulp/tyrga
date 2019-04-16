@@ -634,7 +634,7 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
 #[cfg(test)]
 fn test_stack_map_table(stem : &str) {
     let class = parse_class(stem);
-    for method in &class.methods {
+    for method in class.methods.iter().filter(|m| !make_unique_method_name(&class, m).contains(":<")) {
         let (ranges, ops) = get_ranges_for_method(&class, &method).expect("failed to get ranges for map");
         let it = ranges.into_iter().map(|x| ops.range(x).collect::<Vec<_>>());
         let vov : Vec<_> = it.collect();
