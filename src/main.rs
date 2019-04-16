@@ -236,7 +236,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 dd : MemoryOpType::NoLoad,
             };
             let branch = Instruction {
-                kind : Type1(
+                kind : Type2(
                     InsnGeneral {
                        y : Register::P,
                        op : if invert { Opcode::BitwiseAndn } else { Opcode::BitwiseAnd },
