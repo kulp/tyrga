@@ -519,7 +519,7 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
     Ok((ranges, ops))
 }
 
-fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> String {
+fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> String {
     use classfile_parser::constant_info::ConstantInfo::*;
 
     let get_constant = |n| &class.const_pool[usize::from(n) - 1];
@@ -530,13 +530,15 @@ fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> String 
         };
 
     let cl = match get_constant(class.this_class) { Class(c) => c, _ => panic!("not a class") };
-    let s = vec![
+    vec![
         get_string(cl.name_index).expect("bad class name"),
         get_string(method.name_index).expect("bad method name"),
         get_string(method.descriptor_index).expect("bad method descriptor"),
-    ].join(":");
+    ].join(":")
+}
 
-    mangling::mangle(s.bytes()).expect("failed to mangle")
+fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> String {
+    mangling::mangle(make_unique_method_name(class, method).bytes()).expect("failed to mangle")
 }
 
 fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> String {
