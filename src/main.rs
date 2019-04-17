@@ -26,6 +26,7 @@ pub struct StackManager {
 #[derive(Copy,Clone,Debug,PartialEq,Eq)]
 pub enum OperandLocation {
     Register(tenyr::Register),
+    Stacked(usize),
 }
 
 impl From<Register> for OperandLocation {
@@ -130,8 +131,10 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     // same depth of the operand stack every time that instance is executed.
     let default_dest = vec![Destination::Successor];
 
-    // While the only valid OperandLocation is Register, this shorthand is convenient.
-    let get_reg = |x| match x { OperandLocation::Register(r) => r };
+    let get_reg = |t| match t {
+        OperandLocation::Register(r) => r,
+        _ => panic!("unsupported location {:?}", t),
+    };
 
     let make_imm20 = |n| Immediate20::new(n).unwrap();
     let make_imm12 = |n| Immediate12::new(n).unwrap();
@@ -177,7 +180,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let kind = Type3(Immediate20::new(value).expect("immediate too large"));
             let mut v = Vec::with_capacity(10);
             v.extend(sm.reserve(1));
-            let OperandLocation::Register(z) = sm.get(0);
+            let z = get_reg(sm.get(0));
             v.push(Instruction { kind, z, x : Register::A, dd : NoLoad });
             (addr.clone(), v, default_dest)
         },
@@ -193,15 +196,15 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     vec![ ret ]
                 },
                 Int | Float | Object | Short | Char | Byte => {
-                    let OperandLocation::Register(top) = sm.get(0);
+                    let top = get_reg(sm.get(0));
                     vec![
                         make_store(frame_ptr, top),
                         ret
                     ]
                 },
                 Double | Long => {
-                    let OperandLocation::Register(top) = sm.get(0);
-                    let OperandLocation::Register(sec) = sm.get(1);
+                    let top = get_reg(sm.get(0));
+                    let sec = get_reg(sm.get(1));
                     vec![
                         make_store(frame_ptr, sec),
                         Instruction { kind : Type3(neg1_20), ..make_store(frame_ptr, top) },
@@ -257,7 +260,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             // method, but we should try to avoid dedicated temporary registers.
             let mut v = Vec::with_capacity(10);
             v.extend(sm.reserve(1));
-            let OperandLocation::Register(temp_reg) = sm.get(0);
+            let temp_reg = get_reg(sm.get(0));
             v.extend(vec![
                 Instruction { kind : Type3(make_imm20(-index)), ..make_load(temp_reg, frame_ptr) },
                 Instruction { kind : Type1(InsnGeneral { y, op, imm }), ..make_mov(temp_reg, temp_reg) },
@@ -283,7 +286,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             let (temp_reg, sequence) = match ops {
                 OperandCount::_1 => {
-                    let OperandLocation::Register(top) = sm.get(0);
+                    let top = get_reg(sm.get(0));
                     let temp_reg = top;
                     let mut v = sm.release(1);
                     v.push(Instruction {
@@ -300,8 +303,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     (temp_reg, v)
                 },
                 OperandCount::_2 => {
-                    let OperandLocation::Register(rhs) = sm.get(0);
-                    let OperandLocation::Register(lhs) = sm.get(1);
+                    let rhs = get_reg(sm.get(0));
+                    let lhs = get_reg(sm.get(1));
                     let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
                     let temp_reg = lhs;
                     let mut v = sm.release(2);
@@ -349,8 +352,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         LoadArray(kind) | StoreArray(kind) => {
             let mut v = Vec::with_capacity(10);
             let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
-                let OperandLocation::Register(idx) = sm.get(0);
-                let OperandLocation::Register(arr) = sm.get(1);
+                let idx = get_reg(sm.get(0));
+                let arr = get_reg(sm.get(1));
                 v.extend(sm.release(2));
                 (idx, arr)
             };
@@ -360,11 +363,11 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 LoadArray(_) => {
                     let (idx, arr) = array_params(sm, &mut v);
                     v.extend(sm.reserve(1));
-                    let OperandLocation::Register(res) = sm.get(0);
+                    let res = get_reg(sm.get(0));
                     (idx, arr, res, LoadRight)
                 },
                 StoreArray(_) => {
-                    let OperandLocation::Register(val) = sm.get(0);
+                    let val = get_reg(sm.get(0));
                     v.extend(sm.release(1));
                     let (idx, arr) = array_params(sm, &mut v);
                     (idx, arr, val, StoreRight)
@@ -384,7 +387,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             // TODO document layout of arrays
             // This implementation assumes a reference to an array points to its first element, and
             // that one word below that element is a word containing the number of elements.
-            let OperandLocation::Register(top) = sm.get(0);
+            let top = get_reg(sm.get(0));
             let insn = Instruction { kind : Type3(neg1_20), ..make_load(top, top) };
             (addr.clone(), vec![ insn ], default_dest)
         },
