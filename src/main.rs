@@ -20,6 +20,7 @@ use tenyr::Register;
 pub struct StackManager {
     stack : Vec<Register>,
     count : usize,
+    frozen : usize,
 }
 
 // Someday we will be able to find operands in a stack frame
@@ -39,7 +40,7 @@ type StackActions = Vec<tenyr::Instruction>;
 // For now, it panics if we run out of free registers.
 impl StackManager {
     pub fn new(r : Vec<Register>) -> StackManager {
-        StackManager { count : 0, stack : r }
+        StackManager { count : 0, frozen : 0, stack : r }
     }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
