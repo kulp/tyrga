@@ -19,7 +19,7 @@ use tenyr::Register;
 #[derive(Clone, Debug)]
 pub struct StackManager {
     stack : Vec<Register>,
-    top : usize,
+    count : usize,
 }
 
 // Someday we will be able to find operands in a stack frame
@@ -39,34 +39,34 @@ type StackActions = Vec<tenyr::Instruction>;
 // For now, it panics if we run out of free registers.
 impl StackManager {
     pub fn new(r : Vec<Register>) -> StackManager {
-        StackManager { top : 0, stack : r }
+        StackManager { count : 0, stack : r }
     }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn reserve(&mut self, n : usize) -> StackActions {
-        assert!(self.top + n <= self.stack.len(), "operand stack overflow");
-        self.top += n;
+        assert!(self.count + n <= self.stack.len(), "operand stack overflow");
+        self.count += n;
         vec![] // TODO support spilling
     }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn release(&mut self, n : usize) -> StackActions {
-        assert!(self.top >= n, "operand stack underflow");
-        self.top -= n;
+        assert!(self.count >= n, "operand stack underflow");
+        self.count -= n;
         vec![] // TODO support reloading
     }
 
-    pub fn depth(&self) -> usize { self.top }
+    pub fn depth(&self) -> usize { self.count }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn empty(&mut self) -> StackActions {
-        self.release(self.top)
+        self.release(self.count)
     }
 
     pub fn get(&self, which : usize) -> OperandLocation {
-        assert!(which <= self.top, "attempt to access nonexistent depth");
+        assert!(which <= self.count, "attempt to access nonexistent depth");
         // indexing is relative to top of stack, counting backward
-        self.stack[self.top - which - 1].into()
+        self.stack[self.count - which - 1].into()
     }
 }
 
