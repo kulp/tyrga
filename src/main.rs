@@ -206,6 +206,96 @@ enum Destination {
 type Namer = Fn(usize) -> String;
 type MakeInsnResult = (usize, Vec<tenyr::Instruction>, Vec<Destination>);
 
+fn make_target(target : u16, target_namer : &Namer) -> exprtree::Atom {
+    use exprtree::Atom::*;
+    use exprtree::Expr;
+    use exprtree::Operation::*;
+    use std::rc::Rc;
+
+    let tn = target_namer(target.into());
+    let a = Variable(tn);
+    let b = Expression(Rc::new(Expr { a : Variable(".".to_owned()), op : Add, b : Immediate(1) }));
+    Expression(Rc::new(Expr { a, op : Sub, b }))
+}
+
+fn make_int_branch(sm : &mut StackManager, addr : usize, ops : OperandCount, way : Comparison, target : u16, target_namer : &Namer) -> MakeInsnResult {
+    use tenyr::Immediate12;
+    use tenyr::Instruction;
+    use tenyr::InstructionType::*;
+
+    let get_reg = |t| match t {
+        OperandLocation::Register(r) => r,
+        _ => panic!("unsupported location {:?}", t),
+    };
+
+    let mut dest = Vec::new();
+    dest.push(Destination::Successor);
+    dest.push(Destination::Address(target.into()));
+    use tenyr::*;
+    let o = make_target(target, target_namer);
+    let (op, swap, invert) = match way {
+        Comparison::Eq => (Opcode::CompareEq, false, false),
+        Comparison::Ne => (Opcode::CompareEq, false, true ),
+        Comparison::Lt => (Opcode::CompareLt, false, false),
+        Comparison::Ge => (Opcode::CompareGe, false, false),
+        Comparison::Gt => (Opcode::CompareLt, true , false),
+        Comparison::Le => (Opcode::CompareGe, true , false),
+    };
+
+    let (temp_reg, sequence) = match ops {
+        OperandCount::_1 => {
+            let top = get_reg(sm.get(0));
+            let temp_reg = top;
+            let mut v = sm.release(1);
+            v.push(Instruction {
+                kind : Type1(
+                    InsnGeneral {
+                       y : Register::A,
+                       op,
+                       imm : Immediate12::ZERO,
+                    }),
+                z : temp_reg,
+                x : top,
+                dd : MemoryOpType::NoLoad,
+            });
+            (temp_reg, v)
+        },
+        OperandCount::_2 => {
+            let rhs = get_reg(sm.get(0));
+            let lhs = get_reg(sm.get(1));
+            let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
+            let temp_reg = lhs;
+            let mut v = sm.release(2);
+            v.push(Instruction {
+                kind : Type0(
+                    InsnGeneral {
+                       y : rhs,
+                       op,
+                       imm : Immediate12::ZERO,
+                    }),
+                z : temp_reg,
+                x : lhs,
+                dd : MemoryOpType::NoLoad,
+            });
+            (temp_reg, v)
+        },
+    };
+    let branch = Instruction {
+        kind : Type2(
+            InsnGeneral {
+               y : Register::P,
+               op : if invert { Opcode::BitwiseAndn } else { Opcode::BitwiseAnd },
+               imm : tenyr::Immediate::Expr(o),
+            }),
+        z : Register::P,
+        x : temp_reg,
+        dd : MemoryOpType::NoLoad,
+    };
+    let mut v = sequence;
+    v.push(branch);
+    (addr.clone(), v, dest)
+}
+
 fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), target_namer : &Namer)
     -> MakeInsnResult
 {
@@ -253,18 +343,6 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 _ => None,
             }
         };
-
-    let make_target = |target : u16| {
-        use exprtree::Atom::*;
-        use exprtree::Expr;
-        use exprtree::Operation::*;
-        use std::rc::Rc;
-
-        let tn = target_namer(target.into());
-        let a = Variable(tn);
-        let b = Expression(Rc::new(Expr { a : Variable(".".to_owned()), op : Add, b : Immediate(1) }));
-        Expression(Rc::new(Expr { a, op : Sub, b }))
-    };
 
     let make_mov   = |to, from| Instruction { dd : NoLoad, kind : Type3(Immediate20::ZERO), z : to, x : from };
     let make_load  = |to, from| Instruction { dd : LoadRight , ..make_mov(to, from) };
@@ -365,77 +443,11 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             (addr.clone(), v, default_dest)
         },
-        Branch { kind : JType::Int, ops, way, target } => {
-            let mut dest = default_dest.clone();
-            dest.push(Destination::Address(target.into()));
-            use tenyr::*;
-            let o = make_target(target);
-            let (op, swap, invert) = match way {
-                Comparison::Eq => (Opcode::CompareEq, false, false),
-                Comparison::Ne => (Opcode::CompareEq, false, true ),
-                Comparison::Lt => (Opcode::CompareLt, false, false),
-                Comparison::Ge => (Opcode::CompareGe, false, false),
-                Comparison::Gt => (Opcode::CompareLt, true , false),
-                Comparison::Le => (Opcode::CompareGe, true , false),
-            };
-
-            let (temp_reg, sequence) = match ops {
-                OperandCount::_1 => {
-                    let top = get_reg(sm.get(0));
-                    let temp_reg = top;
-                    let mut v = sm.release(1);
-                    v.push(Instruction {
-                        kind : Type1(
-                            InsnGeneral {
-                               y : Register::A,
-                               op,
-                               imm : Immediate12::ZERO,
-                            }),
-                        z : temp_reg,
-                        x : top,
-                        dd : MemoryOpType::NoLoad,
-                    });
-                    (temp_reg, v)
-                },
-                OperandCount::_2 => {
-                    let rhs = get_reg(sm.get(0));
-                    let lhs = get_reg(sm.get(1));
-                    let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
-                    let temp_reg = lhs;
-                    let mut v = sm.release(2);
-                    v.push(Instruction {
-                        kind : Type0(
-                            InsnGeneral {
-                               y : rhs,
-                               op,
-                               imm : Immediate12::ZERO,
-                            }),
-                        z : temp_reg,
-                        x : lhs,
-                        dd : MemoryOpType::NoLoad,
-                    });
-                    (temp_reg, v)
-                },
-            };
-            let branch = Instruction {
-                kind : Type2(
-                    InsnGeneral {
-                       y : Register::P,
-                       op : if invert { Opcode::BitwiseAndn } else { Opcode::BitwiseAnd },
-                       imm : tenyr::Immediate::Expr(o),
-                    }),
-                z : Register::P,
-                x : temp_reg,
-                dd : MemoryOpType::NoLoad,
-            };
-            let mut v = sequence;
-            v.push(branch);
-            (addr.clone(), v, dest)
-        },
+        Branch { kind : JType::Int, ops, way, target } => make_int_branch(sm, addr.clone(), ops, way, target, target_namer),
         Jump { target } => {
             let dest = vec![ Destination::Address(target.into()) ];
             use tenyr::*;
-            let o = make_target(target);
+            let o = make_target(target, target_namer);
             let go = Instruction {
                 kind : Type3(tenyr::Immediate::Expr(o)),
                 z : Register::P,
