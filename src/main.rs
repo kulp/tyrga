@@ -76,6 +76,49 @@ impl StackManager {
         // indexing is relative to top of stack, counting backward
         self.get_reg(which).into()
     }
+
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
+    fn set_watermark(&mut self, level : usize) -> StackActions {
+        // TODO remove casts
+
+        // `self.frozen` counts the number of spilled registers (from bottom of operand stack) and
+        // takes values in the interval [ 0, +infinity )
+        // `level` requests a number of free registers (from top of operand stack) and takes values
+        // in the interval [ 0, min(self.stack.len(), self.count) )
+        // `unfrozen` derives the current watermark in the same units as `level`
+        let level = std::cmp::min(self.count, level) as i32; // cannot freeze more than we have
+        let count = self.count as i32;
+        let frozen = self.frozen as i32;
+        let unfrozen = count - frozen;
+
+        use tenyr::*;
+        use tenyr::InstructionType::*;
+        use tenyr::MemoryOpType::*;
+        let stack_ptr = Register::O;
+
+        let stack_movement = -(unfrozen as i32 - level as i32) as i32; // TODO check overflow issues here
+        if stack_movement == 0 {
+            return vec![];
+        }
+
+        let new_frozen = frozen as i32 - stack_movement;
+        self.frozen = new_frozen as usize;
+
+        let make_insn = |reg, offset| Instruction { dd : NoLoad, kind : Type3(Immediate20::new(offset).unwrap()), z : reg, x : stack_ptr };
+        let make_move = |i, offset| make_insn(self.get_reg(i as usize), i + offset);
+        // Only one of { `freezing`, `thawing` } will have any elements in it
+        // Offset is different for freezing and thawing because a) the stack pointer points past
+        // valid data rather than directly to it, and b) order of stack movement matters
+        // differently to freezing and thawing
+        let freezing = (level..unfrozen).map(|i| Instruction { dd : StoreRight, ..make_move(i, 1) });
+        let thawing  = (unfrozen..level).map(|i| Instruction { dd : LoadRight , ..make_move(i, -stack_movement) });
+        let update = make_insn(stack_ptr, stack_movement);
+
+        std::iter::once(update)
+            .chain(freezing)
+            .chain(thawing)
+            .collect()
+    }
 }
 
 #[test]
@@ -117,6 +160,29 @@ fn test_normal_stack() {
     let off = 3;
     let _ = sm.reserve(off);
     assert_eq!(sm.get(0), t[off - 1].into());
+}
+
+#[test]
+fn test_watermark() {
+    use Register::*;
+    let v = vec![ C, D, E, F, G ];
+    let mut sm = StackManager::new(v);
+    let _ = sm.reserve(4);
+
+    let insns = sm.set_watermark(0);
+    assert!(insns.len() == 5);
+    let insns = sm.set_watermark(0);
+    assert!(insns.len() == 0);
+
+    let insns = sm.set_watermark(3);
+    assert!(insns.len() == 4);
+    let insns = sm.set_watermark(3);
+    assert!(insns.len() == 0);
+
+    let insns = sm.set_watermark(1);
+    assert!(insns.len() == 3);
+    let insns = sm.set_watermark(1);
+    assert!(insns.len() == 0);
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
