@@ -771,7 +771,10 @@ fn test_stack_map_table(stem : &str) {
     for method in class.methods.iter().filter(|m| !make_unique_method_name(&class, m).contains(":<")) {
         let v = { use Register::*; vec![ C, D, E, F, G, H, I, J, K, L, M ] }; // TODO get range working
         let sm = StackManager::new(Register::O, v);
-        let _bbs = make_blocks_for_method(&class, method, &sm);
+        let bbs = make_blocks_for_method(&class, method, &sm);
+        for bb in &bbs {
+            eprintln!("{}", bb);
+        }
     }
 }
 
