@@ -64,12 +64,29 @@ impl StackManager {
         self.release(self.count)
     }
 
-    pub fn get(&self, which : usize) -> OperandLocation {
+    fn get_reg(&self, which : usize) -> Register {
         assert!(which <= self.count, "attempt to access nonexistent depth");
         // indexing is relative to top of stack, counting backward
-        self.stack[self.count - which - 1].into()
+        self.stack[(self.count - which - 1) % self.stack.len()]
+    }
+
+    pub fn get(&self, which : usize) -> OperandLocation {
+        // TODO handle Stacked
+        assert!(which <= self.stack.len(), "attempt to access register deeper than register depth");
+        // indexing is relative to top of stack, counting backward
+        self.get_reg(which).into()
     }
 }
+
+#[test]
+fn test_get_reg() {
+    use Register::*;
+    let v = vec![ C, D, E, F, G ];
+    let mut sm = StackManager::new(v.clone());
+    let _ = sm.reserve(v.len());
+    assert_eq!(&v[0], &sm.get_reg(v.len() - 1));
+}
+
 
 #[test]
 #[should_panic(expected="underflow")]
