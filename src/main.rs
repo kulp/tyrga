@@ -119,6 +119,16 @@ impl StackManager {
             .chain(thawing)
             .collect()
     }
+
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
+    pub fn freeze(&mut self) -> StackActions {
+        self.set_watermark(0)
+    }
+
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
+    pub fn thaw(&mut self) -> StackActions {
+        self.set_watermark(self.stack.len())
+    }
 }
 
 #[test]
