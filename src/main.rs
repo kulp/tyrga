@@ -362,7 +362,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let op = translate_arithmetic_op(op).unwrap();
                 let dd = MemoryOpType::NoLoad;
                 let imm = Immediate12::ZERO;
-                let mut v = vec![ Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd } ];
+                let mut v = Vec::new();
+                v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
                 v.extend(sm.release(1));
                 (addr.clone(), v, default_dest)
             },
