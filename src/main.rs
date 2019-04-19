@@ -478,6 +478,54 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             make_int_branch(sm, addr.clone(), invert, target, target_namer, &mut op2)
         },
+        Switch(Lookup { default, pairs }) => {
+            use tenyr::*;
+            use tenyr::InstructionType::*;
+
+            let here = *addr as i32;
+            let there = (default + here) as u16;
+
+            let mut dests = Vec::new();
+            let top = get_reg(sm.get(0));
+            let mut insns = sm.reserve(1); // need a persistent temporary
+            let temp_reg = get_reg(sm.get(0));
+
+            let maker = |imm| {
+                move |_sm : &mut StackManager| {
+                    let insns = vec![ Instruction {
+                        kind : Type1(
+                            InsnGeneral {
+                               y : Register::A,
+                               op : Opcode::CompareEq,
+                               imm : Immediate12::new(imm).unwrap(),
+                            }),
+                        z : temp_reg,
+                        x : top,
+                        dd : MemoryOpType::NoLoad,
+                    } ];
+                    (temp_reg, insns)
+                }
+            };
+
+            let (i, d) : (Vec<_>, Vec<_>) = pairs.iter().map(|&(compare, target)| {
+                let (_, insns, dests) =
+                    make_int_branch(sm, addr.clone(), false, (target + here) as u16, target_namer, &mut maker(compare));
+                (insns, dests)
+            }).unzip();
+
+            let i = i.concat();
+            let d = d.concat();
+
+            insns.extend(i);
+            dests.extend(d);
+
+            let (_, i, d) = make_jump(there);
+
+            insns.extend(i);
+            dests.extend(d);
+
+            (addr.clone(), insns, dests)
+        },
         Switch(Table { default, low, high, offsets }) => {
             use tenyr::*;
             use tenyr::InstructionType::*;
