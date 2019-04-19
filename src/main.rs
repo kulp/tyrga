@@ -339,7 +339,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 Int | Float | Object | Short | Char | Byte => {
                     let top = get_reg(sm.get(0));
                     vec![
-                        make_store(frame_ptr, top),
+                        make_store(top, frame_ptr),
                         ret
                     ]
                 },
@@ -347,8 +347,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     let top = get_reg(sm.get(0));
                     let sec = get_reg(sm.get(1));
                     vec![
-                        make_store(frame_ptr, sec),
-                        Instruction { kind : Type3(neg1_20), ..make_store(frame_ptr, top) },
+                        make_store(sec, frame_ptr),
+                        Instruction { kind : Type3(neg1_20), ..make_store(top, frame_ptr) },
                         ret
                     ]
                 },
