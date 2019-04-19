@@ -220,7 +220,7 @@ fn make_target(target : u16, target_namer : &Namer) -> exprtree::Atom {
 
 type BranchComp = FnMut(&mut StackManager) -> (tenyr::Register, Vec<tenyr::Instruction>);
 
-fn make_int_branch(sm : &mut StackManager, addr : usize, way : Comparison, target : u16, target_namer : &Namer, comp : &mut BranchComp) -> MakeInsnResult {
+fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target : u16, target_namer : &Namer, comp : &mut BranchComp) -> MakeInsnResult {
     use tenyr::*;
     use tenyr::InstructionType::*;
 
@@ -228,10 +228,6 @@ fn make_int_branch(sm : &mut StackManager, addr : usize, way : Comparison, targe
     dest.push(Destination::Successor);
     dest.push(Destination::Address(target.into()));
     let o = make_target(target, target_namer);
-    let invert = match way {
-        Comparison::Ne => true,
-        _ => false,
-    };
 
     let (temp_reg, sequence) = comp(sm);
     let branch = Instruction {
@@ -435,7 +431,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 (temp_reg, v)
             };
 
-            make_int_branch(sm, addr.clone(), way, target, target_namer, &mut op1)
+            make_int_branch(sm, addr.clone(), false, target, target_namer, &mut op1)
         },
         Branch { kind : JType::Int, ops : OperandCount::_2, way, target } => {
             use tenyr::*;
@@ -444,7 +440,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             use tenyr::InstructionType::*;
             use tenyr::MemoryOpType;
 
-            let (op, swap, _) = translate_way(way);
+            let (op, swap, invert) = translate_way(way);
 
             let mut op2 = move |sm : &mut StackManager| {
                 let rhs = get_reg(sm.get(0));
@@ -466,7 +462,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 (temp_reg, v)
             };
 
-            make_int_branch(sm, addr.clone(), way, target, target_namer, &mut op2)
+            make_int_branch(sm, addr.clone(), invert, target, target_namer, &mut op2)
         },
         Jump { target } => {
             let dest = vec![ Destination::Address(target.into()) ];
