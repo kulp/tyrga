@@ -893,7 +893,7 @@ const CLASS_LIST : &[&str] = &[
     "GCD",
     "Nest",
     //"Sieve",
-    //"Switch",
+    "Switch",
     //"Tiny",
 ];
 
