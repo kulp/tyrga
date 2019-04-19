@@ -299,17 +299,11 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     let make_load  = |to, from| Instruction { dd : LoadRight , ..make_mov(to, from) };
     let make_store = |lhs, rhs| Instruction { dd : StoreRight, ..make_mov(lhs, rhs) };
 
-    let make_jump = |target : u16| {
-        let dest = vec![ Destination::Address(target.into()) ];
-        use tenyr::*;
-        let o = make_target(target, target_namer);
-        let go = Instruction {
-            kind : Type3(tenyr::Immediate::Expr(o)),
-            z : Register::P,
-            x : Register::P,
-            dd : MemoryOpType::NoLoad,
-        };
-        (addr.clone(), vec![ go ], dest)
+    let make_jump = |target| {
+        Instruction {
+            kind : Type3(tenyr::Immediate::Expr(make_target(target, target_namer))),
+            ..make_mov(tenyr::Register::P, tenyr::Register::P)
+        }
     };
 
     let translate_way = |way|
@@ -519,10 +513,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             insns.extend(i);
             dests.extend(d);
 
-            let (_, i, d) = make_jump(there);
-
-            insns.extend(i);
-            dests.extend(d);
+            insns.push(make_jump(there));
+            dests.push(Destination::Address(usize::from(there)));
 
             (addr.clone(), insns, dests)
         },
@@ -570,13 +562,12 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let kind = Type1(InsnGeneral { y : Register::P, op : Opcode::Subtract, imm : Immediate12::new(low).unwrap() });
             insns.push(Instruction { kind, z : Register::P, x : top, dd : NoLoad });
 
-            let (i, d) : (Vec<_>, Vec<_>) = offsets.iter().map(|&n : &i32| { let (_, i, d) = make_jump((n + here) as u16); (i, d) }).unzip();
+            let (i, d) : (Vec<_>, Vec<_>) =
+                offsets
+                    .into_iter()
+                    .map(|n| (make_jump((n + here) as u16), Destination::Address((n + here) as usize)))
+                    .unzip();
 
-            let i = i.concat();
-            let d = d.concat();
-
-            // We assume and require that there is only one generated instruction per jump
-            assert_eq!(i.len(), offsets.len());
             insns.extend(i);
             dests.extend(d);
 
@@ -587,7 +578,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             (addr, insns, dests)
         },
-        Jump { target } => make_jump(target),
+        Jump { target } => (addr.clone(), vec![ make_jump(target) ], vec![ Destination::Address(target as usize) ]),
         LoadArray(kind) | StoreArray(kind) => {
             let mut v = Vec::with_capacity(10);
             let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
