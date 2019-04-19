@@ -898,6 +898,31 @@ fn test_parse_classes()
     }
 }
 
-fn main() {
+fn main() -> std::result::Result<(), Box<Error>> {
+    use std::fs::File;
+    use std::io::Write;
+    use std::path::Path;
+
+    for file in std::env::args().skip(1) {
+        let stem = Path::new(&file).with_extension("");
+        let out = stem.with_extension("tas");
+        let out = out.file_name().expect("failed to format name for output file");
+        let stem = stem.to_str().expect("expected Unicode filename");
+        let class = classfile_parser::parse_class(&stem).expect("failed to parse class");
+
+        let mut file = File::create(out)?;
+        for method in class.methods.iter().filter(|m| !make_unique_method_name(&class, m).contains(":<")) {
+            let v = { use Register::*; vec![ C, D, E, F, G, H, I, J, K, L, M ] }; // TODO get range working
+            let sm = StackManager::new(Register::O, v);
+            let bbs = make_blocks_for_method(&class, method, &sm);
+            for bb in &bbs {
+                write!(file, "{}", bb)?;
+            }
+
+            write!(file, "\n")?;
+        }
+    }
+
+    Ok(())
 }
 
