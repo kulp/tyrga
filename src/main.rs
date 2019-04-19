@@ -62,7 +62,9 @@ impl StackManager {
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn empty(&mut self) -> StackActions {
-        self.release(self.count)
+        let mut v = self.release(self.count);
+        v.extend(self.thaw()); // capture instruction moving stack pointer, if any
+        v
     }
 
     fn get_reg(&self, which : usize) -> Register {
