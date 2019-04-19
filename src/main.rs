@@ -250,6 +250,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     -> MakeInsnResult
 {
     use Operation::*;
+    use jvmtypes::SwitchParams::*;
     use tenyr::Immediate12;
     use tenyr::Immediate20;
     use tenyr::Instruction;
@@ -476,6 +477,67 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             };
 
             make_int_branch(sm, addr.clone(), invert, target, target_namer, &mut op2)
+        },
+        Switch(Table { default, low, high, offsets }) => {
+            use tenyr::*;
+            use tenyr::InstructionType::*;
+
+            let here = *addr as i32;
+            let there = (default + here) as u16;
+
+            type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
+
+            let mut dests = Vec::new();
+            let top = get_reg(sm.get(0));
+            let mut insns = sm.reserve(1); // need a persistent temporary
+            let temp_reg = get_reg(sm.get(0));
+
+            let maker = |kind : &'static InsnType, imm| {
+                move |_sm : &mut StackManager| {
+                    let insns = vec![ Instruction {
+                        kind : kind(
+                            InsnGeneral {
+                               y : Register::A,
+                               op : Opcode::CompareLt,
+                               imm : Immediate12::new(imm).unwrap(),
+                            }),
+                        z : temp_reg,
+                        x : top,
+                        dd : MemoryOpType::NoLoad,
+                    } ];
+                    (temp_reg, insns)
+                }
+            };
+
+            let (lo_addr, lo_insns, lo_dests) =
+                make_int_branch(sm, addr.clone(), false, there, target_namer, &mut maker(&Type1, low));
+            let (_hi_addr, hi_insns, hi_dests) =
+                make_int_branch(sm, addr.clone(), false, there, target_namer, &mut maker(&Type2, high));
+
+            let addr = lo_addr;
+
+            insns.extend(lo_insns);
+            insns.extend(hi_insns);
+
+            let kind = Type1(InsnGeneral { y : Register::P, op : Opcode::Subtract, imm : Immediate12::new(low).unwrap() });
+            insns.push(Instruction { kind, z : Register::P, x : top, dd : NoLoad });
+
+            let (i, d) : (Vec<_>, Vec<_>) = offsets.iter().map(|&n : &i32| { let (_, i, d) = make_jump((n + here) as u16); (i, d) }).unzip();
+
+            let i = i.concat();
+            let d = d.concat();
+
+            // We assume and require that there is only one generated instruction per jump
+            assert_eq!(i.len(), offsets.len());
+            insns.extend(i);
+            dests.extend(d);
+
+            dests.extend(lo_dests);
+            dests.extend(hi_dests);
+
+            insns.extend(sm.release(1)); // release temporary
+
+            (addr, insns, dests)
         },
         Jump { target } => make_jump(target),
         LoadArray(kind) | StoreArray(kind) => {
