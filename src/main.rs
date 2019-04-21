@@ -203,6 +203,7 @@ enum Destination {
 }
 
 type Namer = Fn(usize) -> String;
+type Caller = Fn(u16) -> String;
 type MakeInsnResult = (usize, Vec<tenyr::Instruction>, Vec<Destination>);
 
 fn make_target(target : u16, target_namer : &Namer) -> exprtree::Atom {
@@ -245,7 +246,7 @@ fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target :
     (addr.clone(), v, dest)
 }
 
-fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), target_namer : &Namer)
+fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), target_namer : &Namer, method_namer : &Caller)
     -> MakeInsnResult
 {
     use Operation::*;
@@ -636,7 +637,8 @@ fn test_make_instruction() {
     let mut sm = StackManager::new(O, v);
     let op = Operation::Constant { kind : JType::Int, value : 5 };
     let namer = |x| format!("{}:{}", "test", x);
-    let insn = make_instructions(&mut sm, (&0, &op), &namer);
+    let caller = |x| format!("{}_{}", "test", x);
+    let insn = make_instructions(&mut sm, (&0, &op), &namer, &caller);
     let imm = Immediate20::new(5).unwrap();
     assert_eq!(insn.1, vec![ Instruction { kind: Type3(imm), z: C, x: A, dd: NoLoad } ]);
     assert_eq!(insn.1[0].to_string(), " C  <-  5");
@@ -751,6 +753,33 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
     Ok((ranges, ops))
 }
 
+fn make_callable_name(class : &ClassFile, pool_index : u16) -> String {
+    use classfile_parser::constant_info::ConstantInfo::*;
+
+    let get_constant = |n| &class.const_pool[usize::from(n) - 1];
+    let get_string = |i|
+        match get_constant(i) {
+            Utf8(u) => Some(u.utf8_string.to_string()),
+            _ => None,
+        };
+
+    if let MethodRef(mr) = get_constant(pool_index) {
+        if let Class(cl) = get_constant(mr.class_index) {
+            if let NameAndType(nt) = get_constant(mr.name_and_type_index) {
+                return mangling::mangle(
+                    vec![
+                        get_string(cl.name_index).expect("bad class name"),
+                        get_string(nt.name_index).expect("bad method name"),
+                        get_string(nt.descriptor_index).expect("bad method descriptor"),
+                    ].join(":").bytes()
+                ).expect("failed to mangle");
+            }
+        }
+    }
+
+    panic!("error during constant pool lookup");
+}
+
 fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> String {
     use classfile_parser::constant_info::ConstantInfo::*;
 
@@ -848,7 +877,13 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
             move |x : usize| make_label(&class, &method, &x.to_string())
         };
 
-        let block : Vec<_> = ops.range(which.clone()).map(|x| make_instructions(&mut sm, x, &namer)).collect();
+        let caller = {
+            // TODO obivate clones
+            let class = class.clone();
+            move |x| make_callable_name(&class, x)
+        };
+
+        let block : Vec<_> = ops.range(which.clone()).map(|x| make_instructions(&mut sm, x, &namer, &caller)).collect();
         let (bb, ee) = make_basic_block(&class, &method, block, which);
         let mut out = Vec::new();
         out.push(bb);
