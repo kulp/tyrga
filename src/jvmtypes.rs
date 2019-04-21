@@ -80,7 +80,7 @@ pub enum VarKind {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum InvokeKind {
     Dynamic,
-    Interface,
+    Interface(u8),
     Special,
     Static,
     Virtual,
@@ -117,7 +117,7 @@ pub enum Operation {
     Constant    { kind : JType, value : i32 },
     Conversion  { from : JType, to : JType },
     Increment   { index : u16, value : i16 },
-    Invocation  { kind : InvokeKind, index : u16, count : u8 },
+    Invocation  { kind : InvokeKind, index : u16 },
     Jump        { target : u16 },
     Length,     /* i.e. arraylength */
     LoadArray   (JType),
@@ -397,11 +397,11 @@ pub fn decode_insn(insn : (usize, &Instruction)) -> (usize, Operation) {
         Getfield(index)  => VarAction { op : VarOp::Get, kind : VarKind::Field , index },
         Putfield(index)  => VarAction { op : VarOp::Put, kind : VarKind::Field , index },
 
-        Invokevirtual(index) => Invocation { kind : InvokeKind::Virtual  , index, count : 0         },
-        Invokespecial(index) => Invocation { kind : InvokeKind::Special  , index, count : 0         },
-        Invokestatic(index)  => Invocation { kind : InvokeKind::Static   , index, count : 0         },
-        Invokedynamic(index) => Invocation { kind : InvokeKind::Dynamic  , index, count : 0         },
-        Invokeinterface { index, count } => Invocation { kind : InvokeKind::Interface, index, count },
+        Invokevirtual(index) => Invocation { kind : InvokeKind::Virtual, index },
+        Invokespecial(index) => Invocation { kind : InvokeKind::Special, index },
+        Invokestatic(index)  => Invocation { kind : InvokeKind::Static , index },
+        Invokedynamic(index) => Invocation { kind : InvokeKind::Dynamic, index },
+        Invokeinterface { index, count } => Invocation { kind : InvokeKind::Interface(count), index },
 
         New(index) => Allocation { index },
         Newarray(kind) => ArrayAlloc { kind : ArrayKind::from_u8(kind).unwrap() },
