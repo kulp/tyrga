@@ -243,7 +243,7 @@ fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target :
     };
     let mut v = sequence;
     v.push(branch);
-    (addr.clone(), v, dest)
+    (addr, v, dest)
 }
 
 fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), target_namer : &Namer, method_namer : &Caller)
@@ -323,7 +323,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             v.extend(sm.reserve(1));
             let z = get_reg(sm.get(0));
             v.push(Instruction { kind, z, x : Register::A, dd : NoLoad });
-            (addr.clone(), v, default_dest)
+            (*addr, v, default_dest)
         },
         Yield { kind } => {
             let ret = Instruction { kind : Type3(pos1_20), ..make_load(Register::P, stack_ptr) };
@@ -354,7 +354,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 },
             };
             v.extend(sm.empty());
-            (addr.clone(), v, vec![ Destination::Return ])
+            (*addr, v, vec![ Destination::Return ])
         },
 
         Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some()
@@ -369,7 +369,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let mut v = Vec::new();
                 v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
                 v.extend(sm.release(1));
-                (addr.clone(), v, default_dest)
+                (*addr, v, default_dest)
             },
         LoadLocal { kind, index } | StoreLocal { kind, index }
             if kind == JType::Int || kind == JType::Object
@@ -390,7 +390,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     v.push(Instruction { kind : Type3(imm), x, z, dd });
                 }
                 if let StoreLocal { .. } = *op { v.extend(sm.release(1)); }
-                (addr.clone(), v, default_dest)
+                (*addr, v, default_dest)
             },
         Increment { index, value } => {
             use tenyr::*;
@@ -410,7 +410,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             ]);
             v.extend(sm.release(1));
 
-            (addr.clone(), v, default_dest)
+            (*addr, v, default_dest)
         },
         Branch { kind : JType::Int, ops : OperandCount::_1, way, target } => {
             use tenyr::*;
@@ -436,7 +436,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 (temp_reg, v)
             };
 
-            make_int_branch(sm, addr.clone(), false, target, target_namer, &mut op1)
+            make_int_branch(sm, *addr, false, target, target_namer, &mut op1)
         },
         Branch { kind : JType::Int, ops : OperandCount::_2, way, target } => {
             use tenyr::*;
@@ -464,7 +464,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 (temp_reg, v)
             };
 
-            make_int_branch(sm, addr.clone(), invert, target, target_namer, &mut op2)
+            make_int_branch(sm, *addr, invert, target, target_namer, &mut op2)
         },
         Switch(Lookup { default, pairs }) => {
             use tenyr::*;
@@ -497,7 +497,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             let (i, d) : (Vec<_>, Vec<_>) = pairs.iter().map(|&(compare, target)| {
                 let (_, insns, dests) =
-                    make_int_branch(sm, addr.clone(), false, (target + here) as u16, target_namer, &mut maker(compare));
+                    make_int_branch(sm, *addr, false, (target + here) as u16, target_namer, &mut maker(compare));
                 (insns, dests)
             }).unzip();
 
@@ -510,7 +510,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             insns.push(make_jump(there));
             dests.push(Destination::Address(usize::from(there)));
 
-            (addr.clone(), insns, dests)
+            (*addr, insns, dests)
         },
         Switch(Table { default, low, high, offsets }) => {
             use tenyr::*;
@@ -544,9 +544,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             };
 
             let (lo_addr, lo_insns, lo_dests) =
-                make_int_branch(sm, addr.clone(), false, there, target_namer, &mut maker(&Type1, low));
+                make_int_branch(sm, *addr, false, there, target_namer, &mut maker(&Type1, low));
             let (_hi_addr, hi_insns, hi_dests) =
-                make_int_branch(sm, addr.clone(), false, there, target_namer, &mut maker(&Type2, high));
+                make_int_branch(sm, *addr, false, there, target_namer, &mut maker(&Type2, high));
 
             let addr = lo_addr;
 
@@ -572,7 +572,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             (addr, insns, dests)
         },
-        Jump { target } => (addr.clone(), vec![ make_jump(target) ], vec![ Destination::Address(target as usize) ]),
+        Jump { target } => (*addr, vec![ make_jump(target) ], vec![ Destination::Address(target as usize) ]),
         LoadArray(kind) | StoreArray(kind) => {
             let mut v = Vec::with_capacity(10);
             let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
@@ -604,16 +604,16 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let kind = Type1(InsnGeneral { y, op : Opcode::Multiply, imm });
             let insn = Instruction { kind, z, x, dd };
             v.push(insn);
-            (addr.clone(), v, default_dest)
+            (*addr, v, default_dest)
         },
-        Noop => (addr.clone(), vec![ make_mov(Register::A, Register::A) ], default_dest),
+        Noop => (*addr, vec![ make_mov(Register::A, Register::A) ], default_dest),
         Length => {
             // TODO document layout of arrays
             // This implementation assumes a reference to an array points to its first element, and
             // that one word below that element is a word containing the number of elements.
             let top = get_reg(sm.get(0));
             let insn = Instruction { kind : Type3(neg1_20), ..make_load(top, top) };
-            (addr.clone(), vec![ insn ], default_dest)
+            (*addr, vec![ insn ], default_dest)
         },
 
         _ => panic!("unhandled operation {:?}", op),
