@@ -414,10 +414,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         },
         Branch { kind : JType::Int, ops : OperandCount::_1, way, target } => {
             use tenyr::*;
-            use tenyr::Immediate12;
-            use tenyr::Instruction;
             use tenyr::InstructionType::*;
-            use tenyr::MemoryOpType;
 
             let (op, _, _) = translate_way(way);
 
@@ -443,10 +440,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         },
         Branch { kind : JType::Int, ops : OperandCount::_2, way, target } => {
             use tenyr::*;
-            use tenyr::Immediate12;
-            use tenyr::Instruction;
             use tenyr::InstructionType::*;
-            use tenyr::MemoryOpType;
 
             let (op, swap, invert) = translate_way(way);
 
