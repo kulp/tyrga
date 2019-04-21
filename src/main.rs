@@ -956,7 +956,7 @@ fn main() -> std::result::Result<(), Box<Error>> {
                 write!(file, "{}", bb)?;
             }
 
-            write!(file, "\n")?;
+            writeln!(file)?;
         }
     }
 
