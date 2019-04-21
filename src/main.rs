@@ -108,12 +108,9 @@ impl StackManager {
         self.frozen = new_frozen as usize;
 
         let make_insn = |reg, offset| Instruction { dd : NoLoad, kind : Type3(Immediate20::new(offset).unwrap()), z : reg, x : stack_ptr };
-        let make_move = |i, offset| make_insn(self.get_reg(i as usize), i + offset);
+        let make_move = |i, offset| make_insn(self.get_reg(i as usize), i + offset + 1);
         // Only one of { `freezing`, `thawing` } will have any elements in it
-        // Offset is different for freezing and thawing because a) the stack pointer points past
-        // valid data rather than directly to it, and b) order of stack movement matters
-        // differently to freezing and thawing
-        let freezing = (level..unfrozen).map(|i| Instruction { dd : StoreRight, ..make_move(i, 1) });
+        let freezing = (level..unfrozen).map(|i| Instruction { dd : StoreRight, ..make_move(i, 0) });
         let thawing  = (unfrozen..level).map(|i| Instruction { dd : LoadRight , ..make_move(i, -stack_movement) });
         let update = make_insn(stack_ptr, stack_movement);
 
