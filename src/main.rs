@@ -753,6 +753,10 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
     Ok((ranges, ops))
 }
 
+fn join_name_parts(class : &str, name : &str, desc : &str) -> String {
+    vec![ class, name, desc ].join(":")
+}
+
 fn make_callable_name(class : &ClassFile, pool_index : u16) -> String {
     use classfile_parser::constant_info::ConstantInfo::*;
 
@@ -766,13 +770,11 @@ fn make_callable_name(class : &ClassFile, pool_index : u16) -> String {
     if let MethodRef(mr) = get_constant(pool_index) {
         if let Class(cl) = get_constant(mr.class_index) {
             if let NameAndType(nt) = get_constant(mr.name_and_type_index) {
-                return mangling::mangle(
-                    vec![
-                        get_string(cl.name_index).expect("bad class name"),
-                        get_string(nt.name_index).expect("bad method name"),
-                        get_string(nt.descriptor_index).expect("bad method descriptor"),
-                    ].join(":").bytes()
-                ).expect("failed to mangle");
+                return mangling::mangle(join_name_parts(
+                        get_string(cl.name_index).expect("bad class name").as_ref(),
+                        get_string(nt.name_index).expect("bad method name").as_ref(),
+                        get_string(nt.descriptor_index).expect("bad method descriptor").as_ref()
+                    ).bytes()).expect("failed to mangle");
             }
         }
     }
@@ -791,11 +793,11 @@ fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> String {
         };
 
     let cl = match get_constant(class.this_class) { Class(c) => c, _ => panic!("not a class") };
-    vec![
-        get_string(cl.name_index).expect("bad class name"),
-        get_string(method.name_index).expect("bad method name"),
-        get_string(method.descriptor_index).expect("bad method descriptor"),
-    ].join(":")
+    join_name_parts(
+        get_string(cl.name_index).expect("bad class name").as_ref(),
+        get_string(method.name_index).expect("bad method name").as_ref(),
+        get_string(method.descriptor_index).expect("bad method descriptor").as_ref()
+    )
 }
 
 fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> String {
