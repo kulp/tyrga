@@ -277,6 +277,7 @@ fn test_instruction_display() {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BasicBlock {
     pub label : String,
     pub insns : Vec<Instruction>,
