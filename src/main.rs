@@ -865,14 +865,14 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
         seen.insert(which.start);
 
         let namer = {
-            // TODO obivate clones
+            // TODO obviate clones
             let class = class.clone();
             let method = method.clone();
             move |x : usize| make_label(&class, &method, &x.to_string())
         };
 
         let caller = {
-            // TODO obivate clones
+            // TODO obviate clones
             let class = class.clone();
             move |x| make_callable_name(&class, x)
         };
