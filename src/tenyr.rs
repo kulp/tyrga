@@ -77,15 +77,6 @@ use std::marker::PhantomData;
 #[derive(Copy, Clone, Debug, Eq, PartialOrd, Ord)]
 pub struct SizedImmediate<T>(i32, PhantomData<T>) where T : BitWidth;
 
-use num::Bounded;
-
-impl<T> Bounded for SizedImmediate<T>
-    where T: BitWidth
-{
-    fn min_value() -> Self { SizedImmediate(-(1 << (T::BITS - 1))    , PhantomData) }
-    fn max_value() -> Self { SizedImmediate( (1 << (T::BITS - 1)) - 1, PhantomData) }
-}
-
 impl<T> SizedImmediate<T>
     where T: BitWidth
 {
