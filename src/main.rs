@@ -935,6 +935,7 @@ fn test_parse_classes()
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct Method {
     name : String,
+    preamble : tenyr::BasicBlock,
     blocks : Vec<tenyr::BasicBlock>,
 }
 
@@ -942,7 +943,7 @@ impl fmt::Display for Method {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, ".global {}", self.name)?;
         writeln!(f, "{}:", self.name)?;
-        // TODO preamble
+        write!(f, "{}", self.preamble)?;
         for bb in &self.blocks {
             write!(f, "{}", bb)?
         }
@@ -952,8 +953,10 @@ impl fmt::Display for Method {
 
 fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager) -> Method {
     let name = make_mangled_method_name(class, method);
+    let label = make_label(class, method, "preamble");
+    let preamble = tenyr::BasicBlock { label, insns : Vec::new() };
     let blocks = make_blocks_for_method(&class, method, &sm);
-    Method { name, blocks }
+    Method { name, preamble, blocks }
 }
 
 fn main() -> std::result::Result<(), Box<Error>> {
