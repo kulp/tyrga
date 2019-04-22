@@ -930,6 +930,24 @@ fn test_parse_classes()
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Method {
+    blocks : Vec<tenyr::BasicBlock>,
+}
+
+impl fmt::Display for Method {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for bb in &self.blocks {
+            write!(f, "{}", bb)?
+        }
+        Ok(())
+    }
+}
+
+fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager) -> Method {
+    Method { blocks : make_blocks_for_method(&class, method, &sm) }
+}
+
 fn main() -> std::result::Result<(), Box<Error>> {
     use std::fs::File;
     use std::io::Write;
@@ -957,12 +975,8 @@ fn main() -> std::result::Result<(), Box<Error>> {
         for method in class.methods.iter().filter(|m| !make_unique_method_name(&class, m).contains(":<")) {
             let v = { use Register::*; vec![ C, D, E, F, G, H, I, J, K, L, M ] }; // TODO get range working
             let sm = StackManager::new(Register::O, v);
-            let bbs = make_blocks_for_method(&class, method, &sm);
-            for bb in &bbs {
-                write!(file, "{}", bb)?;
-            }
-
-            writeln!(file)?;
+            let mm = translate_method(&class, method, &sm);
+            writeln!(file, "{}", mm)?;
         }
     }
 
