@@ -536,12 +536,18 @@ fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
     Ok((ranges, tree))
 }
 
+use classfile_parser::attribute_info::CodeAttribute;
 use classfile_parser::method_info::MethodInfo;
+
+fn get_method_code(method : &MethodInfo) -> Result<CodeAttribute> {
+    use classfile_parser::attribute_info::code_attribute_parser;
+    Ok(code_attribute_parser(&method.attributes[0].info).map_err(generic_error)?.1)
+}
+
 fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
     -> Result<(Vec<Range<usize>>, BTreeMap<usize, Operation>)>
 {
     use classfile_parser::attribute_info::AttributeInfo;
-    use classfile_parser::attribute_info::code_attribute_parser;
     use classfile_parser::attribute_info::stack_map_table_attribute_parser;
     use classfile_parser::constant_info::ConstantInfo::Utf8;
 
@@ -552,7 +558,7 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
             _ => panic!("not a name")
         };
 
-    let code = code_attribute_parser(&method.attributes[0].info).map_err(generic_error)?.1;
+    let code = get_method_code(method)?;
     let attr = &code.attributes.iter().find(|a| name_of(a) == "StackMapTable");
     let keep;
     let table = match attr {
