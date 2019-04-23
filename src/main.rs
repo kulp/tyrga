@@ -775,18 +775,21 @@ impl fmt::Display for Method {
     }
 }
 
-fn count_args(descriptor : &str) -> Result<usize> {
-    fn eat(s : &str) -> Result<usize> {
-        let ch = s.chars().nth(0).ok_or_else(|| TranslationError::new("string ended too soon"))?;
-        match ch {
-            'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'D' | 'J' => Ok(1),
-            'L' => Ok(1 + s.find(';').ok_or_else(|| TranslationError::new("string ended too soon"))?),
-            '[' => Ok(1 + eat(&s[1..])?),
-            _ => Err(TranslationError(format!("unexpected character {}", ch)).into()),
-        }
-    }
+mod args {
+    use super::TranslationError;
+    use super::Result;
 
     fn count_internal(s : &str) -> Result<usize> {
+        fn eat(s : &str) -> Result<usize> {
+            let ch = s.chars().nth(0).ok_or_else(|| TranslationError::new("string ended too soon"))?;
+            match ch {
+                'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'D' | 'J' => Ok(1),
+                'L' => Ok(1 + s.find(';').ok_or_else(|| TranslationError::new("string ended too soon"))?),
+                '[' => Ok(1 + eat(&s[1..])?),
+                _ => Err(TranslationError(format!("unexpected character {}", ch)).into()),
+            }
+        }
+
         if s.len() == 0 { return Ok(0); }
         let ch = s.chars().nth(0).unwrap(); // cannot fail since len != 0
         let mine = match ch {
@@ -799,10 +802,13 @@ fn count_args(descriptor : &str) -> Result<usize> {
         Ok(mine? + count_internal(&s[eat(s)?..])?)
     }
 
-    let open = 1; // byte index of open parenthesis is 0
-    let close = descriptor.rfind(')').ok_or_else(|| TranslationError::new("descriptor missing closing parenthesis"))?;
-    count_internal(&descriptor[open..close])
+    pub fn count_args(descriptor : &str) -> Result<usize> {
+        let open = 1; // byte index of open parenthesis is 0
+        let close = descriptor.rfind(')').ok_or_else(|| TranslationError::new("descriptor missing closing parenthesis"))?;
+        count_internal(&descriptor[open..close])
+    }
 }
+use args::*;
 
 #[test]
 fn test_count_args() -> Result<()> {
