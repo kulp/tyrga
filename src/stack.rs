@@ -3,8 +3,8 @@ use tenyr::Register;
 
 #[derive(Clone, Debug)]
 pub struct StackManager {
-    stack_ptr : Register,
-    frame_ptr : Register,
+    pub stack_ptr : Register,
+    pub frame_ptr : Register,
     stack : Vec<Register>,
     count : usize,
     frozen : usize,

@@ -821,8 +821,8 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
 
     let name = make_mangled_method_name(class, method);
     let bottom = Register::B; // TODO get bottom of StackManager instead
-    let frame_ptr = Register::N; // TODO get frame pointer from some authoritative source
-    let stack_ptr = Register::O; // TODO get stack pointer from some authoritative source
+    let frame_ptr = sm.frame_ptr;
+    let stack_ptr = sm.stack_ptr;
 
     use classfile_parser::constant_info::ConstantInfo::Utf8;
     let get_constant = |n| &class.const_pool[usize::from(n) - 1];
