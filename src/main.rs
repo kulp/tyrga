@@ -775,12 +775,12 @@ impl fmt::Display for Method {
     }
 }
 
-fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager) -> Method {
+fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager) -> Result<Method> {
     let name = make_mangled_method_name(class, method);
     let label = make_label(class, method, "preamble");
     let preamble = tenyr::BasicBlock { label, insns : Vec::new() };
     let blocks = make_blocks_for_method(&class, method, &sm);
-    Method { name, preamble, blocks }
+    Ok(Method { name, preamble, blocks })
 }
 
 fn main() -> std::result::Result<(), Box<Error>> {
@@ -810,7 +810,7 @@ fn main() -> std::result::Result<(), Box<Error>> {
         for method in class.methods.iter().filter(|m| !make_unique_method_name(&class, m).contains(":<")) {
             let v = { use Register::*; vec![ C, D, E, F, G, H, I, J, K, L, M ] }; // TODO get range working
             let sm = StackManager::new(Register::O, v);
-            let mm = translate_method(&class, method, &sm);
+            let mm = translate_method(&class, method, &sm)?;
             writeln!(file, "{}", mm)?;
         }
     }
