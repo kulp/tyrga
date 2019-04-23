@@ -775,6 +775,45 @@ impl fmt::Display for Method {
     }
 }
 
+fn count_args(descriptor : &str) -> Result<usize> {
+    fn eat(s : &str) -> Result<usize> {
+        let ch = s.chars().nth(0).ok_or_else(|| TranslationError::new("string ended too soon"))?;
+        match ch {
+            'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'D' | 'J' => Ok(1),
+            'L' => Ok(1 + s.find(';').ok_or_else(|| TranslationError::new("string ended too soon"))?),
+            '[' => Ok(1 + eat(&s[1..])?),
+            _ => Err(TranslationError(format!("unexpected character {}", ch)).into()),
+        }
+    }
+
+    fn count_internal(s : &str) -> Result<usize> {
+        if s.len() == 0 { return Ok(0); }
+        let ch = s.chars().nth(0).unwrap(); // cannot fail since len != 0
+        let mine = match ch {
+            'B' | 'C' | 'F' | 'I' | 'S' | 'Z' => Ok(1),
+            'D' | 'J' => Ok(2),
+            'L' => Ok(1),
+            '[' => Ok(1),
+            _ => Err(TranslationError(format!("unexpected character {}", ch))),
+        };
+        Ok(mine? + count_internal(&s[eat(s)?..])?)
+    }
+
+    let open = 1; // byte index of open parenthesis is 0
+    let close = descriptor.rfind(')').ok_or_else(|| TranslationError::new("descriptor missing closing parenthesis"))?;
+    count_internal(&descriptor[open..close])
+}
+
+#[test]
+fn test_count_args() -> Result<()> {
+    assert_eq!(3, count_args("(III)V")?);
+    assert_eq!(4, count_args("(JD)I")?);
+    assert_eq!(2, count_args("(Lmetasyntactic;Lvariable;)I")?);
+    assert_eq!(1, count_args("([[[I)I")?);
+    assert_eq!(0, count_args("()Lplaceholder;")?);
+    Ok(())
+}
+
 fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager) -> Result<Method> {
     let name = make_mangled_method_name(class, method);
     let label = make_label(class, method, "preamble");
