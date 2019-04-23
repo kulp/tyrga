@@ -3,7 +3,8 @@ use tenyr::Register;
 
 #[derive(Clone, Debug)]
 pub struct StackManager {
-    ptr : Register,
+    stack_ptr : Register,
+    frame_ptr : Register,
     stack : Vec<Register>,
     count : usize,
     frozen : usize,
@@ -25,8 +26,8 @@ type StackActions = Vec<tenyr::Instruction>;
 // This simple StackManager implementation does not do spilling to nor reloading from memory.
 // For now, it panics if we run out of free registers.
 impl StackManager {
-    pub fn new(sp : Register, r : Vec<Register>) -> StackManager {
-        StackManager { count : 0, frozen : 0, ptr : sp, stack : r }
+    pub fn new(sp : Register, fp : Register, r : Vec<Register>) -> StackManager {
+        StackManager { count : 0, frozen : 0, stack_ptr : sp, frame_ptr : fp, stack : r }
     }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
@@ -82,7 +83,7 @@ impl StackManager {
         use tenyr::*;
         use tenyr::InstructionType::*;
         use tenyr::MemoryOpType::*;
-        let stack_ptr = self.ptr;
+        let stack_ptr = self.stack_ptr;
 
         let stack_movement = -(unfrozen as i32 - level as i32) as i32; // TODO check overflow issues here
         if stack_movement == 0 {
@@ -120,7 +121,7 @@ impl StackManager {
 fn test_get_reg() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
-    let mut sm = StackManager::new(O, v.clone());
+    let mut sm = StackManager::new(O, N, v.clone());
     let _ = sm.reserve(v.len());
     assert_eq!(&v[0], &sm.get_reg(v.len() - 1));
 }
@@ -131,7 +132,7 @@ fn test_get_reg() {
 fn test_underflow() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
-    let mut sm = StackManager::new(O, v);
+    let mut sm = StackManager::new(O, N, v);
     let _ = sm.reserve(3);
     let _ = sm.release(4);
 }
@@ -142,7 +143,7 @@ fn test_overflow() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
     let len = v.len();
-    let mut sm = StackManager::new(O, v);
+    let mut sm = StackManager::new(O, N, v);
     let _ = sm.reserve(len + 1);
 }
 
@@ -151,7 +152,7 @@ fn test_normal_stack() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
     let t = v.clone();
-    let mut sm = StackManager::new(O, v);
+    let mut sm = StackManager::new(O, N, v);
     let off = 3;
     let _ = sm.reserve(off);
     assert_eq!(sm.get(0), t[off - 1].into());
@@ -161,7 +162,7 @@ fn test_normal_stack() {
 fn test_watermark() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
-    let mut sm = StackManager::new(O, v);
+    let mut sm = StackManager::new(O, N, v);
     let _ = sm.reserve(4);
 
     let insns = sm.set_watermark(0);
