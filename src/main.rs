@@ -19,6 +19,9 @@ use tenyr::Register;
 
 use stack::*;
 
+const FRAME_PTR : Register = Register::N;
+const STACK_PTR : Register = Register::O;
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum Destination {
     Successor,
@@ -449,7 +452,7 @@ fn test_make_instruction() {
     use tenyr::InstructionType::*;
     use tenyr::Immediate20;
     let v = vec![ C, D, E, F, G ];
-    let mut sm = StackManager::new(O, N, v);
+    let mut sm = StackManager::new(STACK_PTR, FRAME_PTR, v);
     let op = Operation::Constant { kind : JType::Int, value : 5 };
     let namer = |x| format!("{}:{}", "test", x);
     let caller = |x| format!("{}_{}", "test", x);
@@ -726,7 +729,7 @@ fn test_stack_map_table(stem : &str) {
     let class = parse_class(stem);
     for method in class.methods.iter().filter(|m| !make_unique_method_name(&class, m).contains(":<")) {
         let v = { use Register::*; vec![ C, D, E, F, G, H, I, J, K, L, M ] }; // TODO get range working
-        let sm = StackManager::new(Register::O, Register::N, v);
+        let sm = StackManager::new(STACK_PTR, FRAME_PTR, v);
         let bbs = make_blocks_for_method(&class, method, &sm);
         for bb in &bbs {
             eprintln!("{}", bb);
@@ -891,7 +894,7 @@ fn main() -> std::result::Result<(), Box<Error>> {
         let mut file = File::create(out)?;
         for method in class.methods.iter().filter(|m| !make_unique_method_name(&class, m).contains(":<")) {
             let v = { use Register::*; vec![ C, D, E, F, G, H, I, J, K, L, M ] }; // TODO get range working
-            let sm = StackManager::new(Register::O, Register::N, v);
+            let sm = StackManager::new(STACK_PTR, FRAME_PTR, v);
             let mm = translate_method(&class, method, &sm)?;
             writeln!(file, "{}", mm)?;
         }
