@@ -462,7 +462,7 @@ fn test_make_instruction() {
     assert_eq!(insn.1[0].to_string(), " C  <-  5");
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TranslationError(String);
 
 impl TranslationError {
