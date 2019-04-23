@@ -833,25 +833,26 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
         let err = TranslationError::new("method descriptor missing");
         let num_args = count_args(&get_string(method.descriptor_index).ok_or(err)?)? as i32;
         let saved_size = 1; // number of slots of data we will save between locals and stack
+        let bad_imm = || TranslationError::new("failed to create immediate");
         vec![
             // set up frame pointer from incoming stack pointer
             Instruction {
                 dd : NoLoad,
-                kind : Type3(Immediate20::new(num_args).unwrap()),
+                kind : Type3(Immediate20::new(num_args).ok_or_else(bad_imm)?),
                 z : sm.frame_ptr,
                 x : sm.stack_ptr,
             },
             // save return address after all locals
             Instruction {
                 dd : StoreRight,
-                kind : Type3(Immediate20::new(-max_locals).unwrap()),
+                kind : Type3(Immediate20::new(-max_locals).ok_or_else(bad_imm)?),
                 z : bottom,
                 x : sm.frame_ptr,
             },
             // update stack pointer
             Instruction {
                 dd : NoLoad,
-                kind : Type3(Immediate20::new(-saved_size).unwrap()),
+                kind : Type3(Immediate20::new(-saved_size).ok_or_else(bad_imm)?),
                 z : sm.stack_ptr,
                 x : sm.stack_ptr,
             },
