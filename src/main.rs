@@ -815,9 +815,56 @@ fn test_count_args() -> Result<()> {
 }
 
 fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager) -> Result<Method> {
+    use tenyr::*;
+    use tenyr::MemoryOpType::*;
+    use tenyr::InstructionType::*;
+
     let name = make_mangled_method_name(class, method);
+    let bottom = Register::B; // TODO get bottom of StackManager instead
+    let frame_ptr = Register::N; // TODO get frame pointer from some authoritative source
+    let stack_ptr = Register::O; // TODO get stack pointer from some authoritative source
+
+    use classfile_parser::constant_info::ConstantInfo::Utf8;
+    let get_constant = |n| &class.const_pool[usize::from(n) - 1];
+    let get_string = |i|
+        match get_constant(i) {
+            Utf8(u) => Some(u.utf8_string.to_string()),
+            _ => None,
+        };
+
+    let insns = {
+        let code = get_method_code(method)?;
+        let max_locals = code.max_locals as i32;
+        let err = TranslationError::new("method descriptor missing");
+        let num_args = count_args(&get_string(method.descriptor_index).ok_or(err)?)? as i32;
+        let saved_size = 1; // number of slots of data we will save between locals and stack
+        vec![
+            // set up frame pointer from incoming stack pointer
+            Instruction {
+                dd : NoLoad,
+                kind : Type3(Immediate20::new(num_args).unwrap()),
+                z : frame_ptr,
+                x : stack_ptr,
+            },
+            // save return address after all locals
+            Instruction {
+                dd : StoreRight,
+                kind : Type3(Immediate20::new(-max_locals).unwrap()),
+                z : bottom,
+                x : frame_ptr,
+            },
+            // update stack pointer
+            Instruction {
+                dd : NoLoad,
+                kind : Type3(Immediate20::new(-saved_size).unwrap()),
+                z : stack_ptr,
+                x : stack_ptr,
+            },
+        ]
+    };
     let label = make_label(class, method, "preamble");
-    let preamble = tenyr::BasicBlock { label, insns : Vec::new() };
+    let preamble = tenyr::BasicBlock { label, insns };
+
     let blocks = make_blocks_for_method(&class, method, &sm);
     Ok(Method { name, preamble, blocks })
 }
