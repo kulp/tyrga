@@ -552,6 +552,16 @@ mod util {
     {
         &class.const_pool[usize::from(n) - 1]
     }
+
+    use classfile_parser::constant_info::ConstantInfo::Utf8;
+    pub fn get_string<T>(class : &ClassFile, i : T) -> Option<String>
+        where usize : From<T>
+    {
+        match get_constant(class, i) {
+            Utf8(u) => Some(u.utf8_string.to_string()),
+            _ => None,
+        }
+    }
 }
 use util::*;
 
