@@ -150,7 +150,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             (*addr, v, default_dest)
         },
         Yield { kind } => {
-            let ret = Instruction { kind : Type3(pos1_20), ..make_load(Register::P, sm.stack_ptr) };
+            let ret = Instruction { kind : Type3(pos1_20), ..make_load(Register::P, sm.get_stack_ptr()) };
             // TODO how to correctly place stack pointer ?
             // StackManager will somehow have to help us manipulate it because we do not
             // here have enough context otherwise.
@@ -163,7 +163,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 Int | Float | Object | Short | Char | Byte => {
                     let top = get_reg(sm.get(0));
                     vec![
-                        make_store(top, sm.frame_ptr),
+                        make_store(top, sm.get_frame_ptr()),
                         ret
                     ]
                 },
@@ -171,8 +171,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     let top = get_reg(sm.get(0));
                     let sec = get_reg(sm.get(1));
                     vec![
-                        make_store(sec, sm.frame_ptr),
-                        Instruction { kind : Type3(neg1_20), ..make_store(top, sm.frame_ptr) },
+                        make_store(sec, sm.get_frame_ptr()),
+                        Instruction { kind : Type3(neg1_20), ..make_store(top, sm.get_frame_ptr()) },
                         ret
                     ]
                 },
@@ -203,7 +203,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 if let LoadLocal { .. } = *op { v.extend(sm.reserve(1)); }
                 {
                     use tenyr::*;
-                    let x = sm.frame_ptr;
+                    let x = sm.get_frame_ptr();
                     let z = get_reg(sm.get(0));
                     let dd = match *op {
                         LoadLocal  { .. } => MemoryOpType::LoadRight,
@@ -228,9 +228,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             v.extend(sm.reserve(1));
             let temp_reg = get_reg(sm.get(0));
             v.extend(vec![
-                Instruction { kind : Type3(make_imm20(-index)), ..make_load(temp_reg, sm.frame_ptr) },
+                Instruction { kind : Type3(make_imm20(-index)), ..make_load(temp_reg, sm.get_frame_ptr()) },
                 Instruction { kind : Type1(InsnGeneral { y, op, imm }), ..make_mov(temp_reg, temp_reg) },
-                Instruction { kind : Type3(make_imm20(-index)), ..make_store(temp_reg, sm.frame_ptr) },
+                Instruction { kind : Type3(make_imm20(-index)), ..make_store(temp_reg, sm.get_frame_ptr()) },
             ]);
             v.extend(sm.release(1));
 
@@ -859,22 +859,22 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
             Instruction {
                 dd : NoLoad,
                 kind : Type3(Immediate20::new(num_args).ok_or_else(bad_imm)?),
-                z : sm.frame_ptr,
-                x : sm.stack_ptr,
+                z : sm.get_frame_ptr(),
+                x : sm.get_stack_ptr(),
             },
             // save return address after all locals
             Instruction {
                 dd : StoreRight,
                 kind : Type3(Immediate20::new(-max_locals).ok_or_else(bad_imm)?),
                 z : bottom,
-                x : sm.frame_ptr,
+                x : sm.get_frame_ptr(),
             },
             // update stack pointer
             Instruction {
                 dd : NoLoad,
                 kind : Type3(Immediate20::new(-saved_size).ok_or_else(bad_imm)?),
-                z : sm.stack_ptr,
-                x : sm.stack_ptr,
+                z : sm.get_stack_ptr(),
+                x : sm.get_stack_ptr(),
             },
         ]
     };

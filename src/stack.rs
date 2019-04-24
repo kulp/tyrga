@@ -3,8 +3,8 @@ use tenyr::Register;
 
 #[derive(Clone, Debug)]
 pub struct StackManager {
-    pub stack_ptr : Register,
-    pub frame_ptr : Register,
+    stack_ptr : Register,
+    frame_ptr : Register,
     stack : Vec<Register>,
     count : usize,
     frozen : usize,
@@ -29,6 +29,9 @@ impl StackManager {
     pub fn new(sp : Register, fp : Register, r : Vec<Register>) -> StackManager {
         StackManager { count : 0, frozen : 0, stack_ptr : sp, frame_ptr : fp, stack : r }
     }
+
+    pub fn get_stack_ptr(&self) -> Register { self.stack_ptr }
+    pub fn get_frame_ptr(&self) -> Register { self.frame_ptr }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn reserve(&mut self, n : usize) -> StackActions {
