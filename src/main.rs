@@ -562,9 +562,8 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
     use classfile_parser::attribute_info::stack_map_table_attribute_parser;
     use classfile_parser::constant_info::ConstantInfo::Utf8;
 
-    let get_constant = |n| &class.const_pool[usize::from(n) - 1];
     let name_of = |a : &AttributeInfo|
-        match get_constant(a.attribute_name_index) {
+        match get_constant(class, a.attribute_name_index) {
             Utf8(u) => u.utf8_string.to_string(),
             _ => panic!("not a name")
         };
@@ -595,7 +594,7 @@ fn join_name_parts(class : &str, name : &str, desc : &str) -> String {
 fn make_callable_name(class : &ClassFile, pool_index : u16) -> String {
     use classfile_parser::constant_info::ConstantInfo::*;
 
-    let get_constant = |n| &class.const_pool[usize::from(n) - 1];
+    let get_constant = |n| get_constant(class, n);
     let get_string = |i|
         match get_constant(i) {
             Utf8(u) => Some(u.utf8_string.to_string()),
@@ -620,7 +619,7 @@ fn make_callable_name(class : &ClassFile, pool_index : u16) -> String {
 fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> String {
     use classfile_parser::constant_info::ConstantInfo::*;
 
-    let get_constant = |n| &class.const_pool[usize::from(n) - 1];
+    let get_constant = |n| get_constant(class, n);
     let get_string = |i|
         match get_constant(i) {
             Utf8(u) => Some(u.utf8_string.to_string()),
@@ -845,7 +844,7 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
     let bottom = Register::B; // TODO get bottom of StackManager instead
 
     use classfile_parser::constant_info::ConstantInfo::Utf8;
-    let get_constant = |n| &class.const_pool[usize::from(n) - 1];
+    let get_constant = |n| get_constant(class, n);
     let get_string = |i|
         match get_constant(i) {
             Utf8(u) => Some(u.utf8_string.to_string()),
