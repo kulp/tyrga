@@ -544,6 +544,17 @@ fn get_method_code(method : &MethodInfo) -> Result<CodeAttribute> {
     Ok(code_attribute_parser(&method.attributes[0].info).map_err(generic_error)?.1)
 }
 
+mod util {
+    use classfile_parser::ClassFile;
+    use classfile_parser::constant_info::ConstantInfo;
+    pub fn get_constant<T>(class : &ClassFile, n : T) -> &ConstantInfo
+        where usize : From<T>
+    {
+        &class.const_pool[usize::from(n) - 1]
+    }
+}
+use util::*;
+
 fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
     -> Result<(Vec<Range<usize>>, BTreeMap<usize, Operation>)>
 {
