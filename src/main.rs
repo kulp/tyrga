@@ -605,11 +605,7 @@ fn make_callable_name(class : &ClassFile, pool_index : u16) -> String {
     use classfile_parser::constant_info::ConstantInfo::*;
 
     let get_constant = |n| get_constant(class, n);
-    let get_string = |i|
-        match get_constant(i) {
-            Utf8(u) => Some(u.utf8_string.to_string()),
-            _ => None,
-        };
+    let get_string = |n| get_string(class, n);
 
     if let MethodRef(mr) = get_constant(pool_index) {
         if let Class(cl) = get_constant(mr.class_index) {
@@ -630,11 +626,7 @@ fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> String {
     use classfile_parser::constant_info::ConstantInfo::*;
 
     let get_constant = |n| get_constant(class, n);
-    let get_string = |i|
-        match get_constant(i) {
-            Utf8(u) => Some(u.utf8_string.to_string()),
-            _ => None,
-        };
+    let get_string = |n| get_string(class, n);
 
     let cl = match get_constant(class.this_class) { Class(c) => c, _ => panic!("not a class") };
     join_name_parts(
@@ -853,13 +845,7 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
     let name = make_mangled_method_name(class, method);
     let bottom = Register::B; // TODO get bottom of StackManager instead
 
-    use classfile_parser::constant_info::ConstantInfo::Utf8;
-    let get_constant = |n| get_constant(class, n);
-    let get_string = |i|
-        match get_constant(i) {
-            Utf8(u) => Some(u.utf8_string.to_string()),
-            _ => None,
-        };
+    let get_string = |n| get_string(class, n);
 
     let insns = {
         let code = get_method_code(method)?;
