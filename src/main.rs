@@ -807,6 +807,11 @@ mod args {
         let close = descriptor.rfind(')').ok_or_else(|| TranslationError::new("descriptor missing closing parenthesis"))?;
         count_internal(&descriptor[open..close])
     }
+
+    pub fn count_returns(descriptor : &str) -> Result<usize> {
+        let close = descriptor.rfind(')').ok_or_else(|| TranslationError::new("descriptor missing closing parenthesis"))?;
+        count_internal(&descriptor[close+1..])
+    }
 }
 use args::*;
 
