@@ -903,6 +903,15 @@ fn main() -> std::result::Result<(), Box<Error>> {
                             .required(true)
                         )
                 )
+            .subcommand(
+                SubCommand::with_name("mangle")
+                    .about("Mangles strings of bytes into valid tenyr symbols")
+                    .arg(Arg::with_name("strings")
+                            .help("Provides string inputs for mangling")
+                            .multiple(true)
+                            .required(true)
+                        )
+                )
             .get_matches();
 
     if let Some(m) = m.subcommand_matches("translate") {
@@ -921,6 +930,10 @@ fn main() -> std::result::Result<(), Box<Error>> {
                 let mm = translate_method(&class, method, &sm)?;
                 writeln!(file, "{}", mm)?;
             }
+        }
+    } else if let Some(m) = m.subcommand_matches("mangle") {
+        for string in m.values_of("strings").expect("expected at least one string to mangle") {
+            println!("{}", mangling::mangle(string.bytes()).expect("failed to mangle"));
         }
     }
 
