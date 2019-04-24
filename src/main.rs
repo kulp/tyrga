@@ -894,26 +894,33 @@ fn main() -> std::result::Result<(), Box<Error>> {
 
     let m =
         app_from_crate!()
-            .arg(Arg::with_name("classes")
-                    .help("Names .class files as input")
-                    .multiple(true)
-                    .required(true))
+            .subcommand(
+                SubCommand::with_name("translate")
+                    .about("Translates JVM .class files into tenyr .tas assembly files")
+                    .arg(Arg::with_name("classes")
+                            .help("Names .class files as input")
+                            .multiple(true)
+                            .required(true)
+                        )
+                )
             .get_matches();
 
-    for file in m.values_of("classes").expect("expected at least one input file") {
-        let stem = Path::new(&file).with_extension("");
-        let out = stem.with_extension("tas");
-        let out = out.file_name().expect("failed to format name for output file");
-        let stem = stem.to_str().expect("expected Unicode filename");
-        let class = classfile_parser::parse_class(&stem).expect("failed to parse class");
+    if let Some(m) = m.subcommand_matches("translate") {
+        for file in m.values_of("classes").expect("expected at least one input file") {
+            let stem = Path::new(&file).with_extension("");
+            let out = stem.with_extension("tas");
+            let out = out.file_name().expect("failed to format name for output file");
+            let stem = stem.to_str().expect("expected Unicode filename");
+            let class = classfile_parser::parse_class(&stem).expect("failed to parse class");
 
-        println!("Creating {} from {} ...", out.to_str().expect("expected Unicode filename"), file);
-        let mut file = File::create(out)?;
-        for method in class.methods.iter().filter(|m| !make_unique_method_name(&class, m).contains(":<")) {
-            let v = { use Register::*; vec![ C, D, E, F, G, H, I, J, K, L, M ] }; // TODO get range working
-            let sm = StackManager::new(STACK_PTR, FRAME_PTR, v);
-            let mm = translate_method(&class, method, &sm)?;
-            writeln!(file, "{}", mm)?;
+            println!("Creating {} from {} ...", out.to_str().expect("expected Unicode filename"), file);
+            let mut file = File::create(out)?;
+            for method in class.methods.iter().filter(|m| !make_unique_method_name(&class, m).contains(":<")) {
+                let v = { use Register::*; vec![ C, D, E, F, G, H, I, J, K, L, M ] }; // TODO get range working
+                let sm = StackManager::new(STACK_PTR, FRAME_PTR, v);
+                let mm = translate_method(&class, method, &sm)?;
+                writeln!(file, "{}", mm)?;
+            }
         }
     }
 
