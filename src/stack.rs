@@ -6,8 +6,9 @@ pub struct StackManager {
     stack_ptr : Register,
     frame_ptr : Register,
     stack : Vec<Register>,
-    count : usize,
-    frozen : usize,
+    // stack sizes are inherently constrained by JVM to be 16-bit
+    count : u16,
+    frozen : u16,
 }
 
 type StackActions = Vec<tenyr::Instruction>;
@@ -23,20 +24,20 @@ impl StackManager {
     pub fn get_frame_ptr(&self) -> Register { self.frame_ptr }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
-    pub fn reserve(&mut self, n : usize) -> StackActions {
-        assert!(self.count + n <= self.stack.len(), "operand stack overflow");
+    pub fn reserve(&mut self, n : u16) -> StackActions {
+        assert!((self.count + n) as usize <= self.stack.len(), "operand stack overflow");
         self.count += n;
         vec![] // TODO support spilling
     }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
-    pub fn release(&mut self, n : usize) -> StackActions {
+    pub fn release(&mut self, n : u16) -> StackActions {
         assert!(self.count >= n, "operand stack underflow");
         self.count -= n;
         vec![] // TODO support reloading
     }
 
-    pub fn depth(&self) -> usize { self.count }
+    pub fn depth(&self) -> u16 { self.count }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn empty(&mut self) -> StackActions {
@@ -45,21 +46,21 @@ impl StackManager {
         v
     }
 
-    fn get_reg(&self, which : usize) -> Register {
+    fn get_reg(&self, which : u16) -> Register {
         assert!(which <= self.count, "attempt to access nonexistent depth");
         // indexing is relative to top of stack, counting backward
-        self.stack[(self.count - which - 1) % self.stack.len()]
+        self.stack[usize::from(self.count - which - 1) % self.stack.len()]
     }
 
-    pub fn get(&self, which : usize) -> Option<tenyr::Register> {
+    pub fn get(&self, which : u16) -> Option<tenyr::Register> {
         // TODO handle Stacked
-        assert!(which <= self.stack.len(), "attempt to access register deeper than register depth");
+        assert!(which as usize <= self.stack.len(), "attempt to access register deeper than register depth");
         // indexing is relative to top of stack, counting backward
         self.get_reg(which).into()
     }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
-    fn set_watermark(&mut self, level : usize) -> StackActions {
+    fn set_watermark(&mut self, level : u16) -> StackActions {
         // TODO remove casts
 
         // `self.frozen` counts the number of spilled registers (from bottom of operand stack) and
@@ -67,9 +68,9 @@ impl StackManager {
         // `level` requests a number of free registers (from top of operand stack) and takes values
         // in the interval [ 0, min(self.stack.len(), self.count) )
         // `unfrozen` derives the current watermark in the same units as `level`
-        let level = std::cmp::min(self.count, level) as i32; // cannot freeze more than we have
-        let count = self.count as i32;
-        let frozen = self.frozen as i32;
+        let level = i32::from(std::cmp::min(self.count, level)); // cannot freeze more than we have
+        let count = i32::from(self.count);
+        let frozen = i32::from(self.frozen);
         let unfrozen = count - frozen;
 
         use tenyr::*;
@@ -83,10 +84,10 @@ impl StackManager {
         }
 
         let new_frozen = frozen as i32 - stack_movement;
-        self.frozen = new_frozen as usize;
+        self.frozen = new_frozen as u16;
 
         let make_insn = |reg, offset| Instruction { dd : NoLoad, kind : Type3(Immediate20::new(offset).unwrap()), z : reg, x : stack_ptr };
-        let make_move = |i, offset| make_insn(self.get_reg(i as usize), i + offset + 1);
+        let make_move = |i, offset| make_insn(self.get_reg(i as u16), i + offset + 1);
         // Only one of { `freezing`, `thawing` } will have any elements in it
         let freezing = (level..unfrozen).map(|i| Instruction { dd : StoreRight, ..make_move(i, 0) });
         let thawing  = (unfrozen..level).map(|i| Instruction { dd : LoadRight , ..make_move(i, -stack_movement) });
@@ -105,7 +106,7 @@ impl StackManager {
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn thaw(&mut self) -> StackActions {
-        self.set_watermark(self.stack.len())
+        self.set_watermark(self.stack.len() as u16)
     }
 }
 
@@ -114,8 +115,8 @@ fn test_get_reg() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
     let mut sm = StackManager::new(O, N, v.clone());
-    let _ = sm.reserve(v.len());
-    assert_eq!(&v[0], &sm.get_reg(v.len() - 1));
+    let _ = sm.reserve(v.len() as u16);
+    assert_eq!(&v[0], &sm.get_reg(v.len() as u16 - 1));
 }
 
 
@@ -134,7 +135,7 @@ fn test_underflow() {
 fn test_overflow() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
-    let len = v.len();
+    let len = v.len() as u16;
     let mut sm = StackManager::new(O, N, v);
     let _ = sm.reserve(len + 1);
 }
@@ -146,7 +147,7 @@ fn test_normal_stack() {
     let t = v.clone();
     let mut sm = StackManager::new(O, N, v);
     let off = 3;
-    let _ = sm.reserve(off);
+    let _ = sm.reserve(off as u16);
     assert_eq!(sm.get(0), t[off - 1].into());
 }
 
