@@ -10,17 +10,6 @@ pub struct StackManager {
     frozen : usize,
 }
 
-// Someday we will be able to find operands in a stack frame
-#[derive(Copy,Clone,Debug,PartialEq,Eq)]
-pub enum OperandLocation {
-    Register(tenyr::Register),
-    Stacked(usize),
-}
-
-impl From<Register> for OperandLocation {
-    fn from(r : Register) -> OperandLocation { OperandLocation::Register(r) }
-}
-
 type StackActions = Vec<tenyr::Instruction>;
 
 // This simple StackManager implementation does not do spilling to nor reloading from memory.
@@ -62,7 +51,7 @@ impl StackManager {
         self.stack[(self.count - which - 1) % self.stack.len()]
     }
 
-    pub fn get(&self, which : usize) -> OperandLocation {
+    pub fn get(&self, which : usize) -> Option<tenyr::Register> {
         // TODO handle Stacked
         assert!(which <= self.stack.len(), "attempt to access register deeper than register depth");
         // indexing is relative to top of stack, counting backward

@@ -91,10 +91,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     // same depth of the operand stack every time that instance is executed.
     let default_dest = vec![Destination::Successor];
 
-    let get_reg = |t| match t {
-        OperandLocation::Register(r) => r,
-        _ => panic!("unsupported location {:?}", t),
-    };
+    let get_reg = |t : Option<_>| t.expect("asked but did not receive");
 
     let make_imm20 = |n| Immediate20::new(n).unwrap();
     let make_imm12 = |n| Immediate12::new(n).unwrap();
