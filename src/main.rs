@@ -846,7 +846,7 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
 
     let insns = {
         let code = get_method_code(method)?;
-        let max_locals = code.max_locals as i32;
+        let max_locals = i32::from(code.max_locals);
         let err = TranslationError::new("method descriptor missing");
         let num_args = count_args(&get_string(method.descriptor_index).ok_or(err)?)? as i32;
         let bad_imm = || TranslationError::new("failed to create immediate");
