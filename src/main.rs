@@ -912,6 +912,15 @@ fn main() -> std::result::Result<(), Box<Error>> {
                             .required(true)
                         )
                 )
+            .subcommand(
+                SubCommand::with_name("demangle")
+                    .about("Decodes mangled tenyr symbols into strings")
+                    .arg(Arg::with_name("strings")
+                            .help("Provides string inputs for demangling")
+                            .multiple(true)
+                            .required(true)
+                        )
+                )
             .get_matches();
 
     if let Some(m) = m.subcommand_matches("translate") {
@@ -934,6 +943,12 @@ fn main() -> std::result::Result<(), Box<Error>> {
     } else if let Some(m) = m.subcommand_matches("mangle") {
         for string in m.values_of("strings").expect("expected at least one string to mangle") {
             println!("{}", mangling::mangle(string.bytes()).expect("failed to mangle"));
+        }
+    } else if let Some(m) = m.subcommand_matches("demangle") {
+        for string in m.values_of("strings").expect("expected at least one string to mangle") {
+            let de = mangling::demangle(&string).expect("failed to demangle");
+            let st = String::from_utf8(de).expect("expected UTF-8 result from demangle");
+            println!("{}", st);
         }
     }
 
