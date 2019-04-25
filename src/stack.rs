@@ -13,6 +13,9 @@ pub struct StackManager {
 
 type StackActions = Vec<tenyr::Instruction>;
 
+// number of slots of data we will save between locals and stack
+pub const SAVE_SLOTS : u8 = 1;
+
 // This simple StackManager implementation does not do spilling to nor reloading from memory.
 // For now, it panics if we run out of free registers.
 impl StackManager {

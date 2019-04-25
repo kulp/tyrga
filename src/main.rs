@@ -849,7 +849,6 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
         let max_locals = code.max_locals as i32;
         let err = TranslationError::new("method descriptor missing");
         let num_args = count_args(&get_string(method.descriptor_index).ok_or(err)?)? as i32;
-        let saved_size = 1; // number of slots of data we will save between locals and stack
         let bad_imm = || TranslationError::new("failed to create immediate");
         vec![
             // set up frame pointer from incoming stack pointer
@@ -869,7 +868,7 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
             // update stack pointer
             Instruction {
                 dd : NoLoad,
-                kind : Type3(Immediate20::new(-saved_size).ok_or_else(bad_imm)?),
+                kind : Type3(Immediate20::new(-i16::from(SAVE_SLOTS)).ok_or_else(bad_imm)?),
                 z : sm.get_stack_ptr(),
                 x : sm.get_stack_ptr(),
             },
