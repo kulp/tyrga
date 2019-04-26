@@ -27,6 +27,24 @@ impl StackManager {
     pub fn get_stack_ptr(&self) -> Register { self.stack_ptr }
     pub fn get_frame_ptr(&self) -> Register { self.frame_ptr }
 
+    #[must_use]
+    pub fn get_frame_offset(&self, n : i32) -> tenyr::Instruction {
+        use tenyr::*;
+        use tenyr::InstructionType::Type3;
+
+        let saved : u16 = SAVE_SLOTS.into();
+
+        // frame_offset computes how much higher in memory the base of the current
+        // (downward-growing) frame is than the current stack_ptr
+        let frame_offset = self.frozen + saved + self.max_locals;
+        let imm = Immediate20::new(i32::from(frame_offset) - n).unwrap();
+        let kind = Type3(imm);
+        let z = Register::A; // this one will be overwritten by caller
+        let x = self.stack_ptr;
+        let dd = MemoryOpType::NoLoad;
+        Instruction { kind, z, x, dd }
+    }
+
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn reserve(&mut self, n : u16) -> StackActions {
         assert!((self.count + n) as usize <= self.stack.len(), "operand stack overflow");
