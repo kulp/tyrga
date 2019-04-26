@@ -92,7 +92,6 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
     let get_reg = |t : Option<_>| t.expect("asked but did not receive");
 
-    let make_imm20 = |n| Immediate20::new(n).unwrap();
     let make_imm12 = |n| Immediate12::new(n).unwrap();
 
     let pos1_20 = Immediate20::new( 1).unwrap(); // will not fail
@@ -115,9 +114,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             }
         };
 
-    let make_mov   = |to, from| Instruction { dd : NoLoad, kind : Type3(Immediate20::ZERO), z : to, x : from };
-    let make_load  = |to, from| Instruction { dd : LoadRight , ..make_mov(to, from) };
-    let make_store = |lhs, rhs| Instruction { dd : StoreRight, ..make_mov(lhs, rhs) };
+    let make_mov  = |to, from| Instruction { dd : NoLoad, kind : Type3(Immediate20::ZERO), z : to, x : from };
+    let make_load = |to, from| Instruction { dd : LoadRight , ..make_mov(to, from) };
 
     let make_jump = |target| {
         Instruction {
@@ -159,7 +157,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 Int | Float | Object | Short | Char | Byte => {
                     let top = get_reg(sm.get(0));
                     vec![
-                        make_store(top, sm.get_frame_ptr()),
+                        store_local(sm, top, 0),
                         ret
                     ]
                 },
@@ -167,8 +165,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     let top = get_reg(sm.get(0));
                     let sec = get_reg(sm.get(1));
                     vec![
-                        make_store(sec, sm.get_frame_ptr()),
-                        Instruction { kind : Type3(neg1_20), ..make_store(top, sm.get_frame_ptr()) },
+                        store_local(sm, sec, 0),
+                        store_local(sm, top, 1),
                         ret
                     ]
                 },
@@ -191,25 +189,18 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 v.extend(sm.release(1));
                 (*addr, v, default_dest)
             },
-        LoadLocal { kind, index } | StoreLocal { kind, index }
-            if kind == JType::Int || kind == JType::Object
+        LoadLocal { kind, index } if kind == JType::Int || kind == JType::Object
             => {
                 let mut v = Vec::with_capacity(10);
-                let index = i32::from(index);
-                if let LoadLocal { .. } = *op { v.extend(sm.reserve(1)); }
-                {
-                    use tenyr::*;
-                    let x = sm.get_frame_ptr();
-                    let z = get_reg(sm.get(0));
-                    let dd = match *op {
-                        LoadLocal  { .. } => MemoryOpType::LoadRight,
-                        StoreLocal { .. } => MemoryOpType::StoreRight,
-                        _ => unreachable!(),
-                    };
-                    let imm = Immediate20::new(-index).unwrap();
-                    v.push(Instruction { kind : Type3(imm), x, z, dd });
-                }
-                if let StoreLocal { .. } = *op { v.extend(sm.release(1)); }
+                v.extend(sm.reserve(1));
+                v.push(load_local(sm, get_reg(sm.get(0)), i32::from(index)));
+                (*addr, v, default_dest)
+            },
+        StoreLocal { kind, index } if kind == JType::Int || kind == JType::Object
+            => {
+                let mut v = Vec::with_capacity(10);
+                v.push(store_local(sm, get_reg(sm.get(0)), i32::from(index)));
+                v.extend(sm.release(1));
                 (*addr, v, default_dest)
             },
         Increment { index, value } => {
@@ -224,9 +215,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             v.extend(sm.reserve(1));
             let temp_reg = get_reg(sm.get(0));
             v.extend(vec![
-                Instruction { kind : Type3(make_imm20(-index)), ..make_load(temp_reg, sm.get_frame_ptr()) },
+                load_local(sm, temp_reg, index),
                 Instruction { kind : Type1(InsnGeneral { y, op, imm }), ..make_mov(temp_reg, temp_reg) },
-                Instruction { kind : Type3(make_imm20(-index)), ..make_store(temp_reg, sm.get_frame_ptr()) },
+                store_local(sm, temp_reg, index),
             ]);
             v.extend(sm.release(1));
 
@@ -567,6 +558,21 @@ mod util {
             _ => None,
         }
     }
+
+    use super::StackManager;
+    use super::tenyr::Instruction;
+    use super::tenyr::MemoryOpType::*;
+    use super::tenyr::Register;
+
+    pub fn index_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
+        Instruction { dd : NoLoad, z : reg, ..sm.get_frame_offset(idx) }
+    }
+    pub fn load_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
+        Instruction { dd : LoadRight, ..index_local(sm, reg, idx) }
+    }
+    pub fn store_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
+        Instruction { dd : StoreRight, ..index_local(sm, reg, idx) }
+    }
 }
 use util::*;
 
@@ -849,38 +855,28 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
     let name = make_mangled_method_name(class, method);
     let bottom = Register::B; // TODO get bottom of StackManager instead
 
-    let get_string = |n| get_string(class, n);
+    let sm = &mut sm.clone();
 
-    let insns = {
-        let code = get_method_code(method)?;
-        let max_locals = i32::from(code.max_locals);
-        let err = TranslationError::new("method descriptor missing");
-        let num_args = count_args(&get_string(method.descriptor_index).ok_or(err)?)? as i32;
-        let bad_imm = || TranslationError::new("failed to create immediate");
-        vec![
-            // set up frame pointer from incoming stack pointer
-            Instruction {
-                dd : NoLoad,
-                kind : Type3(Immediate20::new(num_args).ok_or_else(bad_imm)?),
-                z : sm.get_frame_ptr(),
-                x : sm.get_stack_ptr(),
-            },
-            // save return address after all locals
-            Instruction {
-                dd : StoreRight,
-                kind : Type3(Immediate20::new(-max_locals).ok_or_else(bad_imm)?),
-                z : bottom,
-                x : sm.get_frame_ptr(),
-            },
-            // update stack pointer
-            Instruction {
-                dd : NoLoad,
-                kind : Type3(Immediate20::new(-i16::from(SAVE_SLOTS)).ok_or_else(bad_imm)?),
-                z : sm.get_stack_ptr(),
-                x : sm.get_stack_ptr(),
-            },
-        ]
-    };
+    let bad_imm = || TranslationError::new("failed to create immediate");
+    let code = get_method_code(method)?;
+    let max_locals = i32::from(code.max_locals);
+    let err = TranslationError::new("method descriptor missing");
+    let get_string = |n| get_string(class, n);
+    let descriptor = get_string(method.descriptor_index).ok_or(err)?;
+    let num_args = count_args(&descriptor)? as i32;
+    let net = max_locals - num_args;
+
+    let insns = vec![
+        // update stack pointer
+        Instruction {
+            dd : NoLoad,
+            kind : Type3(Immediate20::new(-(net + i32::from(SAVE_SLOTS))).ok_or_else(bad_imm)?),
+            z : sm.get_stack_ptr(),
+            x : sm.get_stack_ptr(),
+        },
+        // save return address in save-slot, one past the maximum number of locals
+        store_local(sm, bottom, max_locals),
+    ];
     let label = make_label(class, method, "preamble");
     let preamble = tenyr::BasicBlock { label, insns };
 
