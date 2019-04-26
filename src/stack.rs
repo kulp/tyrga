@@ -5,7 +5,6 @@ use tenyr::Register;
 pub struct StackManager {
     max_locals : u16,
     stack_ptr : Register,
-    frame_ptr : Register,
     stack : Vec<Register>,
     // stack sizes are inherently constrained by JVM to be 16-bit
     count : u16,
@@ -20,12 +19,11 @@ pub const SAVE_SLOTS : u8 = 1;
 // This simple StackManager implementation does not do spilling to nor reloading from memory.
 // For now, it panics if we run out of free registers.
 impl StackManager {
-    pub fn new(max_locals : u16, sp : Register, fp : Register, r : Vec<Register>) -> StackManager {
-        StackManager { max_locals, count : 0, frozen : 0, stack_ptr : sp, frame_ptr : fp, stack : r }
+    pub fn new(max_locals : u16, sp : Register, r : Vec<Register>) -> StackManager {
+        StackManager { max_locals, count : 0, frozen : 0, stack_ptr : sp, stack : r }
     }
 
     pub fn get_stack_ptr(&self) -> Register { self.stack_ptr }
-    pub fn get_frame_ptr(&self) -> Register { self.frame_ptr }
 
     #[must_use]
     pub fn get_frame_offset(&self, n : i32) -> tenyr::Instruction {
@@ -136,7 +134,7 @@ impl StackManager {
 fn test_get_reg() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
-    let mut sm = StackManager::new(5, O, N, v.clone());
+    let mut sm = StackManager::new(5, O, v.clone());
     let _ = sm.reserve(v.len() as u16);
     assert_eq!(&v[0], &sm.get_reg(v.len() as u16 - 1));
 }
@@ -147,7 +145,7 @@ fn test_get_reg() {
 fn test_underflow() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
-    let mut sm = StackManager::new(5, O, N, v);
+    let mut sm = StackManager::new(5, O, v);
     let _ = sm.reserve(3);
     let _ = sm.release(4);
 }
@@ -158,7 +156,7 @@ fn test_overflow() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
     let len = v.len() as u16;
-    let mut sm = StackManager::new(5, O, N, v);
+    let mut sm = StackManager::new(5, O, v);
     let _ = sm.reserve(len + 1);
 }
 
@@ -167,7 +165,7 @@ fn test_normal_stack() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
     let t = v.clone();
-    let mut sm = StackManager::new(5, O, N, v);
+    let mut sm = StackManager::new(5, O, v);
     let off = 3;
     let _ = sm.reserve(off as u16);
     assert_eq!(sm.get(0), t[off - 1].into());
@@ -177,7 +175,7 @@ fn test_normal_stack() {
 fn test_watermark() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
-    let mut sm = StackManager::new(5, O, N, v);
+    let mut sm = StackManager::new(5, O, v);
     let _ = sm.reserve(4);
 
     let insns = sm.set_watermark(0);
