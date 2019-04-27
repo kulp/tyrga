@@ -839,8 +839,8 @@ mod args {
             }
         }
 
-        if s.len() == 0 { return Ok(0); }
-        let ch = s.chars().nth(0).unwrap(); // cannot fail since len != 0
+        if s.is_empty() { return Ok(0); }
+        let ch = s.chars().nth(0).unwrap(); // cannot fail since s is not empty
         let mine = match ch {
             'B' | 'C' | 'F' | 'I' | 'S' | 'Z' => Ok(1),
             'D' | 'J' => Ok(2),
