@@ -812,7 +812,7 @@ mod args {
         fn eat(s : &str) -> Result<usize> {
             let ch = s.chars().nth(0).ok_or_else(|| TranslationError::new("string ended too soon"))?;
             match ch {
-                'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'D' | 'J' => Ok(1),
+                'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'D' | 'J' | 'V' => Ok(1),
                 'L' => Ok(1 + s.find(';').ok_or_else(|| TranslationError::new("string ended too soon"))?),
                 '[' => Ok(1 + eat(&s[1..])?),
                 _ => Err(TranslationError(format!("unexpected character {}", ch)).into()),
@@ -826,6 +826,7 @@ mod args {
             'D' | 'J' => Ok(2),
             'L' => Ok(1),
             '[' => Ok(1),
+            'V' => Ok(0),
             _ => Err(TranslationError(format!("unexpected character {}", ch))),
         };
         Ok(mine? + count_internal(&s[eat(s)?..])?)
@@ -851,6 +852,18 @@ fn test_count_args() -> Result<()> {
     assert_eq!(2, count_args("(Lmetasyntactic;Lvariable;)I")?);
     assert_eq!(1, count_args("([[[I)I")?);
     assert_eq!(0, count_args("()Lplaceholder;")?);
+    assert_eq!(0, count_args("()D")?);
+    Ok(())
+}
+
+#[test]
+fn test_count_returns() -> Result<()> {
+    assert_eq!(0, count_returns("(III)V")?);
+    assert_eq!(1, count_returns("(JD)I")?);
+    assert_eq!(1, count_returns("(Lmetasyntactic;Lvariable;)I")?);
+    assert_eq!(1, count_returns("([[[I)I")?);
+    assert_eq!(1, count_returns("()Lplaceholder;")?);
+    assert_eq!(2, count_returns("()D")?);
     Ok(())
 }
 
