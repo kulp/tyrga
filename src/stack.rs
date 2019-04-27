@@ -43,6 +43,18 @@ impl StackManager {
         Instruction { kind, z, x, dd }
     }
 
+    // Sometimes we need to accommodate actions by external agents upon our frozen stack
+    // TODO name release_frozen and reserve_frozen better
+    pub fn reserve_frozen(&mut self, n : u16) {
+        self.count += n;
+        self.frozen += n;
+    }
+
+    pub fn release_frozen(&mut self, n : u16) {
+        self.count -= n;
+        self.frozen -= n;
+    }
+
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn reserve(&mut self, n : u16) -> StackActions {
         assert!((self.count + n) as usize <= self.stack.len(), "operand stack overflow");
