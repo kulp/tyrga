@@ -606,11 +606,13 @@ fn join_name_parts(class : &str, name : &str, desc : &str) -> String {
     vec![ class, name, desc ].join(":")
 }
 
-fn make_callable_name(class : &ClassFile, pool_index : u16) -> String {
+fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> String {
     use classfile_parser::constant_info::ConstantInfo::*;
 
-    let get_constant = |n| get_constant(class, n);
-    let get_string = |n| get_string(class, n);
+    let get_string = |n| match get_constant(n) {
+        Utf8(u) => Some(u.utf8_string.to_string()),
+        _ => None,
+    };
 
     if let MethodRef(mr) = get_constant(pool_index) {
         if let Class(cl) = get_constant(mr.class_index) {
@@ -720,11 +722,8 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
             move |x : usize| make_label(&class, &method, &x.to_string())
         };
 
-        let caller = {
-            // TODO obviate clones
-            let class = class.clone();
-            move |x| make_callable_name(&class, x)
-        };
+        let get_constant = get_constant_getter(&class);
+        let caller = move |x| make_callable_name(&get_constant, x);
 
         let block : Vec<_> = ops.range(which.clone()).map(|x| make_instructions(&mut sm, x, &namer, &caller)).collect();
         let (bb, ee) = make_basic_block(&class, &method, block, which);
