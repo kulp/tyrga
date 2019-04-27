@@ -543,10 +543,19 @@ fn get_method_code(method : &MethodInfo) -> Result<CodeAttribute> {
 mod util {
     use classfile_parser::ClassFile;
     use classfile_parser::constant_info::ConstantInfo;
+
+    pub type ConstantGetter = Fn(u16) -> ConstantInfo;
+
     pub fn get_constant<T>(class : &ClassFile, n : T) -> &ConstantInfo
         where usize : From<T>
     {
         &class.const_pool[usize::from(n) - 1]
+    }
+
+    // TODO make this return a reference once we can appease the borrow checker
+    pub fn get_constant_getter(class : &ClassFile) -> impl Fn(u16) -> ConstantInfo {
+        let pool = class.const_pool.clone();
+        move |n| pool[usize::from(n) - 1].clone()
     }
 
     use classfile_parser::constant_info::ConstantInfo::Utf8;
