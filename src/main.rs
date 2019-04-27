@@ -808,7 +808,7 @@ mod args {
     use super::TranslationError;
     use super::Result;
 
-    fn count_internal(s : &str) -> Result<usize> {
+    fn count_internal(s : &str) -> Result<u8> {
         fn eat(s : &str) -> Result<usize> {
             let ch = s.chars().nth(0).ok_or_else(|| TranslationError::new("string ended too soon"))?;
             match ch {
@@ -832,13 +832,15 @@ mod args {
         Ok(mine? + count_internal(&s[eat(s)?..])?)
     }
 
-    pub fn count_args(descriptor : &str) -> Result<usize> {
+    // JVM limitations restrict the count of method parameters to 255 at most
+    pub fn count_args(descriptor : &str) -> Result<u8> {
         let open = 1; // byte index of open parenthesis is 0
         let close = descriptor.rfind(')').ok_or_else(|| TranslationError::new("descriptor missing closing parenthesis"))?;
         count_internal(&descriptor[open..close])
     }
 
-    pub fn count_returns(descriptor : &str) -> Result<usize> {
+    // JVM limitations restrict the count of return values to 1 at most, of size 2 at most
+    pub fn count_returns(descriptor : &str) -> Result<u8> {
         let close = descriptor.rfind(')').ok_or_else(|| TranslationError::new("descriptor missing closing parenthesis"))?;
         count_internal(&descriptor[close+1..])
     }
