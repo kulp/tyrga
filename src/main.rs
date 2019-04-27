@@ -611,7 +611,9 @@ fn join_name_parts(class : &str, name : &str, desc : &str) -> String {
     vec![ class, name, desc ].join(":")
 }
 
-fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> String {
+type MethodNameParts = (String, String, String);
+
+fn get_method_parts(get_constant : &ConstantGetter, pool_index : u16) -> MethodNameParts {
     use classfile_parser::constant_info::ConstantInfo::*;
 
     let get_string = |n| match get_constant(n) {
@@ -622,16 +624,22 @@ fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> Strin
     if let MethodRef(mr) = get_constant(pool_index) {
         if let Class(cl) = get_constant(mr.class_index) {
             if let NameAndType(nt) = get_constant(mr.name_and_type_index) {
-                return mangling::mangle(join_name_parts(
-                        get_string(cl.name_index).expect("bad class name").as_ref(),
-                        get_string(nt.name_index).expect("bad method name").as_ref(),
-                        get_string(nt.descriptor_index).expect("bad method descriptor").as_ref()
-                    ).bytes()).expect("failed to mangle");
+                return (
+                        get_string(cl.name_index).expect("bad class name"),
+                        get_string(nt.name_index).expect("bad method name"),
+                        get_string(nt.descriptor_index).expect("bad method descriptor"),
+                    );
             }
         }
     }
 
     panic!("error during constant pool lookup");
+}
+
+fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> String {
+    let parts = get_method_parts(get_constant, pool_index);
+    let joined = join_name_parts(&parts.0, &parts.1, &parts.2);
+    mangling::mangle(joined.bytes()).expect("failed to mangle")
 }
 
 fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> String {
