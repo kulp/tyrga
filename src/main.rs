@@ -424,6 +424,34 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let insn = Instruction { kind : Type3(neg1_20), ..make_load(top, top) };
             (*addr, vec![ insn ], default_dest)
         },
+        Invocation { kind : InvokeKind::Static, index } => {
+            let mut insns = Vec::new();
+            insns.extend(sm.freeze());
+
+            // Save return address into bottom of register-based stack
+            let bottom = Register::B; // TODO get bottom of StackManager instead
+            insns.push(Instruction {
+                kind : Type3(pos1_20),
+                ..make_mov(bottom, tenyr::Register::P)
+            });
+
+            let far = format!("@+{}", make_callable_name(get_constant, index));
+            insns.push(Instruction {
+                kind : Type3(tenyr::Immediate::Expr(exprtree::Atom::Variable(far))),
+                ..make_mov(tenyr::Register::P, tenyr::Register::P)
+            });
+
+            // adjust stack for returned values
+            let parts = get_method_parts(get_constant, index);
+            let takes = count_args(&parts.2);
+            let takes = takes.expect("failed to compute arguments size");
+            let rets = count_returns(&parts.2);
+            let rets = rets.expect("failed to compute return size");
+            sm.release_frozen(u16::from(takes));
+            sm.reserve_frozen(u16::from(rets));
+            insns.extend(sm.thaw());
+            (*addr, insns, default_dest)
+        },
 
         _ => panic!("unhandled operation {:?}", op),
     }
