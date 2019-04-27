@@ -563,23 +563,16 @@ mod util {
 
     pub type ConstantGetter = Fn(u16) -> ConstantInfo;
 
-    pub fn get_constant<T>(class : &ClassFile, n : T) -> &ConstantInfo
-        where usize : From<T>
-    {
-        &class.const_pool[usize::from(n) - 1]
-    }
-
     // TODO make this return a reference once we can appease the borrow checker
     pub fn get_constant_getter(class : &ClassFile) -> impl Fn(u16) -> ConstantInfo {
         let pool = class.const_pool.clone();
         move |n| pool[usize::from(n) - 1].clone()
     }
 
-    use classfile_parser::constant_info::ConstantInfo::Utf8;
-    pub fn get_string<T>(class : &ClassFile, i : T) -> Option<String>
-        where usize : From<T>
+    pub fn get_string(get_constant : &ConstantGetter, i : u16) -> Option<String>
     {
-        match get_constant(class, i) {
+        use classfile_parser::constant_info::ConstantInfo::Utf8;
+        match get_constant(i) {
             Utf8(u) => Some(u.utf8_string.to_string()),
             _ => None,
         }
@@ -609,8 +602,9 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
     use classfile_parser::attribute_info::stack_map_table_attribute_parser;
     use classfile_parser::constant_info::ConstantInfo::Utf8;
 
+    let get_constant = get_constant_getter(class);
     let name_of = |a : &AttributeInfo|
-        match get_constant(class, a.attribute_name_index) {
+        match get_constant(a.attribute_name_index) {
             Utf8(u) => u.utf8_string.to_string(),
             _ => panic!("not a name")
         };
@@ -672,8 +666,8 @@ fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> Strin
 fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> String {
     use classfile_parser::constant_info::ConstantInfo::*;
 
-    let get_constant = |n| get_constant(class, n);
-    let get_string = |n| get_string(class, n);
+    let get_constant = get_constant_getter(class);
+    let get_string = |n| get_string(&get_constant, n);
 
     let cl = match get_constant(class.this_class) { Class(c) => c, _ => panic!("not a class") };
     join_name_parts(
@@ -909,7 +903,8 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
     let code = get_method_code(method)?;
     let max_locals = i32::from(code.max_locals);
     let err = TranslationError::new("method descriptor missing");
-    let get_string = |n| get_string(class, n);
+    let get_constant = get_constant_getter(class);
+    let get_string = |n| get_string(&get_constant, n);
     let descriptor = get_string(method.descriptor_index).ok_or(err)?;
     let num_args = count_args(&descriptor)? as i32;
     let net = max_locals - num_args;
