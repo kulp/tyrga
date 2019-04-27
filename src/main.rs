@@ -28,7 +28,6 @@ enum Destination {
 }
 
 type Namer = Fn(usize) -> String;
-type Caller = Fn(u16) -> String;
 type MakeInsnResult = (usize, Vec<tenyr::Instruction>, Vec<Destination>);
 
 fn make_target(target : u16, target_namer : &Namer) -> exprtree::Atom {
@@ -71,7 +70,7 @@ fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target :
     (addr, v, dest)
 }
 
-fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), target_namer : &Namer, method_namer : &Caller)
+fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), target_namer : &Namer, get_constant : &ConstantGetter)
     -> MakeInsnResult
 {
     use Operation::*;
@@ -441,8 +440,8 @@ fn test_make_instruction() {
     let mut sm = StackManager::new(5, STACK_PTR, v);
     let op = Operation::Constant { kind : JType::Int, value : 5 };
     let namer = |x| format!("{}:{}", "test", x);
-    let caller = |x| format!("{}_{}", "test", x);
-    let insn = make_instructions(&mut sm, (&0, &op), &namer, &caller);
+    use classfile_parser::constant_info::ConstantInfo::Unusable;
+    let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| Unusable);
     let imm = Immediate20::new(5).unwrap();
     assert_eq!(insn.1, vec![ Instruction { kind: Type3(imm), z: C, x: A, dd: NoLoad } ]);
     assert_eq!(insn.1[0].to_string(), " C  <-  5");
@@ -736,9 +735,8 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
         };
 
         let get_constant = get_constant_getter(&class);
-        let caller = move |x| make_callable_name(&get_constant, x);
 
-        let block : Vec<_> = ops.range(which.clone()).map(|x| make_instructions(&mut sm, x, &namer, &caller)).collect();
+        let block : Vec<_> = ops.range(which.clone()).map(|x| make_instructions(&mut sm, x, &namer, &get_constant)).collect();
         let (bb, ee) = make_basic_block(&class, &method, block, which);
         let mut out = Vec::new();
         out.push(bb);
