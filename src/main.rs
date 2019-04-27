@@ -424,7 +424,10 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let insn = Instruction { kind : Type3(neg1_20), ..make_load(top, top) };
             (*addr, vec![ insn ], default_dest)
         },
-        Invocation { kind : InvokeKind::Static, index } => {
+        // TODO fully handle Special (this is dumb partial handling)
+        Invocation { kind : InvokeKind::Special, index } |
+            Invocation { kind : InvokeKind::Static, index } =>
+        {
             let mut insns = Vec::new();
             insns.extend(sm.freeze());
 
@@ -776,7 +779,7 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
 #[cfg(test)]
 fn test_stack_map_table(stem : &str) {
     let class = parse_class(stem);
-    for method in class.methods.iter().filter(|m| !make_unique_method_name(&class, m).contains(":<")) {
+    for method in &class.methods {
         let v = { use Register::*; vec![ C, D, E, F, G, H, I, J, K, L, M ] }; // TODO get range working
         let sm = StackManager::new(5, STACK_PTR, v);
         let bbs = make_blocks_for_method(&class, method, &sm);
@@ -975,7 +978,7 @@ fn main() -> std::result::Result<(), Box<Error>> {
 
             println!("Creating {} from {} ...", out.to_str().expect("expected Unicode filename"), file);
             let mut file = File::create(out)?;
-            for method in class.methods.iter().filter(|m| !make_unique_method_name(&class, m).contains(":<")) {
+            for method in &class.methods {
                 let v = { use Register::*; vec![ C, D, E, F, G, H, I, J, K, L, M ] }; // TODO get range working
                 let code = get_method_code(method)?;
                 let sm = StackManager::new(code.max_locals, STACK_PTR, v);
