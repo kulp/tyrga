@@ -69,8 +69,6 @@ impl StackManager {
         vec![] // TODO support reloading
     }
 
-    pub fn depth(&self) -> u16 { self.count }
-
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn empty(&mut self) -> StackActions {
         let mut v = self.release(self.count);
