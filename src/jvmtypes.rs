@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use enum_primitive::*;
 
 use classfile_parser::code_attribute::Instruction;
