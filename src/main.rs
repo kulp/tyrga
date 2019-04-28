@@ -19,6 +19,7 @@ use tenyr::Register;
 use stack::*;
 
 const STACK_PTR : Register = Register::O;
+const STACK_REGS : &[Register] = { use Register::*; &[ C, D, E, F, G, H, I, J, K, L, M, N ] };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum Destination {
@@ -467,8 +468,7 @@ fn test_make_instruction() {
     use tenyr::Instruction;
     use tenyr::InstructionType::*;
     use tenyr::Immediate20;
-    let v = vec![ C, D, E, F, G ];
-    let mut sm = StackManager::new(5, STACK_PTR, v);
+    let mut sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
     let op = Operation::Constant { kind : JType::Int, value : 5 };
     let namer = |x| format!("{}:{}", "test", x);
     use classfile_parser::constant_info::ConstantInfo::Unusable;
@@ -780,8 +780,7 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
 fn test_stack_map_table(stem : &str) {
     let class = parse_class(stem);
     for method in &class.methods {
-        let v = { use Register::*; vec![ C, D, E, F, G, H, I, J, K, L, M ] }; // TODO get range working
-        let sm = StackManager::new(5, STACK_PTR, v);
+        let sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
         let bbs = make_blocks_for_method(&class, method, &sm);
         for bb in &bbs {
             eprintln!("{}", bb);
@@ -979,9 +978,8 @@ fn main() -> std::result::Result<(), Box<Error>> {
             println!("Creating {} from {} ...", out.to_str().expect("expected Unicode filename"), file);
             let mut file = File::create(out)?;
             for method in &class.methods {
-                let v = { use Register::*; vec![ C, D, E, F, G, H, I, J, K, L, M ] }; // TODO get range working
                 let code = get_method_code(method)?;
-                let sm = StackManager::new(code.max_locals, STACK_PTR, v);
+                let sm = StackManager::new(code.max_locals, STACK_PTR, STACK_REGS.to_owned());
                 let mm = translate_method(&class, method, &sm)?;
                 writeln!(file, "{}", mm)?;
             }
