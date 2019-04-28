@@ -174,6 +174,18 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             (*addr, v, vec![ Destination::Return ])
         },
 
+        Arithmetic { kind : JType::Int, op : ArithmeticOperation::Neg }
+            => {
+                use tenyr::*;
+                let y = get_reg(sm.get(0));
+                let x = Register::A;
+                let z = x; // update same location on stack
+                let op = Opcode::Subtract;
+                let dd = MemoryOpType::NoLoad;
+                let imm = Immediate12::ZERO;
+                let v = vec![ Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd } ];
+                (*addr, v, default_dest)
+            },
         Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some()
             => {
                 use tenyr::*;
