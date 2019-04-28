@@ -126,7 +126,6 @@ pub enum Operation {
     StackOp     { size : u8, op : StackOperation },
     StoreArray  (JType),
     StoreLocal  { kind : JType, index : u16 },
-    Subtract    { kind : JType },
     Switch      (SwitchParams),
     VarAction   { op : VarOp, kind : VarKind, index : u16 },
     Yield       { kind : JType }, /* i.e. return */
