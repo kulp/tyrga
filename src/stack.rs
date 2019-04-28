@@ -19,8 +19,16 @@ pub const SAVE_SLOTS : u8 = 1;
 // This simple StackManager implementation does not do spilling to nor reloading from memory.
 // For now, it panics if we run out of free registers.
 impl StackManager {
-    pub fn new(max_locals : u16, sp : Register, r : Vec<Register>) -> StackManager {
-        StackManager { max_locals, count : 0, frozen : 0, stack_ptr : sp, stack : r }
+    pub fn new<T>(max_locals : u16, sp : Register, regs : T) -> StackManager
+        where T : IntoIterator<Item=Register>
+    {
+        StackManager {
+            max_locals,
+            count : 0,
+            frozen : 0,
+            stack_ptr : sp,
+            stack : regs.into_iter().collect()
+        }
     }
 
     pub fn get_stack_ptr(&self) -> Register { self.stack_ptr }
