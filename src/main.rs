@@ -19,7 +19,7 @@ use tenyr::Register;
 use stack::*;
 
 const STACK_PTR : Register = Register::O;
-const STACK_REGS : &[Register] = { use Register::*; &[ C, D, E, F, G, H, I, J, K, L, M, N ] };
+const STACK_REGS : &[Register] = { use Register::*; &[ B, C, D, E, F, G, H, I, J, K, L, M, N ] };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum Destination {
@@ -474,8 +474,8 @@ fn test_make_instruction() {
     use classfile_parser::constant_info::ConstantInfo::Unusable;
     let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| Unusable);
     let imm = Immediate20::new(5).unwrap();
-    assert_eq!(insn.1, vec![ Instruction { kind: Type3(imm), z: C, x: A, dd: NoLoad } ]);
-    assert_eq!(insn.1[0].to_string(), " C  <-  5");
+    assert_eq!(insn.1, vec![ Instruction { kind: Type3(imm), z: STACK_REGS[0], x: A, dd: NoLoad } ]);
+    assert_eq!(insn.1[0].to_string(), " B  <-  5");
 }
 
 #[derive(Clone, Debug)]
