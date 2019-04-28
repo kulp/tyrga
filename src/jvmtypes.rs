@@ -39,7 +39,6 @@ pub enum ArithmeticOperation {
     And,
     Or,
     Xor,
-    Inc,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
