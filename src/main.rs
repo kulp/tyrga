@@ -921,7 +921,7 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
         let z = sm.get_stack_ptr();
         let x = z;
         let kind = Type3(Immediate20::new(-(net + i32::from(SAVE_SLOTS))).ok_or_else(bad_imm)?);
-        let bottom = Register::B; // TODO get bottom of StackManager instead
+        let bottom = sm.get_regs()[0];
         vec![
             // update stack pointer
             Instruction { dd : NoLoad, kind, z, x },
