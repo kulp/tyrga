@@ -908,36 +908,32 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
     use tenyr::MemoryOpType::*;
     use tenyr::InstructionType::*;
 
-    let name = make_mangled_method_name(class, method);
-    let bottom = Register::B; // TODO get bottom of StackManager instead
-
     let sm = &mut sm.clone();
 
-    let bad_imm = || TranslationError::new("failed to create immediate");
-    let code = get_method_code(method)?;
-    let max_locals = i32::from(code.max_locals);
-    let err = TranslationError::new("method descriptor missing");
-    let get_constant = get_constant_getter(class);
-    let get_string = |n| get_string(&get_constant, n);
-    let descriptor = get_string(method.descriptor_index).ok_or(err)?;
-    let num_args = count_args(&descriptor)? as i32;
-    let net = max_locals - num_args;
+    let insns = {
+        let err = || TranslationError::new("method descriptor missing");
+        let descriptor = get_string(&get_constant_getter(class), method.descriptor_index).ok_or_else(err)?;
 
-    let insns = vec![
-        // update stack pointer
-        Instruction {
-            dd : NoLoad,
-            kind : Type3(Immediate20::new(-(net + i32::from(SAVE_SLOTS))).ok_or_else(bad_imm)?),
-            z : sm.get_stack_ptr(),
-            x : sm.get_stack_ptr(),
-        },
-        // save return address in save-slot, one past the maximum number of locals
-        store_local(sm, bottom, max_locals),
-    ];
+        let max_locals = i32::from(get_method_code(method)?.max_locals);
+        let net = max_locals - i32::from(count_args(&descriptor)?);
+
+        let bad_imm = || TranslationError::new("failed to create immediate");
+        let z = sm.get_stack_ptr();
+        let x = z;
+        let kind = Type3(Immediate20::new(-(net + i32::from(SAVE_SLOTS))).ok_or_else(bad_imm)?);
+        let bottom = Register::B; // TODO get bottom of StackManager instead
+        vec![
+            // update stack pointer
+            Instruction { dd : NoLoad, kind, z, x },
+            // save return address in save-slot, one past the maximum number of locals
+            store_local(sm, bottom, max_locals),
+        ]
+    };
     let label = make_label(class, method, "preamble");
     let preamble = tenyr::BasicBlock { label, insns };
 
-    let blocks = make_blocks_for_method(&class, method, &sm);
+    let blocks = make_blocks_for_method(class, method, sm);
+    let name = make_mangled_method_name(class, method);
     Ok(Method { name, preamble, blocks })
 }
 
