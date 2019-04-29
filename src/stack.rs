@@ -33,6 +33,8 @@ impl StackManager {
 
     pub fn get_stack_ptr(&self) -> Register { self.stack_ptr }
 
+    pub fn get_regs(&self) -> &Vec<Register> { &self.stack }
+
     #[must_use]
     pub fn get_frame_offset(&self, n : i32) -> tenyr::Instruction {
         use tenyr::*;
