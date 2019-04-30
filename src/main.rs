@@ -689,10 +689,7 @@ type MethodNameParts = (String, String, String);
 fn get_method_parts(get_constant : &ConstantGetter, pool_index : u16) -> MethodNameParts {
     use classfile_parser::constant_info::ConstantInfo::*;
 
-    let get_string = |n| match get_constant(n) {
-        Utf8(u) => Some(u.utf8_string.to_string()),
-        _ => None,
-    };
+    let get_string = |n| get_string(get_constant, n);
 
     if let MethodRef(mr) = get_constant(pool_index) {
         if let Class(cl) = get_constant(mr.class_index) {
