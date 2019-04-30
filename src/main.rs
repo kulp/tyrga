@@ -839,13 +839,13 @@ fn test_stack_map_table(stem : &str) {
 
 #[cfg(test)]
 const CLASS_LIST : &[&str] = &[
-    //"Except",
+    "Except",
     "Expr",
     "GCD",
     "Nest",
-    //"Sieve",
+    "Sieve",
     "Switch",
-    //"Tiny",
+    "Tiny",
 ];
 
 #[test]
