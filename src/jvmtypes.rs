@@ -15,6 +15,20 @@ pub enum JType {
     Void,
 }
 
+pub fn char_for_primitive_type(t : JType) -> Option<char> {
+    use JType::*;
+    match t {
+        Int    => Some('I'),
+        Long   => Some('J'),
+        Float  => Some('F'),
+        Double => Some('D'),
+        Byte   => Some('Z'),
+        Char   => Some('C'),
+        Short  => Some('S'),
+        _ => None,
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Comparison {
     Eq,
