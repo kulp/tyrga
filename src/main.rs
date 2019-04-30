@@ -161,6 +161,40 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         (*addr, insns, default_dest.clone())
     };
 
+    let name_op = |op| {
+        use ArithmeticOperation::*;
+        match op {
+            Add  => "Add",
+            Sub  => "Sub",
+            Mul  => "Mul",
+            Div  => "Div",
+            Rem  => "Rem",
+            Neg  => "Neg",
+            Shl  => "Shl",
+            Shr  => "Shr",
+            Ushr => "Ushr",
+            And  => "And",
+            Or   => "Or",
+            Xor  => "Xor",
+        }
+    };
+    let make_arithmetic_descriptor = |kind, op| {
+        use jvmtypes::char_for_primitive_type as chof;
+        let ch = chof(kind).unwrap();
+
+        use ArithmeticOperation::*;
+        let nargs = match op {
+            Add | Sub | Mul | Div | Rem | Shl | Shr | Ushr | And | Or | Xor => 2,
+            Neg => 1,
+        };
+        format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch)
+    };
+    let make_arithmetic_name = |kind, op| {
+        let descriptor = make_arithmetic_descriptor(kind, op);
+        let proc = format!("{}{}", name_op(op).to_lowercase(), jvmtypes::char_for_primitive_type(kind).unwrap());
+        mangling::mangle(join_name_parts("tyrga/Builtin", &proc, &descriptor).bytes()).unwrap()
+    };
+
     match op.clone() { // TODO obviate clone
         Constant { kind : JType::Int, value } => {
             let kind = Type3(Immediate20::new(value).expect("immediate too large"));
@@ -228,6 +262,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 v.extend(sm.release(1));
                 (*addr, v, default_dest)
             },
+        Arithmetic { kind, op }
+            => make_call(sm, &make_arithmetic_name(kind, op), &make_arithmetic_descriptor(kind, op)),
         LoadLocal { kind, index } if kind == JType::Int || kind == JType::Object
             => {
                 let mut v = Vec::with_capacity(10);
