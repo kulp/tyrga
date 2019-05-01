@@ -321,21 +321,22 @@ pub fn decode_insn(insn : (usize, &Instruction)) -> (usize, Operation) {
         I2l | I2f | I2d | L2i | L2f | L2d | F2i | F2l | F2d | D2i | D2l | D2f | I2b | I2c | I2s
             => {
                 let from = match insn {
-                    I2l | I2f | I2d | I2b | I2c | I2s => Int,
-                    L2i | L2f | L2d                   => Long,
-                    F2i | F2l | F2d                   => Float,
-                    D2i | D2l | D2f                   => Double,
+                          I2l | I2f | I2d | I2b | I2c | I2s => Int,
+                    L2i |       L2f | L2d                   => Long,
+                    F2i | F2l |       F2d                   => Float,
+                    D2i | D2l | D2f                         => Double,
 
                     _ => unreachable!(),
                 };
                 let to = match insn {
-                    I2b             => Byte,
-                    I2c             => Char,
-                    F2d | I2d | L2d => Double,
-                    D2f | I2f | L2f => Float,
-                    D2i | F2i | L2i => Int,
-                    D2l | F2l | I2l => Long,
-                    I2s             => Short,
+                    I2b                   => Byte,
+                    I2c                   => Char,
+                    I2s                   => Short,
+
+                          L2i | F2i | D2i => Int,
+                    I2l |       F2l | D2l => Long,
+                    I2f | L2f |       D2f => Float,
+                    I2d | L2d | F2d       => Double,
 
                     _ => unreachable!(),
                 };
