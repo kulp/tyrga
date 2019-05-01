@@ -467,7 +467,6 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 v.extend(sm.release(2));
                 (idx, arr)
             };
-            use JType::*;
             use tenyr::*;
             let (x, y, z, dd) = match *op {
                 LoadArray(_) => {
@@ -486,7 +485,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             };
             // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
             // per 32-bit tenyr word)
-            let imm = make_imm12(match kind { Double | Long => 2, _ => 1 });
+            let imm = make_imm12(kind.size().into());
             let kind = Type1(InsnGeneral { y, op : Opcode::Multiply, imm });
             let insn = Instruction { kind, z, x, dd };
             v.push(insn);
