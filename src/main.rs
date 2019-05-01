@@ -212,25 +212,19 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             use JType::*;
             let mut v = match kind {
-                Void => {
-                    vec![ ret ]
-                },
-                Int | Float | Object | Short | Char | Byte => {
-                    let top = get_reg(sm.get(0));
+                Void =>
+                    vec![ ret ],
+                Int | Float | Object | Short | Char | Byte =>
                     vec![
-                        store_local(sm, top, 0),
-                        ret
-                    ]
-                },
-                Double | Long => {
-                    let top = get_reg(sm.get(0));
-                    let sec = get_reg(sm.get(1));
+                        store_local(sm, get_reg(sm.get(0)), 0),
+                        ret,
+                    ],
+                Double | Long =>
                     vec![
-                        store_local(sm, sec, 0),
-                        store_local(sm, top, 1),
+                        store_local(sm, get_reg(sm.get(1)), 0),
+                        store_local(sm, get_reg(sm.get(0)), 1),
                         ret
-                    ]
-                },
+                    ],
             };
             v.extend(sm.empty());
             (*addr, v, vec![ Destination::Return ])
