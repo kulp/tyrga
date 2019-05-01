@@ -505,6 +505,11 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         Invocation { kind : InvokeKind::Special, index } |
             Invocation { kind : InvokeKind::Static, index } =>
             make_call(sm, &make_callable_name(get_constant, index), &get_method_parts(get_constant, index).2),
+        StackOp { op : StackOperation::Pop, size } => {
+            let size : u8 = size.into();
+            let v = sm.release(size.into());
+            (*addr, v, default_dest)
+        },
 
         _ => panic!("unhandled operation {:?}", op),
     }
