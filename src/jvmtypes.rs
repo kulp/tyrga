@@ -134,7 +134,7 @@ pub enum Operation {
     LoadArray   (JType),
     LoadLocal   { kind : JType, index : u16 },
     Noop,
-    StackOp     { size : u8, op : StackOperation },
+    StackOp     { size : OperandCount, op : StackOperation },
     StoreArray  (JType),
     StoreLocal  { kind : JType, index : u16 },
     Switch      (SwitchParams),
@@ -260,15 +260,15 @@ pub fn decode_insn(insn : (usize, &Instruction)) -> (usize, Operation) {
         Castore => StoreArray(Char),
         Sastore => StoreArray(Short),
 
-        Pop     => StackOp { op : StackOperation::Pop  , size : 1 },
-        Pop2    => StackOp { op : StackOperation::Pop  , size : 2 },
-        Dup     => StackOp { op : StackOperation::Dup  , size : 1 },
-        Dupx1   => StackOp { op : StackOperation::DupX1, size : 1 },
-        Dupx2   => StackOp { op : StackOperation::DupX2, size : 1 },
-        Dup2    => StackOp { op : StackOperation::Dup  , size : 2 },
-        Dup2x1  => StackOp { op : StackOperation::DupX1, size : 2 },
-        Dup2x2  => StackOp { op : StackOperation::DupX2, size : 2 },
-        Swap    => StackOp { op : StackOperation::Swap , size : 2 },
+        Pop     => StackOp { op : StackOperation::Pop  , size : OperandCount::_1 },
+        Pop2    => StackOp { op : StackOperation::Pop  , size : OperandCount::_2 },
+        Dup     => StackOp { op : StackOperation::Dup  , size : OperandCount::_1 },
+        Dupx1   => StackOp { op : StackOperation::DupX1, size : OperandCount::_1 },
+        Dupx2   => StackOp { op : StackOperation::DupX2, size : OperandCount::_1 },
+        Dup2    => StackOp { op : StackOperation::Dup  , size : OperandCount::_2 },
+        Dup2x1  => StackOp { op : StackOperation::DupX1, size : OperandCount::_2 },
+        Dup2x2  => StackOp { op : StackOperation::DupX2, size : OperandCount::_2 },
+        Swap    => StackOp { op : StackOperation::Swap , size : OperandCount::_2 },
 
         Iadd | Ladd | Fadd | Dadd
             | Isub | Lsub | Fsub | Dsub
