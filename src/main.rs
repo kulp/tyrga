@@ -206,10 +206,6 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         },
         Yield { kind } => {
             let ret = Instruction { kind : Type3(pos1_20), ..make_load(Register::P, sm.get_stack_ptr()) };
-            // TODO how to correctly place stack pointer ?
-            // StackManager will somehow have to help us manipulate it because we do not
-            // here have enough context otherwise.
-
             use JType::*;
             let mut v = match kind {
                 Void =>
