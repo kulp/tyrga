@@ -114,6 +114,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         };
 
     let make_mov  = |to, from| Instruction { dd : NoLoad, kind : Type3(Immediate20::ZERO), z : to, x : from };
+    let make_set  = |to, kind| Instruction { kind, ..make_mov(to, Register::A) };
     let make_load = |to, from| Instruction { dd : LoadRight , ..make_mov(to, from) };
 
     let make_jump = |target| {
@@ -197,11 +198,10 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
     match op.clone() { // TODO obviate clone
         Constant { kind : JType::Int, value } => {
-            let kind = Type3(Immediate20::new(value).expect("immediate too large"));
-            let mut v = Vec::with_capacity(10);
+            let val = Type3(Immediate20::new(value).expect("immediate too large"));
+            let mut v = Vec::with_capacity(4);
             v.extend(sm.reserve(1));
-            let z = get_reg(sm.get(0));
-            v.push(Instruction { kind, z, x : Register::A, dd : NoLoad });
+            v.push(make_set(get_reg(sm.get(0)), val));
             (*addr, v, default_dest)
         },
         Yield { kind } => {
