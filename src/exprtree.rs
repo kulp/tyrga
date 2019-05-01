@@ -4,7 +4,6 @@ use std::fmt;
 pub enum Operation {
     Add,
     Sub,
-    Mul,
 }
 
 impl fmt::Display for Operation {
@@ -13,7 +12,6 @@ impl fmt::Display for Operation {
         write!(f, "{}", match self {
             Add => "+",
             Sub => "-",
-            Mul => "*",
         })
     }
 }
@@ -57,12 +55,12 @@ fn test_expr_display() {
 
     let e = Expr { a : Variable("A".to_string()), op : Add, b : Immediate(3)              };
     let ee = Rc::new(e);
-    let f = Expr { a : Expression(ee.clone())   , op : Mul, b : Variable("B".to_string()) };
+    let f = Expr { a : Expression(ee.clone())   , op : Sub, b : Variable("B".to_string()) };
     let ff = Rc::new(f);
     let g = Expr { a : Expression(ee.clone())   , op : Sub, b : Expression(ff.clone())    };
 
     assert_eq!(ee.to_string(), "A + 3");
-    assert_eq!(ff.to_string(), "(A + 3) * B");
-    assert_eq!(g.to_string(), "(A + 3) - ((A + 3) * B)");
+    assert_eq!(ff.to_string(), "(A + 3) - B");
+    assert_eq!(g.to_string(), "(A + 3) - ((A + 3) - B)");
 }
 
