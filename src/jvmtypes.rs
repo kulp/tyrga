@@ -76,6 +76,15 @@ pub enum OperandCount {
     _2,
 }
 
+impl From<OperandCount> for u8 {
+    fn from(oc : OperandCount) -> Self {
+        match oc {
+            OperandCount::_1 => 1,
+            OperandCount::_2 => 2,
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum VarOp {
     Get,
