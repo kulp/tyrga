@@ -15,6 +15,17 @@ pub enum JType {
     Void,
 }
 
+impl JType {
+    pub fn size(self) -> u8 {
+        use JType::*;
+        match self {
+            Long | Double => 2,
+            Int | Float | Object | Byte | Char | Short => 1,
+            Void => 0,
+        }
+    }
+}
+
 pub fn char_for_primitive_type(t : JType) -> Option<char> {
     use JType::*;
     match t {
