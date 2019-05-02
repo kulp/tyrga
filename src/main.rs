@@ -179,9 +179,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             Xor  => "Xor",
         }
     };
-    let make_arithmetic_descriptor = |kind, op| {
-        use jvmtypes::char_for_primitive_type as chof;
-        let ch = chof(kind).unwrap();
+    let make_arithmetic_descriptor = |kind : JType, op| {
+        let ch = kind.get_char().unwrap();
 
         use ArithmeticOperation::*;
         let nargs = match op {
@@ -192,7 +191,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     };
     let make_arithmetic_name = |kind, op| {
         let descriptor = make_arithmetic_descriptor(kind, op);
-        let proc = format!("{}{}", name_op(op).to_lowercase(), jvmtypes::char_for_primitive_type(kind).unwrap());
+        let proc = format!("{}{}", name_op(op).to_lowercase(), kind.get_char().unwrap());
         mangling::mangle(join_name_parts("tyrga/Builtin", &proc, &descriptor).bytes()).unwrap()
     };
 

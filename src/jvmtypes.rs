@@ -24,20 +24,21 @@ impl JType {
             Void => 0,
         }
     }
-}
 
-pub fn char_for_primitive_type(t : JType) -> Option<char> {
-    use JType::*;
-    match t {
-        Int    => Some('I'),
-        Long   => Some('J'),
-        Float  => Some('F'),
-        Double => Some('D'),
-        Byte   => Some('Z'),
-        Char   => Some('C'),
-        Short  => Some('S'),
-        _ => None,
+    pub fn get_char(self) -> Option<char> {
+        use JType::*;
+        match self {
+            Int    => Some('I'),
+            Long   => Some('J'),
+            Float  => Some('F'),
+            Double => Some('D'),
+            Byte   => Some('Z'),
+            Char   => Some('C'),
+            Short  => Some('S'),
+            _ => None,
+        }
     }
+
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
