@@ -270,9 +270,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         Increment { index, value } => {
             use tenyr::*;
             let index = i32::from(index);
-            let imm = make_imm12(value);
-            let y = Register::A;
-            let op = Opcode::Add;
+            let imm = Immediate20::new(value).unwrap();
             // This reserving of a stack slot may exceed the "maximum depth" statistic on the
             // method, but we should try to avoid dedicated temporary registers.
             let mut v = Vec::with_capacity(10);
@@ -280,7 +278,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let temp_reg = get_reg(sm.get(0));
             v.extend(vec![
                 load_local(sm, temp_reg, index),
-                Instruction { kind : Type1(InsnGeneral { y, op, imm }), ..make_mov(temp_reg, temp_reg) },
+                Instruction { kind : Type3(imm), ..make_mov(temp_reg, temp_reg) },
                 store_local(sm, temp_reg, index),
             ]);
             v.extend(sm.release(1));
@@ -474,7 +472,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             };
             // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
             // per 32-bit tenyr word)
-            let imm = make_imm12(kind.size().into());
+            let imm = make_imm12(kind.size());
             let kind = Type1(InsnGeneral { y, op : Opcode::Multiply, imm });
             let insn = Instruction { kind, z, x, dd };
             v.push(insn);
