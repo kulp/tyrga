@@ -192,14 +192,17 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         mangling::mangle(join_name_parts("tyrga/Builtin", &proc, &descriptor).bytes()).unwrap()
     };
 
+    let make_int_constant = |sm : &mut StackManager, value| {
+        let val = Type3(Immediate20::new(value).expect("immediate too large"));
+        let mut v = Vec::with_capacity(4);
+        v.extend(sm.reserve(1));
+        v.push(make_set(get_reg(sm.get(0)), val));
+        (*addr, v, default_dest.clone())
+    };
+
     match op.clone() { // TODO obviate clone
-        Constant { kind : JType::Int, value } => {
-            let val = Type3(Immediate20::new(value).expect("immediate too large"));
-            let mut v = Vec::with_capacity(4);
-            v.extend(sm.reserve(1));
-            v.push(make_set(get_reg(sm.get(0)), val));
-            (*addr, v, default_dest)
-        },
+        Constant { kind : JType::Int, value } =>
+            make_int_constant(sm, value),
         Yield { kind } => {
             let ret = Instruction { kind : Type3(pos1_20), ..make_load(Register::P, sm.get_stack_ptr()) };
             use JType::*;
@@ -355,7 +358,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                             InsnGeneral {
                                y : Register::A,
                                op : Opcode::CompareEq,
-                               imm : Immediate12::new(imm).unwrap(),
+                               imm : Immediate12::new(imm).unwrap(), // TODO handle too-large immediates
                             }),
                         z : temp_reg,
                         x : top,
