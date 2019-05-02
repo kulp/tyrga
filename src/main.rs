@@ -76,7 +76,6 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 {
     use Operation::*;
     use jvmtypes::SwitchParams::*;
-    use tenyr::Immediate12;
     use tenyr::Immediate20;
     use tenyr::Instruction;
     use tenyr::InstructionType::*;
@@ -90,8 +89,6 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     let default_dest = vec![Destination::Successor];
 
     let get_reg = |t : Option<_>| t.expect("asked but did not receive");
-
-    let make_imm12 = |n| Immediate12::new(n).unwrap();
 
     let pos1_20 = Immediate20::new( 1).unwrap(); // will not fail
     let neg1_20 = Immediate20::new(-1).unwrap(); // will not fail
@@ -472,8 +469,13 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             };
             // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
             // per 32-bit tenyr word)
-            let imm = make_imm12(kind.size());
-            let kind = Type1(InsnGeneral { y, op : Opcode::Multiply, imm });
+            let (op, imm) = match kind.size() {
+                1 => (Opcode::BitwiseOr, 0),
+                2 => (Opcode::ShiftLeft, 1),
+                _ => panic!("bad kind size"),
+            };
+            let imm = Immediate12::new(imm).unwrap();
+            let kind = Type1(InsnGeneral { y, op, imm });
             let insn = Instruction { kind, z, x, dd };
             v.push(insn);
             (*addr, v, default_dest)
