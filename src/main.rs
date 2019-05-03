@@ -90,9 +90,6 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
     let get_reg = |t : Option<_>| t.expect("asked but did not receive");
 
-    let pos1_20 = Immediate20::new( 1).unwrap(); // will not fail
-    let neg1_20 = Immediate20::new(-1).unwrap(); // will not fail
-
     let translate_arithmetic_op =
         |x| {
             use tenyr::Opcode::*;
@@ -110,7 +107,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             }
         };
 
-    let make_mov  = |to, from| Instruction { dd : NoLoad, kind : Type3(Immediate20::ZERO), z : to, x : from };
+    let make_mov  = |to, from| Instruction { dd : NoLoad, kind : Type3(Immediate20::from(0u8)), z : to, x : from };
     let make_set  = |to, kind| Instruction { kind, ..make_mov(to, Register::A) };
     let make_load = |to, from| Instruction { dd : LoadRight , ..make_mov(to, from) };
 
@@ -138,7 +135,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         // Save return address into bottom of register-based stack
         let bottom = Register::B; // TODO get bottom of StackManager instead
         insns.push(Instruction {
-            kind : Type3(pos1_20.clone()),
+            kind : Type3(Immediate20::from(1u8)),
             ..make_mov(bottom, tenyr::Register::P)
         });
 
@@ -204,7 +201,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         Constant { kind : JType::Int, value } =>
             make_int_constant(sm, value),
         Yield { kind } => {
-            let ret = Instruction { kind : Type3(pos1_20), ..make_load(Register::P, sm.get_stack_ptr()) };
+            let ret = Instruction { kind : Type3(Immediate20::from(1u8)), ..make_load(Register::P, sm.get_stack_ptr()) };
             use JType::*;
             let mut v = match kind {
                 Void =>
@@ -233,7 +230,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let z = x; // update same location on stack
                 let op = Opcode::Subtract;
                 let dd = MemoryOpType::NoLoad;
-                let imm = Immediate12::ZERO;
+                let imm = Immediate12::from(0u8);
                 let v = vec![ Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd } ];
                 (*addr, v, default_dest)
             },
@@ -245,7 +242,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let z = x;
                 let op = translate_arithmetic_op(op).unwrap();
                 let dd = MemoryOpType::NoLoad;
-                let imm = Immediate12::ZERO;
+                let imm = Immediate12::from(0u8);
                 let mut v = Vec::new();
                 v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
                 v.extend(sm.release(1));
@@ -270,7 +267,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         Increment { index, value } => {
             use tenyr::*;
             let index = i32::from(index);
-            let imm = Immediate20::new(value).unwrap();
+            let imm = value.into();
             // This reserving of a stack slot may exceed the "maximum depth" statistic on the
             // method, but we should try to avoid dedicated temporary registers.
             let mut v = Vec::with_capacity(10);
@@ -300,7 +297,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                         InsnGeneral {
                            y : Register::A,
                            op,
-                           imm : Immediate12::ZERO,
+                           imm : Immediate12::from(0u8),
                         }),
                     z : temp_reg,
                     x : top,
@@ -328,7 +325,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                         InsnGeneral {
                            y : rhs,
                            op,
-                           imm : Immediate12::ZERO,
+                           imm : Immediate12::from(0u8),
                         }),
                     z : temp_reg,
                     x : lhs,
@@ -473,11 +470,11 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
             // per 32-bit tenyr word)
             let (op, imm) = match kind.size() {
-                1 => (Opcode::BitwiseOr, 0),
-                2 => (Opcode::ShiftLeft, 1),
+                1 => (Opcode::BitwiseOr, 0u8),
+                2 => (Opcode::ShiftLeft, 1u8),
                 _ => panic!("bad kind size"),
             };
-            let imm = Immediate12::new(imm).unwrap();
+            let imm = imm.into();
             let kind = Type1(InsnGeneral { y, op, imm });
             let insn = Instruction { kind, z, x, dd };
             v.push(insn);
@@ -489,7 +486,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             // This implementation assumes a reference to an array points to its first element, and
             // that one word below that element is a word containing the number of elements.
             let top = get_reg(sm.get(0));
-            let insn = Instruction { kind : Type3(neg1_20), ..make_load(top, top) };
+            let insn = Instruction { kind : Type3((-1i8).into()), ..make_load(top, top) };
             (*addr, vec![ insn ], default_dest)
         },
         // TODO fully handle Special (this is dumb partial handling)
@@ -512,13 +509,12 @@ fn test_make_instruction() {
     use Register::*;
     use tenyr::Instruction;
     use tenyr::InstructionType::*;
-    use tenyr::Immediate20;
     let mut sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
     let op = Operation::Constant { kind : JType::Int, value : 5 };
     let namer = |x| format!("{}:{}", "test", x);
     use classfile_parser::constant_info::ConstantInfo::Unusable;
     let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| Unusable);
-    let imm = Immediate20::new(5).unwrap();
+    let imm = 5u8.into();
     assert_eq!(insn.1, vec![ Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad } ]);
     assert_eq!(insn.1[0].to_string(), " B  <-  5");
 }

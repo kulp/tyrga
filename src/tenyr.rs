@@ -95,6 +95,33 @@ impl<T> SizedImmediate<T>
     }
 }
 
+impl<T> From<i8> for SizedImmediate<T>
+    where T : BitWidth
+{
+    fn from(val : i8) -> Self { Self(val.into(), PhantomData) }
+}
+
+impl<T> From<u8> for SizedImmediate<T>
+    where T : BitWidth
+{
+    fn from(val : u8) -> Self { Self(val.into(), PhantomData) }
+}
+
+impl<T,U> From<U> for Immediate<T>
+    where T : BitWidth,
+          U : Into<SizedImmediate<T>>
+{
+    fn from(val : U) -> Self { Immediate::Fixed(val.into()) }
+}
+
+impl From<i16> for Immediate20 {
+    fn from(val : i16) -> Self { Immediate::Fixed(SizedImmediate(val.into(), PhantomData)) }
+}
+
+impl From<u16> for Immediate20 {
+    fn from(val : u16) -> Self { Immediate::Fixed(SizedImmediate(val.into(), PhantomData)) }
+}
+
 impl<T> From<SizedImmediate<T>> for i32
     where T : BitWidth
 {
@@ -154,14 +181,6 @@ impl<T> fmt::Display for Immediate<T>
 
 pub type Immediate12 = Immediate<TwelveBit>;
 pub type Immediate20 = Immediate<TwentyBit>;
-
-impl Immediate12 {
-    pub const ZERO : Immediate12 = Immediate::Fixed(SizedImmediate(0, PhantomData));
-}
-
-impl Immediate20 {
-    pub const ZERO : Immediate20 = Immediate::Fixed(SizedImmediate(0, PhantomData));
-}
 
 #[test]
 fn test_immediates() {
@@ -246,10 +265,10 @@ fn instruction_test_cases() -> Vec<(&'static str, Instruction)> {
     use Instruction as Insn;
     use InsnGeneral as Gen;
 
-    let zero_20 : Immediate20 = Immediate20::ZERO;
-    let zero_12 : Immediate12 = Immediate12::ZERO;
-    let neg3_12 : Immediate12 = Immediate12::new(-3).unwrap();
-    let neg4_20 : Immediate20 = Immediate20::new(-4).unwrap();
+    let zero_20 = Immediate20::from( 0i8);
+    let zero_12 = Immediate12::from( 0i8);
+    let neg3_12 = Immediate12::from(-3i8);
+    let neg4_20 = Immediate20::from(-4i8);
 
     vec![
         (" B  <-  C >>  D + -3" , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : D, op : ShiftRightArith }) }),
