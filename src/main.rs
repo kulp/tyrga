@@ -6,6 +6,7 @@ mod tenyr;
 
 use std::collections::BTreeSet;
 use std::collections::HashSet;
+use std::convert::TryInto;
 use std::error::Error;
 use std::fmt;
 use std::ops::Range;
@@ -189,8 +190,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         mangling::mangle(join_name_parts("tyrga/Builtin", &proc, &descriptor).bytes()).unwrap()
     };
 
-    let make_int_constant = |sm : &mut StackManager, value| {
-        let val = Type3(Immediate20::new(value).expect("immediate too large"));
+    let make_int_constant = |sm : &mut StackManager, value : i32| {
+        let val = Type3(value.try_into().expect("immediate too large"));
         let mut v = Vec::with_capacity(4);
         v.extend(sm.reserve(1));
         v.push(make_set(get_reg(sm.get(0)), val));
@@ -348,14 +349,15 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let mut insns = sm.reserve(1); // need a persistent temporary
             let temp_reg = get_reg(sm.get(0));
 
-            let maker = |imm| {
+            let maker = |imm : i32| {
                 move |_sm : &mut StackManager| {
+                    let imm = imm.try_into().unwrap(); // TODO handle too-large immediates
                     let insns = vec![ Instruction {
                         kind : Type1(
                             InsnGeneral {
                                y : Register::A,
                                op : Opcode::CompareEq,
-                               imm : Immediate12::new(imm).unwrap(), // TODO handle too-large immediates
+                               imm,
                             }),
                         z : temp_reg,
                         x : top,
@@ -396,14 +398,15 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let mut insns = sm.reserve(1); // need a persistent temporary
             let temp_reg = get_reg(sm.get(0));
 
-            let maker = |kind : &'static InsnType, imm| {
+            let maker = |kind : &'static InsnType, imm : i32| {
                 move |_sm : &mut StackManager| {
+                    let imm = imm.try_into().unwrap(); // TODO handle too-large immediates
                     let insns = vec![ Instruction {
                         kind : kind(
                             InsnGeneral {
                                y : Register::A,
                                op : Opcode::CompareLt,
-                               imm : Immediate12::new(imm).unwrap(),
+                               imm,
                             }),
                         z : temp_reg,
                         x : top,
@@ -423,7 +426,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             insns.extend(lo_insns);
             insns.extend(hi_insns);
 
-            let kind = Type1(InsnGeneral { y : Register::P, op : Opcode::Subtract, imm : Immediate12::new(low).unwrap() });
+            let kind = Type1(InsnGeneral { y : Register::P, op : Opcode::Subtract, imm : low.try_into().unwrap() });
             insns.push(Instruction { kind, z : Register::P, x : top, dd : NoLoad });
 
             let (i, d) : (Vec<_>, Vec<_>) =
@@ -947,10 +950,9 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
         let max_locals = i32::from(get_method_code(method)?.max_locals);
         let net = max_locals - i32::from(count_args(&descriptor)?);
 
-        let bad_imm = || TranslationError::new("failed to create immediate");
         let z = sm.get_stack_ptr();
         let x = z;
-        let kind = Type3(Immediate20::new(-(net + i32::from(SAVE_SLOTS))).ok_or_else(bad_imm)?);
+        let kind = Type3((-(net + i32::from(SAVE_SLOTS))).try_into()?);
         let bottom = sm.get_regs()[0];
         vec![
             // update stack pointer

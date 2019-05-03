@@ -1,5 +1,6 @@
 use enum_primitive::*;
 
+use std::convert::TryFrom;
 use std::fmt;
 
 use crate::exprtree;
@@ -67,33 +68,19 @@ pub struct TwelveBit;
 pub struct TwentyBit;
 
 pub trait BitWidth : Clone + PartialEq + Eq {
-    const BITS : usize;
+    const BITS : u8;
+    const UMAX : i32 =  (1 << (Self::BITS    ));
+    const IMAX : i32 =  (1 << (Self::BITS - 1)) - 1;
+    const IMIN : i32 = -(1 << (Self::BITS - 1));
 }
 
-impl BitWidth for TwelveBit { const BITS : usize = 12; }
-impl BitWidth for TwentyBit { const BITS : usize = 20; }
+impl BitWidth for TwelveBit { const BITS : u8 = 12; }
+impl BitWidth for TwentyBit { const BITS : u8 = 20; }
 
 use std::marker::PhantomData;
 
 #[derive(Copy, Clone, Debug, Eq, PartialOrd, Ord)]
 pub struct SizedImmediate<T>(i32, PhantomData<T>) where T : BitWidth;
-
-impl<T> SizedImmediate<T>
-    where T : BitWidth
-{
-    pub fn new<U>(val : U) -> Option<SizedImmediate<T>>
-        where i32 : std::convert::From<U>
-    {
-        let val = i32::from(val);
-        let b = T::BITS - 1;
-        let r = 1 << b;
-        if val >= -r && val < r {
-            Some(SizedImmediate(val, PhantomData))
-        } else {
-            None
-        }
-    }
-}
 
 impl<T> From<i8> for SizedImmediate<T>
     where T : BitWidth
@@ -112,6 +99,19 @@ impl<T,U> From<U> for Immediate<T>
           U : Into<SizedImmediate<T>>
 {
     fn from(val : U) -> Self { Immediate::Fixed(val.into()) }
+}
+
+impl<T> TryFrom<i32> for Immediate<T>
+    where T : BitWidth
+{
+    type Error = String;
+    fn try_from(val : i32) -> Result<Immediate<T>, Self::Error> {
+        if val >= T::IMIN && val <= T::IMAX {
+            Ok(Immediate::Fixed(SizedImmediate(val, PhantomData)))
+        } else {
+            Err(format!("number {} is too big for a {}-bit immediate", val, T::BITS))
+        }
+    }
 }
 
 impl From<i16> for Immediate20 {
@@ -158,16 +158,6 @@ pub enum Immediate<T>
     Expr(exprtree::Atom),
 }
 
-impl<T> Immediate<T>
-    where T : BitWidth
-{
-    pub fn new<U>(val : U) -> Option<Immediate<T>>
-        where i32 : std::convert::From<U>
-    {
-        SizedImmediate::new(val).map(Immediate::Fixed)
-    }
-}
-
 impl<T> fmt::Display for Immediate<T>
     where T : BitWidth
 {
@@ -184,15 +174,15 @@ pub type Immediate20 = Immediate<TwentyBit>;
 
 #[test]
 fn test_immediates() {
-    assert!(Immediate12::new(-(1 << 11) - 1).is_none());
-    assert!(Immediate12::new(-(1 << 11) - 0).is_some());
-    assert!(Immediate12::new( (1 << 11) - 1).is_some());
-    assert!(Immediate12::new( (1 << 11) - 0).is_none());
+    assert!(Immediate12::try_from(-(1 << 11) - 1).is_err());
+    assert!(Immediate12::try_from(-(1 << 11) - 0).is_ok());
+    assert!(Immediate12::try_from( (1 << 11) - 1).is_ok());
+    assert!(Immediate12::try_from( (1 << 11) - 0).is_err());
 
-    assert!(Immediate20::new(-(1 << 19) - 1).is_none());
-    assert!(Immediate20::new(-(1 << 19) - 0).is_some());
-    assert!(Immediate20::new( (1 << 19) - 1).is_some());
-    assert!(Immediate20::new( (1 << 19) - 0).is_none());
+    assert!(Immediate20::try_from(-(1 << 19) - 1).is_err());
+    assert!(Immediate20::try_from(-(1 << 19) - 0).is_ok());
+    assert!(Immediate20::try_from( (1 << 19) - 1).is_ok());
+    assert!(Immediate20::try_from( (1 << 19) - 0).is_err());
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

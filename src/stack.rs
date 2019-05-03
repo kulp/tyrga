@@ -1,4 +1,5 @@
 use crate::tenyr;
+use std::convert::TryInto;
 use tenyr::Register;
 
 #[derive(Clone, Debug)]
@@ -45,7 +46,7 @@ impl StackManager {
         // frame_offset computes how much higher in memory the base of the current
         // (downward-growing) frame is than the current stack_ptr
         let frame_offset = self.frozen + saved + self.max_locals;
-        let imm = Immediate20::new(i32::from(frame_offset) - n).unwrap();
+        let imm = (i32::from(frame_offset) - n).try_into().unwrap();
         let kind = Type3(imm);
         let z = Register::A; // this one will be overwritten by caller
         let x = self.stack_ptr;
@@ -126,7 +127,7 @@ impl StackManager {
         let new_frozen = frozen as i32 - stack_movement;
         self.frozen = new_frozen as u16;
 
-        let make_insn = |reg, offset| Instruction { dd : NoLoad, kind : Type3(Immediate20::new(offset).unwrap()), z : reg, x : stack_ptr };
+        let make_insn = |reg, offset : i32| Instruction { dd : NoLoad, kind : Type3(offset.try_into().unwrap()), z : reg, x : stack_ptr };
         let make_move = |i, offset| make_insn(self.get_reg(i as u16), i + offset + 1);
         // Only one of { `freezing`, `thawing` } will have any elements in it
         let freezing = (level..unfrozen).map(|i| Instruction { dd : StoreRight, ..make_move(i, 0) });
