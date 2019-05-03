@@ -7,7 +7,7 @@ pub enum Operation {
 }
 
 impl fmt::Display for Operation {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         use Operation::*;
         write!(f, "{}", match self {
             Add => "+",
@@ -24,7 +24,7 @@ pub enum Atom {
 }
 
 impl fmt::Display for Atom {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         use Atom::*;
         match self {
             Variable(name) => write!(f, "{}", name),
@@ -42,7 +42,7 @@ pub struct Expr {
 }
 
 impl fmt::Display for Expr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{a} {op} {b}", a=self.a, b=self.b, op=self.op)
     }
 }

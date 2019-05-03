@@ -13,7 +13,7 @@ pub enum Register {
 }
 
 impl fmt::Display for Register {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
@@ -35,7 +35,7 @@ pub enum Opcode {
 }
 
 impl fmt::Display for Opcode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         use Opcode::*;
         let s = match self {
             BitwiseOr       => "|" , BitwiseOrn       => "|~" ,
@@ -79,7 +79,7 @@ use std::marker::PhantomData;
 pub struct SizedImmediate<T>(i32, PhantomData<T>) where T : BitWidth;
 
 impl<T> SizedImmediate<T>
-    where T: BitWidth
+    where T : BitWidth
 {
     pub fn new<U>(val : U) -> Option<SizedImmediate<T>>
         where i32 : std::convert::From<U>
@@ -96,7 +96,7 @@ impl<T> SizedImmediate<T>
 }
 
 impl<T> From<SizedImmediate<T>> for i32
-    where T: BitWidth
+    where T : BitWidth
 {
     fn from(what : SizedImmediate<T>) -> i32 {
         what.0
@@ -200,7 +200,7 @@ pub struct Instruction {
 }
 
 impl fmt::Display for Instruction {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         use InstructionType::*;
         use InsnGeneral as Gen;
         let (a, b, c) = match &self.kind {
@@ -285,7 +285,7 @@ pub struct BasicBlock {
 }
 
 impl fmt::Display for BasicBlock {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "{}:", self.label)?;
         for insn in &self.insns {
             writeln!(f, "    {}", insn.to_string())?;

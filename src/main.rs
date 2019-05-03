@@ -519,7 +519,7 @@ fn test_make_instruction() {
     use classfile_parser::constant_info::ConstantInfo::Unusable;
     let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| Unusable);
     let imm = Immediate20::new(5).unwrap();
-    assert_eq!(insn.1, vec![ Instruction { kind: Type3(imm), z: STACK_REGS[0], x: A, dd: NoLoad } ]);
+    assert_eq!(insn.1, vec![ Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad } ]);
     assert_eq!(insn.1[0].to_string(), " B  <-  5");
 }
 
@@ -527,13 +527,13 @@ fn test_make_instruction() {
 pub struct TranslationError(String);
 
 impl TranslationError {
-    fn new(msg: &str) -> TranslationError {
+    fn new(msg : &str) -> TranslationError {
         TranslationError(msg.to_string())
     }
 }
 
 impl fmt::Display for TranslationError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
@@ -861,7 +861,7 @@ struct Method {
 }
 
 impl fmt::Display for Method {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, ".global {}", self.name)?;
         writeln!(f, "{}:", self.name)?;
         write!(f, "{}", self.preamble)?;
