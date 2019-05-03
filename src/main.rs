@@ -582,7 +582,9 @@ fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
     let after  = deltas.iter().skip(1);
     let err = Box::new(TranslationError::new("body unexpectedly empty"));
     let max = body.last().ok_or(err)?.0 + 1;
+
     use std::iter::once;
+    #[allow(clippy::len_zero)] // is_empty is ambiguous at the time of this writing
     let ranges =
         once(0)
             .chain(before.cloned())
