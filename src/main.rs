@@ -557,10 +557,12 @@ fn parse_class(stem : &str) -> ClassFile {
     classfile_parser::parse_class(&name).expect("failed to parse class")
 }
 
+type RangeMap<T> = (Vec<Range<usize>>, BTreeMap<usize, T>);
+
 use classfile_parser::attribute_info::StackMapFrame;
 use std::collections::BTreeMap;
 fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
-    -> Result<(Vec<Range<usize>>, BTreeMap<usize, &'a T>)>
+    -> Result<RangeMap<&'a T>>
 {
     use classfile_parser::attribute_info::StackMapFrame::*;
     let get_delta = |f : &StackMapFrame| match *f {
@@ -644,7 +646,7 @@ mod util {
 use util::*;
 
 fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
-    -> Result<(Vec<Range<usize>>, BTreeMap<usize, Operation>)>
+    -> Result<RangeMap<Operation>>
 {
     use classfile_parser::attribute_info::AttributeInfo;
     use classfile_parser::attribute_info::stack_map_table_attribute_parser;
