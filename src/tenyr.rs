@@ -101,16 +101,25 @@ impl<T,U> From<U> for Immediate<T>
     fn from(val : U) -> Self { Immediate::Fixed(val.into()) }
 }
 
-impl<T> TryFrom<i32> for Immediate<T>
+impl<T> TryFrom<i32> for SizedImmediate<T>
     where T : BitWidth
 {
     type Error = String;
-    fn try_from(val : i32) -> Result<Immediate<T>, Self::Error> {
+    fn try_from(val : i32) -> Result<SizedImmediate<T>, Self::Error> {
         if val >= T::IMIN && val <= T::IMAX {
-            Ok(Immediate::Fixed(SizedImmediate(val, PhantomData)))
+            Ok(SizedImmediate(val, PhantomData))
         } else {
             Err(format!("number {} is too big for a {}-bit immediate", val, T::BITS))
         }
+    }
+}
+
+impl<T> TryFrom<i32> for Immediate<T>
+    where T : BitWidth
+{
+    type Error = <SizedImmediate<T> as TryFrom<i32>>::Error;
+    fn try_from(val : i32) -> Result<Immediate<T>, Self::Error> {
+        SizedImmediate::try_from(val).map(Immediate::Fixed)
     }
 }
 
