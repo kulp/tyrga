@@ -80,30 +80,23 @@ impl BitWidth for TwentyBit { const BITS : u8 = 20; }
 use std::marker::PhantomData;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct SizedImmediate<T>(i32, PhantomData<T>) where T : BitWidth;
+pub struct SizedImmediate<T : BitWidth>(i32, PhantomData<T>);
 
-impl<T> From<i8> for SizedImmediate<T>
-    where T : BitWidth
-{
+impl<T : BitWidth> From<i8> for SizedImmediate<T> {
     fn from(val : i8) -> Self { Self(val.into(), PhantomData) }
 }
 
-impl<T> From<u8> for SizedImmediate<T>
-    where T : BitWidth
-{
+impl<T : BitWidth> From<u8> for SizedImmediate<T> {
     fn from(val : u8) -> Self { Self(val.into(), PhantomData) }
 }
 
-impl<T,U> From<U> for Immediate<T>
-    where T : BitWidth,
-          U : Into<SizedImmediate<T>>
+impl<T : BitWidth, U> From<U> for Immediate<T>
+    where U : Into<SizedImmediate<T>>
 {
     fn from(val : U) -> Self { Immediate::Fixed(val.into()) }
 }
 
-impl<T> TryFrom<i32> for SizedImmediate<T>
-    where T : BitWidth
-{
+impl<T : BitWidth> TryFrom<i32> for SizedImmediate<T> {
     type Error = String;
     fn try_from(val : i32) -> Result<SizedImmediate<T>, Self::Error> {
         if val >= T::IMIN && val <= T::IMAX {
@@ -114,9 +107,7 @@ impl<T> TryFrom<i32> for SizedImmediate<T>
     }
 }
 
-impl<T> TryFrom<i32> for Immediate<T>
-    where T : BitWidth
-{
+impl<T : BitWidth> TryFrom<i32> for Immediate<T> {
     type Error = <SizedImmediate<T> as TryFrom<i32>>::Error;
     fn try_from(val : i32) -> Result<Immediate<T>, Self::Error> {
         SizedImmediate::try_from(val).map(Immediate::Fixed)
@@ -141,25 +132,19 @@ impl<T> From<SizedImmediate<T>> for i32
 
 use std::fmt::{Display, Error, Formatter};
 
-impl<T> Display for SizedImmediate<T>
-    where T : BitWidth
-{
+impl<T : BitWidth> Display for SizedImmediate<T> {
     fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
         write!(f, "{}", self.0.to_string())
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Immediate<T>
-    where T : BitWidth
-{
+pub enum Immediate<T : BitWidth> {
     Fixed(SizedImmediate<T>),
     Expr(exprtree::Atom),
 }
 
-impl<T> fmt::Display for Immediate<T>
-    where T : BitWidth
-{
+impl<T : BitWidth> fmt::Display for Immediate<T> {
     fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
         match self {
             Immediate::Fixed(x) => write!(f, "{}", x.to_string()),
