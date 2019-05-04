@@ -79,7 +79,7 @@ impl BitWidth for TwentyBit { const BITS : u8 = 20; }
 
 use std::marker::PhantomData;
 
-#[derive(Copy, Clone, Debug, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct SizedImmediate<T>(i32, PhantomData<T>) where T : BitWidth;
 
 impl<T> From<i8> for SizedImmediate<T>
@@ -146,16 +146,6 @@ impl<T> Display for SizedImmediate<T>
 {
     fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
         write!(f, "{}", self.0.to_string())
-    }
-}
-
-impl<T,U> PartialEq<U> for SizedImmediate<T>
-    where T : BitWidth,
-          U : Clone, // TODO remove this requirement if possible
-          i32 : std::convert::From<U>
-{
-    fn eq(&self, other : &U) -> bool {
-        self.0 == i32::from(other.clone())
     }
 }
 
@@ -230,11 +220,11 @@ impl fmt::Display for Instruction {
         let rhs = match self.kind {
             Type3(..) if self.x == Register::A
                 => c,
-            Type3(Immediate::Fixed(ref imm)) if *imm == 0i32
+            Type3(Immediate::Fixed(ref imm)) if *imm == 0u8.into()
                 => a,
             Type3(..)
                 => format!("{a} + {c}", a=a, c=c),
-            Type0(Gen { op, imm : Immediate::Fixed(ref imm), .. }) if *imm == 0i32
+            Type0(Gen { op, imm : Immediate::Fixed(ref imm), .. }) if *imm == 0u8.into()
                 => format!("{a} {op:^3} {b}", a=a, b=b, op=op.to_string()),
             Type1(Gen { op, y, .. }) | Type2(Gen { op, y, .. }) if y == Register::A
                 => format!("{a} {op:^3} {b}", a=a, b=b, op=op.to_string()),
