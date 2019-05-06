@@ -882,7 +882,7 @@ mod args {
                 'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'D' | 'J' | 'V' => Ok(1),
                 'L' => Ok(1 + s.find(';').ok_or_else(|| TranslationError::new("string ended too soon"))?),
                 '[' => Ok(1 + eat(&s[1..])?),
-                _ => Err(TranslationError(format!("unexpected character {}", ch)).into()),
+                _ => Err(TranslationError::new(&format!("unexpected character {}", ch)).into()),
             }
         }
 
@@ -894,7 +894,7 @@ mod args {
             'L' => Ok(1),
             '[' => Ok(1),
             'V' => Ok(0),
-            _ => Err(TranslationError(format!("unexpected character {}", ch))),
+            _ => Err(TranslationError::new(&format!("unexpected character {}", ch))),
         };
         Ok(mine? + count_internal(&s[eat(s)?..])?)
     }
