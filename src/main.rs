@@ -526,8 +526,8 @@ fn test_make_instruction() {
 pub struct TranslationError(String);
 
 impl TranslationError {
-    fn new(msg : &str) -> TranslationError {
-        TranslationError(msg.to_string())
+    fn new(msg : &str) -> Self {
+        Self(msg.to_string())
     }
 }
 
