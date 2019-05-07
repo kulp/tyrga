@@ -168,13 +168,15 @@ fn test_immediates() {
     assert!(Immediate20::try_from( (1 << 19) - 0).is_err());
 }
 
+pub type Immediate32 = i32;
+
 pub enum SmallestImmediate {
     Imm12(Immediate12),
     Imm20(Immediate20),
-    Imm32(i32),
+    Imm32(Immediate32),
 }
 
-impl<T : Into<i32>> From<T> for SmallestImmediate {
+impl<T : Into<Immediate32>> From<T> for SmallestImmediate {
     fn from(n : T) -> Self {
         use SmallestImmediate::*;
 
@@ -183,8 +185,8 @@ impl<T : Into<i32>> From<T> for SmallestImmediate {
         Err(0)
             .or_else(|_| Immediate12::try_from(n).map(Imm12))
             .or_else(|_| Immediate20::try_from(n).map(Imm20))
-            .or_else(|_|         i32::try_from(n).map(Imm32))
-            .unwrap() // cannot fail since i32::try_from() is infallible
+            .or_else(|_| Immediate32::try_from(n).map(Imm32))
+            .unwrap() // cannot fail since Immediate32::try_from() is infallible
     }
 }
 
