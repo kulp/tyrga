@@ -15,7 +15,7 @@ use jvmtypes::*;
 
 use classfile_parser::ClassFile;
 
-use tenyr::Register;
+use tenyr::{Instruction, Register};
 
 use stack::*;
 
@@ -30,7 +30,7 @@ enum Destination {
 }
 
 type Namer = Fn(usize) -> String;
-type MakeInsnResult = (usize, Vec<tenyr::Instruction>, Vec<Destination>);
+type MakeInsnResult = (usize, Vec<Instruction>, Vec<Destination>);
 
 fn make_target(target : u16, target_namer : &Namer) -> exprtree::Atom {
     use exprtree::Atom::*;
@@ -44,7 +44,7 @@ fn make_target(target : u16, target_namer : &Namer) -> exprtree::Atom {
     Expression(Rc::new(Expr { a, op : Sub, b }))
 }
 
-type BranchComp = FnMut(&mut StackManager) -> (tenyr::Register, Vec<tenyr::Instruction>);
+type BranchComp = FnMut(&mut StackManager) -> (tenyr::Register, Vec<Instruction>);
 
 fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target : u16, target_namer : &Namer, comp : &mut BranchComp) -> MakeInsnResult {
     use tenyr::*;
@@ -78,7 +78,6 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     use Operation::*;
     use jvmtypes::SwitchParams::*;
     use tenyr::Immediate20;
-    use tenyr::Instruction;
     use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::*;
 
@@ -510,7 +509,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 fn test_make_instruction() {
     use tenyr::MemoryOpType::*;
     use Register::*;
-    use tenyr::Instruction;
+    use Instruction;
     use tenyr::InstructionType::*;
     let mut sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
     let op = Operation::Constant { kind : JType::Int, value : 5 };
