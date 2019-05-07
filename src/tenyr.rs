@@ -1,5 +1,6 @@
 use enum_primitive::*;
 
+use std::convert::Infallible;
 use std::convert::TryFrom;
 use std::fmt;
 use std::marker::PhantomData;
@@ -176,17 +177,16 @@ pub enum SmallestImmediate {
     Imm32(Immediate32),
 }
 
-impl<T : Into<Immediate32>> From<T> for SmallestImmediate {
-    fn from(n : T) -> Self {
-        use SmallestImmediate::*;
+impl TryFrom<i32> for SmallestImmediate {
+    type Error = Infallible;
 
-        let n = n.into();
+    fn try_from(n : i32) -> Result<Self, Self::Error> {
+        use SmallestImmediate::*;
 
         Err(0)
             .or_else(|_| Immediate12::try_from(n).map(Imm12))
             .or_else(|_| Immediate20::try_from(n).map(Imm20))
             .or_else(|_| Immediate32::try_from(n).map(Imm32))
-            .unwrap() // cannot fail since Immediate32::try_from() is infallible
     }
 }
 
