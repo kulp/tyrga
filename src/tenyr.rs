@@ -2,6 +2,7 @@ use enum_primitive::*;
 
 use std::convert::Infallible;
 use std::convert::TryFrom;
+use std::convert::TryInto;
 use std::fmt;
 use std::marker::PhantomData;
 
@@ -122,11 +123,26 @@ impl From<u16> for Immediate20 {
     fn from(val : u16) -> Self { Immediate::Fixed(SizedImmediate(val.into(), PhantomData)) }
 }
 
-impl<T> From<SizedImmediate<T>> for i32
-    where T : BitWidth
-{
-    fn from(what : SizedImmediate<T>) -> i32 {
-        what.0
+impl<T : BitWidth> From<SizedImmediate<T>> for i32 {
+    fn from(what : SizedImmediate<T>) -> i32 { what.0 }
+}
+
+impl<T : BitWidth> TryFrom<Immediate<T>> for i32 {
+    type Error = String;
+
+    fn try_from(what : Immediate<T>) -> Result<i32, Self::Error> {
+        match what {
+            Immediate::Fixed(s) => Ok(s.into()),
+            _ => Err("cannot evaluate non-Fixed Immediate".to_owned()),
+        }
+    }
+}
+
+impl TryFrom<Immediate12> for Immediate20 {
+    type Error = String;
+
+    fn try_from(val : Immediate12) -> Result<Self, Self::Error> {
+        Ok(Immediate::Fixed(SizedImmediate(val.try_into()?, PhantomData)))
     }
 }
 
