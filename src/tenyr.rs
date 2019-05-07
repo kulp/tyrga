@@ -2,6 +2,7 @@ use enum_primitive::*;
 
 use std::convert::TryFrom;
 use std::fmt;
+use std::marker::PhantomData;
 
 use crate::exprtree;
 
@@ -76,8 +77,6 @@ pub trait BitWidth : Clone + PartialEq + Eq {
 
 impl BitWidth for TwelveBit { const BITS : u8 = 12; }
 impl BitWidth for TwentyBit { const BITS : u8 = 20; }
-
-use std::marker::PhantomData;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct SizedImmediate<T : BitWidth>(i32, PhantomData<T>);
