@@ -174,9 +174,11 @@ pub enum SmallestImmediate {
     Imm32(i32),
 }
 
-impl From<i32> for SmallestImmediate {
-    fn from(n : i32) -> Self {
+impl<T : Into<i32>> From<T> for SmallestImmediate {
+    fn from(n : T) -> Self {
         use SmallestImmediate::*;
+
+        let n = n.into();
 
         Err(0)
             .or_else(|_| Immediate12::try_from(n).map(Imm12))
