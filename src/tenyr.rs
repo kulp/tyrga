@@ -56,7 +56,7 @@ impl fmt::Display for Opcode {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum MemoryOpType {
     NoLoad,     //  Z  <-  ...
     StoreRight, //  Z  -> [...]
