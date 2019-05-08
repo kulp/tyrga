@@ -6,6 +6,7 @@ mod tenyr;
 
 use std::collections::BTreeSet;
 use std::collections::HashSet;
+use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::error::Error;
 use std::fmt;
@@ -15,7 +16,7 @@ use jvmtypes::*;
 
 use classfile_parser::ClassFile;
 
-use tenyr::{Instruction, Register};
+use tenyr::{Instruction, Register, SmallestImmediate};
 
 use stack::*;
 
@@ -27,6 +28,92 @@ enum Destination {
     Successor,
     Address(usize),
     Return,
+}
+
+fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
+    -> Vec<Instruction>
+{
+    use tenyr::Immediate12;
+    use tenyr::Immediate20;
+    use tenyr::InsnGeneral;
+    use tenyr::InstructionType::*;
+    use tenyr::MemoryOpType::*;
+    use tenyr::Opcode::*;
+    use SmallestImmediate::*;
+
+    let imm = SmallestImmediate::try_from(imm).unwrap(); // cannot fail, Infallible
+    let adder  = InsnGeneral { y : Register::A, op : Add , imm : 0u8.into() };
+    let packer = InsnGeneral { y : Register::A, op : Pack, imm : 0u8.into() };
+
+    let noop = Instruction { kind : Type0(adder.clone()), z : Register::A, x : Register::A, dd : NoLoad };
+
+    match (insn.kind, imm) {
+        (Type3(..), Imm12(imm)) => vec![ Instruction { kind : Type3(imm.try_into().unwrap()), ..insn } ],
+        (Type3(..), Imm20(imm)) => vec![ Instruction { kind : Type3(imm.try_into().unwrap()), ..insn } ],
+        (Type0(g) , Imm12(imm)) => vec![ Instruction { kind : Type0(InsnGeneral { imm, ..g }), ..insn } ],
+        (Type1(g) , Imm12(imm)) => vec![ Instruction { kind : Type1(InsnGeneral { imm, ..g }), ..insn } ],
+        (Type2(g) , Imm12(imm)) => vec![ Instruction { kind : Type2(InsnGeneral { imm, ..g }), ..insn } ],
+
+        (Type0(g) , Imm32(imm)) => {
+            use std::iter::once;
+            let top = Immediate20::try_from(i32::from(imm) >> 12).unwrap(); // cannot fail
+            let bot = Immediate12::try_from(i32::from(imm) & 0xfff).unwrap(); // cannot fail
+
+            let insns = sm.reserve(1).into_iter();
+            let temp = sm.get(0).unwrap();
+
+            insns
+                // First, construct the immediate
+                .chain(once(Instruction { kind : Type3(top), z : temp, ..noop }))
+                .chain(once(Instruction { kind : Type1(InsnGeneral { y : temp, imm : bot, ..packer }), ..noop }))
+                // Next, the binary-operation portion of the original instruction is implemented
+                .chain(once(Instruction { kind : Type0(InsnGeneral { imm : 0u8.into(), ..g }), dd : NoLoad, ..insn }))
+                // Last, a Type0 instruction adds the constructed immediate
+                .chain(once(Instruction { kind : Type0(InsnGeneral { y : temp, ..adder }), ..insn }))
+                .chain(sm.release(1).into_iter())
+                .collect()
+        },
+        _ => panic!("unhandled"),
+    }
+}
+
+#[test]
+fn test_expand() {
+    use tenyr::*;
+    use Register::*;
+    use InstructionType::*;
+    use MemoryOpType::*;
+
+    let v = vec![ C, D, E, F, G ];
+    let mut sm = StackManager::new(5, O, v.clone());
+
+    {
+        let imm = 8675390i32;
+        let insn = Instruction { kind : Type0(InsnGeneral { y : B, imm : 0u8.into(), op : Opcode::Multiply }), x : C, dd : StoreRight, z : D };
+        let vv = expand_immediate_load(&mut sm, insn, imm);
+        eprintln!("{:?}", vv);
+        assert_eq!(vv.len(), 4);
+    }
+
+    {
+        let imm = 123;
+        let insn = Instruction { kind : Type3(0u8.into()), x : C, dd : StoreRight, z : D };
+        let vv = expand_immediate_load(&mut sm, insn.clone(), imm);
+        assert_eq!(vv.len(), 1);
+        // TODO more robust test
+    }
+
+    {
+        let imm = 123;
+        let insn = Instruction { kind : Type0(InsnGeneral { y : B, imm : 0u8.into(), op : Opcode::Multiply }), x : C, dd : StoreRight, z : D };
+        let vv = expand_immediate_load(&mut sm, insn.clone(), imm);
+        assert_eq!(vv.len(), 1);
+        if let Type0(ref g) = vv[0].kind {
+            assert_eq!(g.imm, 123u8.into());
+        } else {
+            panic!("wrong type");
+        }
+    }
 }
 
 type Namer = Fn(usize) -> String;
