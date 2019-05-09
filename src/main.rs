@@ -47,6 +47,16 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
 
     let noop = Instruction { kind : Type0(adder.clone()), z : Register::A, x : Register::A, dd : NoLoad };
 
+    let make_imm = |temp_reg, imm| {
+        use std::iter::once;
+        let top = Immediate20::try_from(i32::from(imm) >> 12).unwrap(); // cannot fail
+        let bot = Immediate12::try_from(i32::from(imm) & 0xfff).unwrap(); // cannot fail
+
+        // TODO emit only one instruction if small enough
+        once(Instruction { kind : Type3(top), z : temp_reg, ..noop })
+            .chain(once(Instruction { kind : Type1(InsnGeneral { y : temp_reg, imm : bot, ..packer }), ..noop }))
+    };
+
     match (insn.kind, imm) {
         (Type3(..), Imm12(imm)) => vec![ Instruction { kind : Type3(imm.try_into().unwrap()), ..insn } ],
         (Type3(..), Imm20(imm)) => vec![ Instruction { kind : Type3(imm.try_into().unwrap()), ..insn } ],
@@ -56,16 +66,13 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
 
         (Type0(g) , Imm32(imm)) => {
             use std::iter::once;
-            let top = Immediate20::try_from(i32::from(imm) >> 12).unwrap(); // cannot fail
-            let bot = Immediate12::try_from(i32::from(imm) & 0xfff).unwrap(); // cannot fail
 
             let insns = sm.reserve(1).into_iter();
             let temp = sm.get(0).unwrap();
 
             insns
                 // First, construct the immediate
-                .chain(once(Instruction { kind : Type3(top), z : temp, ..noop }))
-                .chain(once(Instruction { kind : Type1(InsnGeneral { y : temp, imm : bot, ..packer }), ..noop }))
+                .chain(make_imm(temp, imm))
                 // Next, the binary-operation portion of the original instruction is implemented
                 .chain(once(Instruction { kind : Type0(InsnGeneral { imm : 0u8.into(), ..g }), dd : NoLoad, ..insn }))
                 // Last, a Type0 instruction adds the constructed immediate
