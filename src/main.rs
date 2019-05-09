@@ -48,13 +48,21 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
     let noop = Instruction { kind : Type0(adder.clone()), z : Register::A, x : Register::A, dd : NoLoad };
 
     let make_imm = |temp_reg, imm| {
-        use std::iter::once;
-        let top = Immediate20::try_from(i32::from(imm) >> 12).unwrap(); // cannot fail
-        let bot = Immediate12::try_from(i32::from(imm) & 0xfff).unwrap(); // cannot fail
+        match imm {
+            Imm12(imm) => // This path is fairly useless, but it completes generality
+                vec![ Instruction { kind : Type0(InsnGeneral { imm, ..adder }), z : temp_reg, ..noop } ],
+            Imm20(imm) =>
+                vec![ Instruction { kind : Type3(imm), z : temp_reg, ..noop } ],
+            Imm32(imm) => {
+                let top = Immediate20::try_from(i32::from(imm) >> 12).unwrap(); // cannot fail
+                let bot = Immediate12::try_from(i32::from(imm) & 0xfff).unwrap(); // cannot fail
 
-        // TODO emit only one instruction if small enough
-        once(Instruction { kind : Type3(top), z : temp_reg, ..noop })
-            .chain(once(Instruction { kind : Type1(InsnGeneral { y : temp_reg, imm : bot, ..packer }), ..noop }))
+                vec![
+                    Instruction { kind : Type3(top), z : temp_reg, ..noop },
+                    Instruction { kind : Type1(InsnGeneral { y : temp_reg, imm : bot, ..packer }), ..noop },
+                ]
+            },
+        }.into_iter()
     };
 
     match (insn.kind, imm) {
@@ -64,7 +72,7 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
         (Type1(g) , Imm12(imm)) => vec![ Instruction { kind : Type1(InsnGeneral { imm, ..g }), ..insn } ],
         (Type2(g) , Imm12(imm)) => vec![ Instruction { kind : Type2(InsnGeneral { imm, ..g }), ..insn } ],
 
-        (Type0(g) , Imm32(imm)) => {
+        (Type0(g) , imm @ Imm32(_)) => {
             use std::iter::once;
 
             let insns = sm.reserve(1).into_iter();
