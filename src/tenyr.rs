@@ -187,6 +187,7 @@ fn test_immediates() {
 
 pub type Immediate32 = i32;
 
+#[derive(Clone, PartialEq, Eq)]
 pub enum SmallestImmediate {
     Imm12(Immediate12),
     Imm20(Immediate20),
