@@ -59,7 +59,7 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
 
                 vec![
                     Instruction { kind : Type3(top), z : temp_reg, ..noop },
-                    Instruction { kind : Type1(InsnGeneral { y : temp_reg, imm : bot, ..packer }), ..noop },
+                    Instruction { kind : Type1(InsnGeneral { imm : bot, ..packer }), z : temp_reg, x : temp_reg, ..noop },
                 ]
             },
         }.into_iter()
@@ -72,23 +72,30 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
         (Type1(g) , Imm12(imm)) => vec![ Instruction { kind : Type1(InsnGeneral { imm, ..g }), ..insn } ],
         (Type2(g) , Imm12(imm)) => vec![ Instruction { kind : Type2(InsnGeneral { imm, ..g }), ..insn } ],
 
-        (Type0(g) , imm @ Imm32(_)) => {
+        (kind, imm) => {
             use std::iter::once;
+            use tenyr::Opcode::*;
 
-            let insns = sm.reserve(1).into_iter();
+            let reserve = sm.reserve(1).into_iter();
             let temp = sm.get(0).unwrap();
+            let pack = make_imm(temp, imm);
+            let (op, a, b, c) = match kind {
+                Type3(_) => (BitwiseOr, insn.x, Register::A, temp), // should never be reached, but provides generality
+                Type0(g) => (g.op, insn.x, g.y, temp),
+                Type1(g) => (g.op, insn.x, temp, g.y),
+                Type2(g) => (g.op, temp, insn.x, g.y),
+            };
+            let operate = once(Instruction { kind : Type0(InsnGeneral { op, y : b, imm : 0u8.into() }), x : a, dd : NoLoad, z : insn.z });
+            let add = once(Instruction { kind : Type0(InsnGeneral { y : c, ..adder }), ..insn });
+            let release = sm.release(1).into_iter();
 
-            insns
-                // First, construct the immediate
-                .chain(make_imm(temp, imm))
-                // Next, the binary-operation portion of the original instruction is implemented
-                .chain(once(Instruction { kind : Type0(InsnGeneral { imm : 0u8.into(), ..g }), dd : NoLoad, ..insn }))
-                // Last, a Type0 instruction adds the constructed immediate
-                .chain(once(Instruction { kind : Type0(InsnGeneral { y : temp, ..adder }), ..insn }))
-                .chain(sm.release(1).into_iter())
+            reserve
+                .chain(pack)
+                .chain(operate)
+                .chain(add)
+                .chain(release)
                 .collect()
         },
-        _ => panic!("unhandled"),
     }
 }
 
