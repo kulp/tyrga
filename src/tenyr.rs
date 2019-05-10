@@ -54,6 +54,31 @@ fn test_macro_ops() {
     assert_eq!(tenyr_op!( >=  ), CompareGe       );
 }
 
+macro_rules! tenyr_insn {
+    ( $z:ident <- $x:ident $op:tt $y:ident + $imm:expr ) => {
+        {
+            use $crate::tenyr::*;
+            use std::convert::TryInto;
+            let imm = $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?;
+            let kind = Type0(InsnGeneral { y : Register::$y, op : tenyr_op!($op), imm });
+            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::$z, x : Register::$x, dd : MemoryOpType::NoLoad });
+            result
+        }
+    };
+}
+
+#[test]
+fn test_macro_insn() -> Result<(), Box<std::error::Error>> {
+    use InstructionType::*;
+    use MemoryOpType::*;
+    use Opcode::*;
+    use Register::*;
+
+    assert_eq!(tenyr_insn!(B <- C * D + 3).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
+
+    Ok(())
+}
+
 enum_from_primitive! {
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
