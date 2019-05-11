@@ -76,6 +76,16 @@ macro_rules! tenyr_insn {
             result
         }
     };
+    ( $z:ident <- $imm:expr ) => {
+        {
+            use $crate::tenyr::*;
+            use std::convert::TryInto;
+            let imm = $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?;
+            let kind = Type3(imm);
+            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::$z, x : Register::A, dd : MemoryOpType::NoLoad });
+            result
+        }
+    };
 }
 
 #[test]
@@ -87,6 +97,7 @@ fn test_macro_insn() -> Result<(), Box<std::error::Error>> {
 
     assert_eq!(tenyr_insn!(B <- C * D + 3).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
     assert_eq!(tenyr_insn!(B <- C + 3).unwrap(), Instruction { kind : Type0(InsnGeneral { y : A, op : BitwiseOr, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
+    assert_eq!(tenyr_insn!(B <- 3).unwrap(), Instruction { kind : Type3(3u8.into()), z : B, x : A, dd : NoLoad });
 
     Ok(())
 }
