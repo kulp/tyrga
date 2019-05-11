@@ -54,8 +54,8 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
             Imm20(imm) =>
                 vec![ Instruction { kind : Type3(imm), z : temp_reg, ..noop } ],
             Imm32(imm) => {
-                let top = Immediate20::try_from(i32::from(imm) >> 12).unwrap(); // cannot fail
-                let bot = Immediate12::try_from(i32::from(imm) & 0xfff).unwrap(); // cannot fail
+                let top = Immediate20::try_from(imm >> 12).unwrap(); // cannot fail
+                let bot = Immediate12::try_from_bits((imm & 0xfff) as u16).unwrap(); // cannot fail
 
                 vec![
                     Instruction { kind : Type3(top), z : temp_reg, ..noop },
@@ -122,6 +122,14 @@ fn test_expand() {
         let insn = Instruction { kind : Type3(0u8.into()), x : C, dd : StoreRight, z : D };
         let vv = expand_immediate_load(&mut sm, insn.clone(), imm);
         assert_eq!(vv.len(), 1);
+        // TODO more robust test
+    }
+
+    {
+        let imm = 8675309i32;
+        let insn = Instruction { kind : Type3(0u8.into()), x : C, dd : StoreRight, z : D };
+        let vv = expand_immediate_load(&mut sm, insn.clone(), imm);
+        assert_eq!(vv.len(), 4);
         // TODO more robust test
     }
 
