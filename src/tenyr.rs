@@ -97,6 +97,22 @@ impl<T : BitWidth, U> From<U> for Immediate<T>
     fn from(val : U) -> Self { Immediate::Fixed(val.into()) }
 }
 
+// Sometimes we need to convert 12-bit unsigned numbers to 12-bit signed immediates
+impl Immediate12 {
+    const BITS : u8 = 12;
+
+    pub fn try_from_bits(val : u16) -> Result<Immediate12, String> {
+        if val < (1 << Self::BITS) {
+            // Convert u16 into an i32 with the same bottom 12 bits
+            let mask = if (val & 0x800) != 0 { -1i32 << 12 } else { 0 };
+            let val = i32::from(val) | mask;
+            Immediate12::try_from(val)
+        } else {
+            Err(format!("number {} is too big for a {}-bit immediate", val, Self::BITS))
+        }
+    }
+}
+
 impl<T : BitWidth> TryFrom<i32> for SizedImmediate<T> {
     type Error = String;
     fn try_from(val : i32) -> Result<SizedImmediate<T>, Self::Error> {
