@@ -54,7 +54,7 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
             Imm20(imm) =>
                 vec![ Instruction { kind : Type3(imm), z : temp_reg, ..noop } ],
             Imm32(imm) => {
-                let top = Immediate20::try_from(imm >> 12).unwrap(); // cannot fail
+                let top = Immediate20::from((imm >> 12) as u16);
                 let bot = Immediate12::try_from_bits((imm & 0xfff) as u16).unwrap(); // cannot fail
 
                 vec![
@@ -66,8 +66,8 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
     };
 
     match (insn.kind, imm) {
-        (Type3(..), Imm12(imm)) => vec![ Instruction { kind : Type3(imm.try_into().unwrap()), ..insn } ],
-        (Type3(..), Imm20(imm)) => vec![ Instruction { kind : Type3(imm.try_into().unwrap()), ..insn } ],
+        (Type3(..), Imm12(imm)) => vec![ Instruction { kind : Type3(imm.into()), ..insn } ],
+        (Type3(..), Imm20(imm)) => vec![ Instruction { kind : Type3(imm), ..insn } ],
         (Type0(g) , Imm12(imm)) => vec![ Instruction { kind : Type0(InsnGeneral { imm, ..g }), ..insn } ],
         (Type1(g) , Imm12(imm)) => vec![ Instruction { kind : Type1(InsnGeneral { imm, ..g }), ..insn } ],
         (Type2(g) , Imm12(imm)) => vec![ Instruction { kind : Type2(InsnGeneral { imm, ..g }), ..insn } ],

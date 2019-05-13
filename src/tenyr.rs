@@ -158,7 +158,7 @@ impl From<Immediate12> for Immediate20 {
     fn from(imm : Immediate12) -> Self {
         use Immediate::*;
         match imm {
-            Fixed(imm) => Fixed(SizedImmediate(imm.0.into(), PhantomData)),
+            Fixed(imm) => Fixed(SizedImmediate(imm.0, PhantomData)),
             Expr(imm) => Expr(imm),
         }
     }
