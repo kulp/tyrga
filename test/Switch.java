@@ -10,9 +10,9 @@ public class Switch {
 
     public static int lookup(int i, int j) {
         switch (i) {
-            case 1  : return j;
-            case 10 : return i * j;
-            case 100: return i;
+            case 1: return j;
+            case (1 << 13) + 0x123: return i * j;
+            case (1 << 21) + 0x12345: return i;
             default: return 0;
         }
     }
