@@ -225,7 +225,6 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         };
 
     let make_mov  = |to, from| Instruction { dd : NoLoad, kind : Type3(Immediate20::from(0u8)), z : to, x : from };
-    let make_set  = |to, kind| Instruction { kind, ..make_mov(to, Register::A) };
     let make_load = |to, from| Instruction { dd : LoadRight , ..make_mov(to, from) };
 
     let make_jump = |target| {
@@ -307,10 +306,10 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     };
 
     let make_int_constant = |sm : &mut StackManager, value : i32| {
-        let val = Type3(value.try_into().expect("immediate too large"));
-        let mut v = Vec::with_capacity(4);
+        let mut v = Vec::with_capacity(8);
         v.extend(sm.reserve(1));
-        v.push(make_set(get_reg(sm.get(0)), val));
+        let insn = make_mov(get_reg(sm.get(0)), Register::A);
+        v.extend(expand_immediate_load(sm, insn, value));
         (*addr, v, default_dest.clone())
     };
 
@@ -466,19 +465,19 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let temp_reg = get_reg(sm.get(0));
 
             let maker = |imm : i32| {
-                move |_sm : &mut StackManager| {
-                    let imm = imm.try_into().unwrap(); // TODO handle too-large immediates
-                    let insns = vec![ Instruction {
+                move |sm : &mut StackManager| {
+                    let insn = Instruction {
                         kind : Type1(
                             InsnGeneral {
                                y : Register::A,
                                op : Opcode::CompareEq,
-                               imm,
+                               imm : 0u8.into(), // placeholder
                             }),
                         z : temp_reg,
                         x : top,
                         dd : MemoryOpType::NoLoad,
-                    } ];
+                    };
+                    let insns = expand_immediate_load(sm, insn, imm);
                     (temp_reg, insns)
                 }
             };
@@ -515,19 +514,19 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let temp_reg = get_reg(sm.get(0));
 
             let maker = |kind : &'static InsnType, imm : i32| {
-                move |_sm : &mut StackManager| {
-                    let imm = imm.try_into().unwrap(); // TODO handle too-large immediates
-                    let insns = vec![ Instruction {
+                move |sm : &mut StackManager| {
+                    let insn = Instruction {
                         kind : kind(
                             InsnGeneral {
                                y : Register::A,
                                op : Opcode::CompareLt,
-                               imm,
+                               imm : 0u8.into(), // placeholder
                             }),
                         z : temp_reg,
                         x : top,
                         dd : MemoryOpType::NoLoad,
-                    } ];
+                    };
+                    let insns = expand_immediate_load(sm, insn, imm);
                     (temp_reg, insns)
                 }
             };
@@ -542,8 +541,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             insns.extend(lo_insns);
             insns.extend(hi_insns);
 
-            let kind = Type1(InsnGeneral { y : Register::P, op : Opcode::Subtract, imm : low.try_into().unwrap() });
-            insns.push(Instruction { kind, z : Register::P, x : top, dd : NoLoad });
+            let kind = Type1(InsnGeneral { y : Register::P, op : Opcode::Subtract, imm : 0u8.into() /* placeholder */ });
+            let insn = Instruction { kind, z : Register::P, x : top, dd : NoLoad };
+            insns.extend(expand_immediate_load(sm, insn, low));
 
             let (i, d) : (Vec<_>, Vec<_>) =
                 offsets
