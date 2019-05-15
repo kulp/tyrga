@@ -249,7 +249,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         insns.extend(sm.freeze());
 
         // Save return address into bottom of register-based stack
-        let bottom = Register::B; // TODO get bottom of StackManager instead
+        let bottom = sm.get_regs()[0];
         insns.push(Instruction {
             kind : Type3(Immediate20::from(1u8)),
             ..make_mov(bottom, tenyr::Register::P)
