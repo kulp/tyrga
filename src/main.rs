@@ -306,7 +306,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     };
 
     let make_int_constant = |sm : &mut StackManager, value : i32| {
-        let mut v = Vec::with_capacity(8);
+        let mut v = Vec::new();
         v.extend(sm.reserve(1));
         let insn = make_mov(get_reg(sm.get(0)), Register::A);
         v.extend(expand_immediate_load(sm, insn, value));
@@ -368,14 +368,14 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             => make_call(sm, &make_arithmetic_name(kind, op), &make_arithmetic_descriptor(kind, op)),
         LoadLocal { kind, index } if kind == JType::Int || kind == JType::Object
             => {
-                let mut v = Vec::with_capacity(10);
+                let mut v = Vec::new();
                 v.extend(sm.reserve(1));
                 v.push(load_local(sm, get_reg(sm.get(0)), index.into()));
                 (*addr, v, default_dest)
             },
         StoreLocal { kind, index } if kind == JType::Int || kind == JType::Object
             => {
-                let mut v = Vec::with_capacity(10);
+                let mut v = Vec::new();
                 v.push(store_local(sm, get_reg(sm.get(0)), index.into()));
                 v.extend(sm.release(1));
                 (*addr, v, default_dest)
@@ -386,7 +386,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let imm = value.into();
             // This reserving of a stack slot may exceed the "maximum depth" statistic on the
             // method, but we should try to avoid dedicated temporary registers.
-            let mut v = Vec::with_capacity(10);
+            let mut v = Vec::new();
             v.extend(sm.reserve(1));
             let temp_reg = get_reg(sm.get(0));
             v.extend(vec![
@@ -563,7 +563,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         },
         Jump { target } => (*addr, vec![ make_jump(target) ], vec![ Destination::Address(target as usize) ]),
         LoadArray(kind) | StoreArray(kind) => {
-            let mut v = Vec::with_capacity(10);
+            let mut v = Vec::new();
             let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
                 let idx = get_reg(sm.get(0));
                 let arr = get_reg(sm.get(1));
