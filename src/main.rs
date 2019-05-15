@@ -31,7 +31,6 @@ const STACK_REGS : &[Register] = { use Register::*; &[ B, C, D, E, F, G, H, I, J
 enum Destination {
     Successor,
     Address(usize),
-    Return,
 }
 
 fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
@@ -339,7 +338,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     ],
             };
             v.extend(sm.empty());
-            (*addr, v, vec![ Destination::Return ])
+            (*addr, v, vec![]) // leaving the method is not a Destination we care about
         },
 
         Arithmetic { kind : JType::Int, op : ArithmeticOperation::Neg }
