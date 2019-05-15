@@ -266,8 +266,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         let takes = takes.expect("failed to compute arguments size");
         let rets = count_returns(descriptor);
         let rets = rets.expect("failed to compute return size");
-        sm.release_frozen(u16::from(takes));
-        sm.reserve_frozen(u16::from(rets));
+        sm.release_frozen(takes.into());
+        sm.reserve_frozen(rets.into());
         insns.extend(sm.thaw());
         (*addr, insns, default_dest.clone())
     };
@@ -370,19 +370,19 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             => {
                 let mut v = Vec::with_capacity(10);
                 v.extend(sm.reserve(1));
-                v.push(load_local(sm, get_reg(sm.get(0)), i32::from(index)));
+                v.push(load_local(sm, get_reg(sm.get(0)), index.into()));
                 (*addr, v, default_dest)
             },
         StoreLocal { kind, index } if kind == JType::Int || kind == JType::Object
             => {
                 let mut v = Vec::with_capacity(10);
-                v.push(store_local(sm, get_reg(sm.get(0)), i32::from(index)));
+                v.push(store_local(sm, get_reg(sm.get(0)), index.into()));
                 v.extend(sm.release(1));
                 (*addr, v, default_dest)
             },
         Increment { index, value } => {
             use tenyr::*;
-            let index = i32::from(index);
+            let index = index.into();
             let imm = value.into();
             // This reserving of a stack slot may exceed the "maximum depth" statistic on the
             // method, but we should try to avoid dedicated temporary registers.
@@ -495,7 +495,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             dests.extend(d);
 
             insns.push(make_jump(there));
-            dests.push(Destination::Address(usize::from(there)));
+            dests.push(Destination::Address(there.into()));
 
             (*addr, insns, dests)
         },
@@ -679,7 +679,7 @@ fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
 {
     use classfile_parser::attribute_info::StackMapFrame::*;
     let get_delta = |f : &StackMapFrame| match *f {
-        SameFrame                           { frame_type }       => u16::from(frame_type),
+        SameFrame                           { frame_type }       => frame_type.into(),
 
         SameLocals1StackItemFrame           { frame_type, .. }   => u16::from(frame_type) - 64,
 
