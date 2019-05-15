@@ -36,8 +36,6 @@ enum Destination {
 fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
     -> Vec<Instruction>
 {
-    use tenyr::Immediate12;
-    use tenyr::Immediate20;
     use tenyr::InsnGeneral;
     use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::*;
@@ -57,8 +55,8 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
             Imm20(imm) =>
                 vec![ Instruction { kind : Type3(imm), z : temp_reg, ..noop } ],
             Imm32(imm) => {
-                let top = Immediate20::from((imm >> 12) as u16);
-                let bot = Immediate12::try_from_bits((imm & 0xfff) as u16).unwrap(); // cannot fail
+                let top = ((imm >> 12) as u16).into();
+                let bot = tenyr::Immediate12::try_from_bits((imm & 0xfff) as u16).unwrap(); // cannot fail
 
                 vec![
                     Instruction { kind : Type3(top), z : temp_reg, ..noop },
@@ -197,7 +195,6 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 {
     use Operation::*;
     use jvmtypes::SwitchParams::*;
-    use tenyr::Immediate20;
     use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::*;
 
@@ -227,7 +224,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             }
         };
 
-    let make_mov  = |to, from| Instruction { dd : NoLoad, kind : Type3(Immediate20::from(0u8)), z : to, x : from };
+    let make_mov  = |to, from| Instruction { dd : NoLoad, kind : Type3(0u8.into()), z : to, x : from };
     let make_load = |to, from| Instruction { dd : LoadRight , ..make_mov(to, from) };
 
     let make_jump = |target| {
@@ -254,7 +251,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         // Save return address into bottom of register-based stack
         let bottom = sm.get_regs()[0];
         insns.push(Instruction {
-            kind : Type3(Immediate20::from(1u8)),
+            kind : Type3(1u8.into()),
             ..make_mov(bottom, tenyr::Register::P)
         });
 
@@ -320,7 +317,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         Constant { kind : JType::Int, value } =>
             make_int_constant(sm, value),
         Yield { kind } => {
-            let ret = Instruction { kind : Type3(Immediate20::from(1u8)), ..make_load(Register::P, sm.get_stack_ptr()) };
+            let ret = Instruction { kind : Type3(1u8.into()), ..make_load(Register::P, sm.get_stack_ptr()) };
             use JType::*;
             let mut v = match kind {
                 Void =>
@@ -349,7 +346,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let z = x; // update same location on stack
                 let op = Opcode::Subtract;
                 let dd = MemoryOpType::NoLoad;
-                let imm = Immediate12::from(0u8);
+                let imm = 0u8.into();
                 let v = vec![ Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd } ];
                 (*addr, v, default_dest)
             },
@@ -361,7 +358,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let z = x;
                 let op = translate_arithmetic_op(op).unwrap();
                 let dd = MemoryOpType::NoLoad;
-                let imm = Immediate12::from(0u8);
+                let imm = 0u8.into();
                 let mut v = Vec::new();
                 v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
                 v.extend(sm.release(1));
@@ -416,7 +413,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                         InsnGeneral {
                            y : Register::A,
                            op,
-                           imm : Immediate12::from(0u8),
+                           imm : 0u8.into(),
                         }),
                     z : temp_reg,
                     x : top,
@@ -444,7 +441,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                         InsnGeneral {
                            y : rhs,
                            op,
-                           imm : Immediate12::from(0u8),
+                           imm : 0u8.into(),
                         }),
                     z : temp_reg,
                     x : lhs,
