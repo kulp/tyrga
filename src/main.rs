@@ -632,7 +632,7 @@ fn test_make_instruction() {
     let op = Operation::Constant { kind : JType::Int, value : 5 };
     let namer = |x| format!("{}:{}", "test", x);
     use classfile_parser::constant_info::ConstantInfo::Unusable;
-    let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| Unusable);
+    let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| &Unusable);
     let imm = 5u8.into();
     assert_eq!(insn.1, vec![ Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad } ]);
     assert_eq!(insn.1[0].to_string(), " B  <-  5");
@@ -728,12 +728,10 @@ mod util {
     use classfile_parser::ClassFile;
     use classfile_parser::constant_info::ConstantInfo;
 
-    pub type ConstantGetter = Fn(u16) -> ConstantInfo;
+    pub type ConstantGetter<'a> = Fn(u16) -> &'a ConstantInfo + 'a;
 
-    // TODO make this return a reference once we can appease the borrow checker
-    pub fn get_constant_getter(class : &ClassFile) -> impl Fn(u16) -> ConstantInfo {
-        let pool = class.const_pool.clone();
-        move |n| pool[usize::from(n) - 1].clone()
+    pub fn get_constant_getter<'a>(class : &'a ClassFile) -> impl Fn(u16) -> &'a ConstantInfo + 'a {
+        move |n| &class.const_pool[usize::from(n) - 1]
     }
 
     pub fn get_string(get_constant : &ConstantGetter, i : u16) -> Option<String>
