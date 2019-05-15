@@ -1055,7 +1055,7 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
     use tenyr::MemoryOpType::*;
     use tenyr::InstructionType::*;
 
-    let sm = &mut sm.clone();
+    let sm = &mut sm.clone(); // intentional clone of StackManager
 
     let insns = {
         let err = || TranslationError::new("method descriptor missing");
