@@ -657,7 +657,7 @@ impl Error for TranslationError {
     fn description(&self) -> &str { &self.0 }
 }
 
-pub type Result<T> = std::result::Result<T, Box<Error>>;
+pub type GeneralResult<T> = std::result::Result<T, Box<Error>>;
 
 fn generic_error<E>(e : E) -> Box<TranslationError>
     where E : std::error::Error
@@ -675,7 +675,7 @@ fn parse_class(stem : &str) -> ClassFile {
 type RangeMap<T> = (Vec<Range<usize>>, BTreeMap<usize, T>);
 
 fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
-    -> Result<RangeMap<&'a T>>
+    -> GeneralResult<RangeMap<&'a T>>
 {
     use classfile_parser::attribute_info::StackMapFrame::*;
     let get_delta = |f : &StackMapFrame| match *f {
@@ -715,7 +715,7 @@ fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
 }
 
 
-fn get_method_code(method : &MethodInfo) -> Result<CodeAttribute> {
+fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
     use classfile_parser::attribute_info::code_attribute_parser;
     Ok(code_attribute_parser(&method.attributes[0].info).map_err(generic_error)?.1)
 }
@@ -756,7 +756,7 @@ mod util {
 }
 
 fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
-    -> Result<RangeMap<Operation>>
+    -> GeneralResult<RangeMap<Operation>>
 {
     use classfile_parser::attribute_info::AttributeInfo;
     use classfile_parser::attribute_info::stack_map_table_attribute_parser;
@@ -982,10 +982,10 @@ impl fmt::Display for Method {
 
 mod args {
     use super::TranslationError;
-    use super::Result;
+    use super::GeneralResult;
 
-    fn count_internal(s : &str) -> Result<u8> {
-        fn eat(s : &str) -> Result<usize> {
+    fn count_internal(s : &str) -> GeneralResult<u8> {
+        fn eat(s : &str) -> GeneralResult<usize> {
             let ch = s.chars().nth(0).ok_or_else(|| TranslationError::new("string ended too soon"))?;
             match ch {
                 'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'D' | 'J' | 'V' => Ok(1),
@@ -1009,21 +1009,21 @@ mod args {
     }
 
     // JVM limitations restrict the count of method parameters to 255 at most
-    pub fn count_args(descriptor : &str) -> Result<u8> {
+    pub fn count_args(descriptor : &str) -> GeneralResult<u8> {
         let open = 1; // byte index of open parenthesis is 0
         let close = descriptor.rfind(')').ok_or_else(|| TranslationError::new("descriptor missing closing parenthesis"))?;
         count_internal(&descriptor[open..close])
     }
 
     // JVM limitations restrict the count of return values to 1 at most, of size 2 at most
-    pub fn count_returns(descriptor : &str) -> Result<u8> {
+    pub fn count_returns(descriptor : &str) -> GeneralResult<u8> {
         let close = descriptor.rfind(')').ok_or_else(|| TranslationError::new("descriptor missing closing parenthesis"))?;
         count_internal(&descriptor[close+1..])
     }
 }
 
 #[test]
-fn test_count_args() -> Result<()> {
+fn test_count_args() -> GeneralResult<()> {
     assert_eq!(3, count_args("(III)V")?);
     assert_eq!(4, count_args("(JD)I")?);
     assert_eq!(2, count_args("(Lmetasyntactic;Lvariable;)I")?);
@@ -1034,7 +1034,7 @@ fn test_count_args() -> Result<()> {
 }
 
 #[test]
-fn test_count_returns() -> Result<()> {
+fn test_count_returns() -> GeneralResult<()> {
     assert_eq!(0, count_returns("(III)V")?);
     assert_eq!(1, count_returns("(JD)I")?);
     assert_eq!(1, count_returns("(Lmetasyntactic;Lvariable;)I")?);
@@ -1044,7 +1044,7 @@ fn test_count_returns() -> Result<()> {
     Ok(())
 }
 
-fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager) -> Result<Method> {
+fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager) -> GeneralResult<Method> {
     use tenyr::*;
     use tenyr::MemoryOpType::*;
     use tenyr::InstructionType::*;
