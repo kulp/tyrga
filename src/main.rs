@@ -4,6 +4,7 @@ mod mangling;
 mod stack;
 mod tenyr;
 
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashSet;
 use std::convert::TryFrom;
@@ -12,13 +13,16 @@ use std::error::Error;
 use std::fmt;
 use std::ops::Range;
 
-use jvmtypes::*;
-
 use classfile_parser::ClassFile;
+use classfile_parser::attribute_info::CodeAttribute;
+use classfile_parser::attribute_info::StackMapFrame;
+use classfile_parser::method_info::MethodInfo;
 
-use tenyr::{Instruction, Register, SmallestImmediate};
-
+use args::*;
+use jvmtypes::*;
 use stack::*;
+use tenyr::{Instruction, Register, SmallestImmediate};
+use util::*;
 
 const STACK_PTR : Register = Register::O;
 const STACK_REGS : &[Register] = { use Register::*; &[ B, C, D, E, F, G, H, I, J, K, L, M, N ] };
@@ -674,8 +678,6 @@ fn parse_class(stem : &str) -> ClassFile {
 
 type RangeMap<T> = (Vec<Range<usize>>, BTreeMap<usize, T>);
 
-use classfile_parser::attribute_info::StackMapFrame;
-use std::collections::BTreeMap;
 fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
     -> Result<RangeMap<&'a T>>
 {
@@ -716,8 +718,6 @@ fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
     Ok((ranges, tree))
 }
 
-use classfile_parser::attribute_info::CodeAttribute;
-use classfile_parser::method_info::MethodInfo;
 
 fn get_method_code(method : &MethodInfo) -> Result<CodeAttribute> {
     use classfile_parser::attribute_info::code_attribute_parser;
@@ -758,7 +758,6 @@ mod util {
         Instruction { dd : StoreRight, ..index_local(sm, reg, idx) }
     }
 }
-use util::*;
 
 fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
     -> Result<RangeMap<Operation>>
@@ -1026,7 +1025,6 @@ mod args {
         count_internal(&descriptor[close+1..])
     }
 }
-use args::*;
 
 #[test]
 fn test_count_args() -> Result<()> {
