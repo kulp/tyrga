@@ -147,19 +147,19 @@ fn test_expand() {
     }
 }
 
-type Namer = Fn(usize) -> String;
+type Namer = Fn(usize) -> GeneralResult<String>;
 type MakeInsnResult = (usize, Vec<Instruction>, Vec<Destination>);
 
-fn make_target(target : u16, target_namer : &Namer) -> exprtree::Atom {
+fn make_target(target : u16, target_namer : &Namer) -> GeneralResult<exprtree::Atom> {
     use exprtree::Atom::*;
     use exprtree::Expr;
     use exprtree::Operation::*;
     use std::rc::Rc;
 
-    let tn = target_namer(target.into());
+    let tn = target_namer(target.into())?;
     let a = Variable(tn);
     let b = Expression(Rc::new(Expr { a : Variable(".".to_owned()), op : Add, b : Immediate(1) }));
-    Expression(Rc::new(Expr { a, op : Sub, b }))
+    Ok(Expression(Rc::new(Expr { a, op : Sub, b })))
 }
 
 type BranchComp = FnMut(&mut StackManager) -> (tenyr::Register, Vec<Instruction>);
@@ -171,7 +171,7 @@ fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target :
     let mut dest = Vec::new();
     dest.push(Destination::Successor);
     dest.push(Destination::Address(target.into()));
-    let o = make_target(target, target_namer);
+    let o = make_target(target, target_namer).unwrap();
 
     let (temp_reg, sequence) = comp(sm);
     let branch = Instruction {
@@ -229,7 +229,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
     let make_jump = |target| {
         Instruction {
-            kind : Type3(tenyr::Immediate::Expr(make_target(target, target_namer))),
+            kind : Type3(tenyr::Immediate::Expr(make_target(target, target_namer).unwrap())),
             ..make_mov(tenyr::Register::P, tenyr::Register::P)
         }
     };
@@ -630,7 +630,7 @@ fn test_make_instruction() {
     use tenyr::InstructionType::*;
     let mut sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
     let op = Operation::Constant { kind : JType::Int, value : 5 };
-    let namer = |x| format!("{}:{}", "test", x);
+    let namer = |x| Ok(format!("{}:{}", "test", x));
     use classfile_parser::constant_info::ConstantInfo::Unusable;
     let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| &Unusable);
     let imm = 5u8.into();
@@ -915,7 +915,7 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
             // TODO obviate clones
             let class = class.clone();
             let method = method.clone();
-            move |x : usize| make_label(&class, &method, &x.to_string()).unwrap()
+            move |x : usize| make_label(&class, &method, &x.to_string())
         };
 
         let get_constant = get_constant_getter(&class);
