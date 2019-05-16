@@ -171,7 +171,7 @@ fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target :
     let mut dest = Vec::new();
     dest.push(Destination::Successor);
     dest.push(Destination::Address(target.into()));
-    let o = make_target(target, target_namer).unwrap();
+    let o = make_target(target, target_namer)?;
 
     let (temp_reg, sequence) = comp(sm);
     let branch = Instruction {
@@ -356,7 +356,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let y = get_reg(sm.get(0));
                 let x = get_reg(sm.get(1));
                 let z = x;
-                let op = translate_arithmetic_op(op).unwrap();
+                let op = translate_arithmetic_op(op).ok_or_else(|| TranslationError::new("no op for this opcode"))?;
                 let dd = MemoryOpType::NoLoad;
                 let imm = 0u8.into();
                 let mut v = Vec::new();
