@@ -820,22 +820,25 @@ fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> Strin
     mangling::mangle(joined.bytes()).expect("failed to mangle")
 }
 
-fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> String {
+fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> GeneralResult<String> {
     use classfile_parser::constant_info::ConstantInfo::*;
 
     let get_constant = get_constant_getter(class);
     let get_string = |n| get_string(&get_constant, n);
+    let te = TranslationError::new;
 
     let cl = match get_constant(class.this_class) { Class(c) => c, _ => panic!("not a class") };
-    join_name_parts(
-        get_string(cl.name_index).expect("bad class name").as_ref(),
-        get_string(method.name_index).expect("bad method name").as_ref(),
-        get_string(method.descriptor_index).expect("bad method descriptor").as_ref()
-    )
+    let name = join_name_parts(
+        get_string(cl.name_index).ok_or_else(|| te("bad class name"))?.as_ref(),
+        get_string(method.name_index).ok_or_else(|| te("bad method name"))?.as_ref(),
+        get_string(method.descriptor_index).ok_or_else(|| te("bad method descriptor"))?.as_ref()
+    );
+    Ok(name)
 }
 
 fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> String {
-    mangling::mangle(make_unique_method_name(class, method).bytes()).expect("failed to mangle")
+    let name = make_unique_method_name(class, method).map_err(|e| format!("failed to make name : {}", e)).unwrap();
+    mangling::mangle(name.bytes()).expect("failed to mangle")
 }
 
 fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> String {
