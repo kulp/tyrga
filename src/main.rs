@@ -885,7 +885,9 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range
 
 // The incoming StackManager represents a "prototype" StackManager which should be empty, and which
 // will be cloned each time a new BasicBlock is seen.
-fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager) -> Vec<tenyr::BasicBlock> {
+fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager)
+    -> GeneralResult<Vec<tenyr::BasicBlock>>
+{
     let (ranges, ops) = get_ranges_for_method(&class, &method).expect("failed to get ranges for map");
     use std::iter::FromIterator;
     let rangemap = &BTreeMap::from_iter(ranges.into_iter().map(|r| (r.start, r)));
@@ -902,10 +904,10 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
 
     let mut seen = HashSet::new();
 
-    fn make_blocks(params : &Params, seen : &mut HashSet<usize>, mut sm : StackManager, which : &Range<usize>) -> Vec<tenyr::BasicBlock> {
+    fn make_blocks(params : &Params, seen : &mut HashSet<usize>, mut sm : StackManager, which : &Range<usize>) -> GeneralResult<Vec<tenyr::BasicBlock>> {
         let (class, method, rangemap, ops) = (params.class, params.method, params.rangemap, params.ops);
         if seen.contains(&which.start) {
-            return vec![];
+            return Ok(vec![]);
         }
         seen.insert(which.start);
 
@@ -924,25 +926,27 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
         out.push(bb);
 
         for exit in &ee {
-            out.extend(make_blocks(params, seen, sm.clone(), &rangemap[&exit])); // intentional clone of StackManager
+            out.extend(make_blocks(params, seen, sm.clone(), &rangemap[&exit])?); // intentional clone of StackManager
         }
 
-        out
+        Ok(out)
     }
 
     make_blocks(&params, &mut seen, sm.clone(), &rangemap[&0]) // intentional clone of StackManager
 }
 
 #[cfg(test)]
-fn test_stack_map_table(stem : &str) {
+fn test_stack_map_table(stem : &str) -> GeneralResult<()> {
     let class = parse_class(stem);
     for method in &class.methods {
         let sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
-        let bbs = make_blocks_for_method(&class, method, &sm);
+        let bbs = make_blocks_for_method(&class, method, &sm)?;
         for bb in &bbs {
             eprintln!("{}", bb);
         }
     }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -957,11 +961,13 @@ const CLASS_LIST : &[&str] = &[
 ];
 
 #[test]
-fn test_parse_classes()
+fn test_parse_classes() -> GeneralResult<()>
 {
     for name in CLASS_LIST {
-        test_stack_map_table(name);
+        test_stack_map_table(name)?;
     }
+
+    Ok(())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1075,7 +1081,7 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
     let label = make_label(class, method, "preamble")?;
     let preamble = tenyr::BasicBlock { label, insns };
 
-    let blocks = make_blocks_for_method(class, method, sm);
+    let blocks = make_blocks_for_method(class, method, sm)?;
     let name = make_mangled_method_name(class, method)?;
     Ok(Method { name, preamble, blocks })
 }
