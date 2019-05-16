@@ -148,7 +148,7 @@ fn test_expand() {
 }
 
 type Namer = Fn(usize) -> GeneralResult<String>;
-type MakeInsnResult = (usize, Vec<Instruction>, Vec<Destination>);
+type MakeInsnResult = GeneralResult<(usize, Vec<Instruction>, Vec<Destination>)>;
 
 fn make_target(target : u16, target_namer : &Namer) -> GeneralResult<exprtree::Atom> {
     use exprtree::Atom::*;
@@ -187,7 +187,7 @@ fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target :
     };
     let mut v = sequence;
     v.push(branch);
-    (addr, v, dest)
+    Ok((addr, v, dest))
 }
 
 fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), target_namer : &Namer, get_constant : &ConstantGetter)
@@ -269,7 +269,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         sm.release_frozen(takes.into());
         sm.reserve_frozen(rets.into());
         insns.extend(sm.thaw());
-        (*addr, insns, default_dest.clone())
+        Ok((*addr, insns, default_dest.clone()))
     };
 
     let name_op = |op| {
@@ -310,7 +310,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         v.extend(sm.reserve(1));
         let insn = make_mov(get_reg(sm.get(0)), Register::A);
         v.extend(expand_immediate_load(sm, insn, value));
-        (*addr, v, default_dest.clone())
+        Ok((*addr, v, default_dest.clone()))
     };
 
     match op.clone() { // TODO obviate clone
@@ -335,7 +335,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     ],
             };
             v.extend(sm.empty());
-            (*addr, v, vec![]) // leaving the method is not a Destination we care about
+            Ok((*addr, v, vec![])) // leaving the method is not a Destination we care about
         },
 
         Arithmetic { kind : JType::Int, op : ArithmeticOperation::Neg }
@@ -348,7 +348,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let dd = MemoryOpType::NoLoad;
                 let imm = 0u8.into();
                 let v = vec![ Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd } ];
-                (*addr, v, default_dest)
+                Ok((*addr, v, default_dest))
             },
         Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some()
             => {
@@ -362,7 +362,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let mut v = Vec::new();
                 v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
                 v.extend(sm.release(1));
-                (*addr, v, default_dest)
+                Ok((*addr, v, default_dest))
             },
         Arithmetic { kind, op }
             => make_call(sm, &make_arithmetic_name(kind, op), &make_arithmetic_descriptor(kind, op)),
@@ -371,14 +371,14 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let mut v = Vec::new();
                 v.extend(sm.reserve(1));
                 v.push(load_local(sm, get_reg(sm.get(0)), index.into()));
-                (*addr, v, default_dest)
+                Ok((*addr, v, default_dest))
             },
         StoreLocal { kind, index } if kind == JType::Int || kind == JType::Object
             => {
                 let mut v = Vec::new();
                 v.push(store_local(sm, get_reg(sm.get(0)), index.into()));
                 v.extend(sm.release(1));
-                (*addr, v, default_dest)
+                Ok((*addr, v, default_dest))
             },
         Increment { index, value } => {
             use tenyr::*;
@@ -396,7 +396,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             ]);
             v.extend(sm.release(1));
 
-            (*addr, v, default_dest)
+            Ok((*addr, v, default_dest))
         },
         Branch { kind : JType::Int, ops : OperandCount::_1, way, target } => {
             use tenyr::*;
@@ -484,7 +484,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             let (i, d) : (Vec<_>, Vec<_>) = pairs.iter().map(|&(compare, target)| {
                 let (_, insns, dests) =
-                    make_int_branch(sm, *addr, false, (target + here) as u16, target_namer, &mut maker(compare));
+                    make_int_branch(sm, *addr, false, (target + here) as u16, target_namer, &mut maker(compare)).unwrap();
                 (insns, dests)
             }).unzip();
 
@@ -497,7 +497,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             insns.push(make_jump(there));
             dests.push(Destination::Address(there.into()));
 
-            (*addr, insns, dests)
+            Ok((*addr, insns, dests))
         },
         Switch(Table { default, low, high, offsets }) => {
             use tenyr::*;
@@ -532,9 +532,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             };
 
             let (lo_addr, lo_insns, lo_dests) =
-                make_int_branch(sm, *addr, false, there, target_namer, &mut maker(&Type1, low));
+                make_int_branch(sm, *addr, false, there, target_namer, &mut maker(&Type1, low))?;
             let (_hi_addr, hi_insns, hi_dests) =
-                make_int_branch(sm, *addr, false, there, target_namer, &mut maker(&Type2, high));
+                make_int_branch(sm, *addr, false, there, target_namer, &mut maker(&Type2, high))?;
 
             let addr = lo_addr;
 
@@ -559,9 +559,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             insns.extend(sm.release(1)); // release temporary
 
-            (addr, insns, dests)
+            Ok((addr, insns, dests))
         },
-        Jump { target } => (*addr, vec![ make_jump(target) ], vec![ Destination::Address(target as usize) ]),
+        Jump { target } => Ok((*addr, vec![ make_jump(target) ], vec![ Destination::Address(target as usize) ])),
         LoadArray(kind) | StoreArray(kind) => {
             let mut v = Vec::new();
             let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
@@ -597,16 +597,16 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let kind = Type1(InsnGeneral { y, op, imm });
             let insn = Instruction { kind, z, x, dd };
             v.push(insn);
-            (*addr, v, default_dest)
+            Ok((*addr, v, default_dest))
         },
-        Noop => (*addr, vec![ make_mov(Register::A, Register::A) ], default_dest),
+        Noop => Ok((*addr, vec![ make_mov(Register::A, Register::A) ], default_dest)),
         Length => {
             // TODO document layout of arrays
             // This implementation assumes a reference to an array points to its first element, and
             // that one word below that element is a word containing the number of elements.
             let top = get_reg(sm.get(0));
             let insn = Instruction { kind : Type3((-1i8).into()), ..make_load(top, top) };
-            (*addr, vec![ insn ], default_dest)
+            Ok((*addr, vec![ insn ], default_dest))
         },
         // TODO fully handle Special (this is dumb partial handling)
         Invocation { kind : InvokeKind::Special, index } |
@@ -615,7 +615,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         StackOp { op : StackOperation::Pop, size } => {
             let size : u8 = size.into();
             let v = sm.release(size.into());
-            (*addr, v, default_dest)
+            Ok((*addr, v, default_dest))
         },
 
         _ => panic!("unhandled operation {:?}", op),
@@ -623,7 +623,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 }
 
 #[test]
-fn test_make_instruction() {
+fn test_make_instruction() -> GeneralResult<()> {
     use tenyr::MemoryOpType::*;
     use Register::*;
     use Instruction;
@@ -632,10 +632,12 @@ fn test_make_instruction() {
     let op = Operation::Constant { kind : JType::Int, value : 5 };
     let namer = |x| Ok(format!("{}:{}", "test", x));
     use classfile_parser::constant_info::ConstantInfo::Unusable;
-    let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| &Unusable);
+    let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| &Unusable)?;
     let imm = 5u8.into();
     assert_eq!(insn.1, vec![ Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad } ]);
     assert_eq!(insn.1[0].to_string(), " B  <-  5");
+
+    Ok(())
 }
 
 #[derive(Clone, Debug)]
@@ -864,7 +866,7 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range
     for insn in list {
         let does_branch = |&e| if let Address(n) = e { Some(n) } else { None };
 
-        let (_, ins, exs) = insn;
+        let (_, ins, exs) = insn?;
 
         // update the state of includes_successor each time so that the last instruction's behavior
         // is captured
