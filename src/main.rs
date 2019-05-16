@@ -1005,7 +1005,7 @@ mod args {
         }
 
         if s.is_empty() { return Ok(0); }
-        let ch = s.chars().nth(0).unwrap(); // cannot fail since s is not empty
+        let ch = s.chars().nth(0).ok_or_else(|| TranslationError::new("impossible empty string"))?; // cannot fail since s is not empty
         let mine = match ch {
             'B' | 'C' | 'F' | 'I' | 'S' | 'Z' => Ok(1),
             'D' | 'J' => Ok(2),
