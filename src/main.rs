@@ -847,7 +847,8 @@ fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> Genera
         mangling::mangle(format!(":__{}", suffix).bytes())?))
 }
 
-fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range : &Range<usize>) -> (tenyr::BasicBlock, BTreeSet<usize>)
+fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range : &Range<usize>)
+    -> GeneralResult<(tenyr::BasicBlock, BTreeSet<usize>)>
     where T : IntoIterator<Item=MakeInsnResult>
 {
     use tenyr::BasicBlock;
@@ -872,7 +873,7 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range
         exits.extend(exs.iter().filter_map(does_branch).filter(|&e| !inside(e)));
         insns.extend(ins);
     }
-    let label = make_label(class, method, &range.start.to_string()).unwrap();
+    let label = make_label(class, method, &range.start.to_string())?;
 
     if includes_successor {
         exits.insert(range.end);
@@ -880,7 +881,7 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range
 
     insns.shrink_to_fit();
 
-    (BasicBlock { label, insns }, exits)
+    Ok((BasicBlock { label, insns }, exits))
 }
 
 // The incoming StackManager represents a "prototype" StackManager which should be empty, and which
@@ -921,7 +922,7 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
         let get_constant = get_constant_getter(&class);
 
         let block : Vec<_> = ops.range(which.clone()).map(|x| make_instructions(&mut sm, x, &namer, &get_constant)).collect();
-        let (bb, ee) = make_basic_block(&class, &method, block, which);
+        let (bb, ee) = make_basic_block(&class, &method, block, which)?;
         let mut out = Vec::new();
         out.push(bb);
 
