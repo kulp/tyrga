@@ -836,14 +836,14 @@ fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> GeneralR
     Ok(name)
 }
 
-fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> String {
-    let name = make_unique_method_name(class, method).map_err(|e| format!("failed to make name : {}", e)).unwrap();
-    mangling::mangle(name.bytes()).expect("failed to mangle")
+fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> GeneralResult<String> {
+    let name = make_unique_method_name(class, method)?;
+    mangling::mangle(name.bytes())
 }
 
 fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> String {
     format!(".L{}{}",
-        make_mangled_method_name(class, method),
+        make_mangled_method_name(class, method).unwrap(),
         mangling::mangle(format!(":__{}", suffix).bytes()).expect("failed to mangle"))
 }
 
@@ -1076,7 +1076,7 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
     let preamble = tenyr::BasicBlock { label, insns };
 
     let blocks = make_blocks_for_method(class, method, sm);
-    let name = make_mangled_method_name(class, method);
+    let name = make_mangled_method_name(class, method)?;
     Ok(Method { name, preamble, blocks })
 }
 
