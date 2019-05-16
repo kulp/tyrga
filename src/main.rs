@@ -841,10 +841,10 @@ fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> General
     mangling::mangle(name.bytes())
 }
 
-fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> String {
-    format!(".L{}{}",
-        make_mangled_method_name(class, method).unwrap(),
-        mangling::mangle(format!(":__{}", suffix).bytes()).expect("failed to mangle"))
+fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> GeneralResult<String> {
+    Ok(format!(".L{}{}",
+        make_mangled_method_name(class, method)?,
+        mangling::mangle(format!(":__{}", suffix).bytes())?))
 }
 
 fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range : &Range<usize>) -> (tenyr::BasicBlock, BTreeSet<usize>)
@@ -872,7 +872,7 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range
         exits.extend(exs.iter().filter_map(does_branch).filter(|&e| !inside(e)));
         insns.extend(ins);
     }
-    let label = make_label(class, method, &range.start.to_string());
+    let label = make_label(class, method, &range.start.to_string()).unwrap();
 
     if includes_successor {
         exits.insert(range.end);
@@ -913,7 +913,7 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
             // TODO obviate clones
             let class = class.clone();
             let method = method.clone();
-            move |x : usize| make_label(&class, &method, &x.to_string())
+            move |x : usize| make_label(&class, &method, &x.to_string()).unwrap()
         };
 
         let get_constant = get_constant_getter(&class);
@@ -1072,7 +1072,7 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
             store_local(sm, bottom, max_locals),
         ]
     };
-    let label = make_label(class, method, "preamble");
+    let label = make_label(class, method, "preamble")?;
     let preamble = tenyr::BasicBlock { label, insns };
 
     let blocks = make_blocks_for_method(class, method, sm);
