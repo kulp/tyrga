@@ -232,10 +232,11 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     let make_load = |to, from| Instruction { dd : LoadRight , ..make_mov(to, from) };
 
     let make_jump = |target| {
-        Instruction {
-            kind : Type3(tenyr::Immediate::Expr(make_target(target, target_namer).unwrap())),
+        let result : GeneralResult<Instruction> = Ok(Instruction {
+            kind : Type3(tenyr::Immediate::Expr(make_target(target, target_namer)?)),
             ..make_mov(tenyr::Register::P, tenyr::Register::P)
-        }
+        });
+        result
     };
 
     let translate_way = |way|
@@ -498,7 +499,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             insns.extend(i);
             dests.extend(d);
 
-            insns.push(make_jump(there));
+            insns.push(make_jump(there)?);
             dests.push(Destination::Address(there.into()));
 
             Ok((*addr, insns, dests))
@@ -549,10 +550,17 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let insn = Instruction { kind, z : Register::P, x : top, dd : NoLoad };
             insns.extend(expand_immediate_load(sm, insn, low)?);
 
+            let make_pairs = |n| {
+                let result : GeneralResult<(_,_)> =
+                    Ok((make_jump((n + here) as u16)?, Destination::Address((n + here) as usize)));
+                result
+            };
             let (i, d) : (Vec<_>, Vec<_>) =
                 offsets
                     .into_iter()
-                    .map(|n| (make_jump((n + here) as u16), Destination::Address((n + here) as usize)))
+                    .map(make_pairs)
+                    .collect::<Result<Vec<_>,_>>()?
+                    .into_iter()
                     .unzip();
 
             insns.extend(i);
@@ -565,7 +573,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             Ok((addr, insns, dests))
         },
-        Jump { target } => Ok((*addr, vec![ make_jump(target) ], vec![ Destination::Address(target as usize) ])),
+        Jump { target } => Ok((*addr, vec![ make_jump(target)? ], vec![ Destination::Address(target as usize) ])),
         LoadArray(kind) | StoreArray(kind) => {
             let mut v = Vec::new();
             let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
