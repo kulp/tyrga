@@ -487,7 +487,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 }
             };
 
-            let (i, d) : (Vec<_>, Vec<_>) = pairs.iter().map(|&(compare, target)| {
+            let (i, d) : (Vec<_>, Vec<_>) = pairs.into_iter().map(|(compare, target)| {
                 let (_, insns, dests) =
                     make_int_branch(sm, *addr, false, (target + here) as u16, target_namer, &mut maker(compare)).unwrap();
                 (insns, dests)
