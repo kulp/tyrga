@@ -306,8 +306,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     };
     let make_arithmetic_name = |kind, op| {
         let descriptor = make_arithmetic_descriptor(kind, op);
-        let proc = format!("{}{}", name_op(op).to_lowercase(), kind.get_char().unwrap());
-        mangling::mangle(join_name_parts("tyrga/Builtin", &proc, &descriptor).bytes()).unwrap()
+        let k = kind.get_char().ok_or_else(|| TranslationError::new("no char for kind"));
+        let proc = format!("{}{}", name_op(op).to_lowercase(), k?);
+        mangling::mangle(join_name_parts("tyrga/Builtin", &proc, &descriptor).bytes())
     };
 
     let make_int_constant = |sm : &mut StackManager, value : i32| {
@@ -370,7 +371,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 Ok((*addr, v, default_dest))
             },
         Arithmetic { kind, op }
-            => make_call(sm, &make_arithmetic_name(kind, op), &make_arithmetic_descriptor(kind, op)),
+            => make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)),
         LoadLocal { kind, index } if kind == JType::Int || kind == JType::Object
             => {
                 let mut v = Vec::new();
