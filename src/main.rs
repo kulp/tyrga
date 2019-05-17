@@ -166,7 +166,7 @@ fn make_target(target : u16, target_namer : &Namer) -> GeneralResult<exprtree::A
     Ok(Expression(Rc::new(Expr { a, op : Sub, b })))
 }
 
-type BranchComp = FnMut(&mut StackManager) -> (tenyr::Register, Vec<Instruction>);
+type BranchComp = FnMut(&mut StackManager) -> GeneralResult<(tenyr::Register, Vec<Instruction>)>;
 
 fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target : u16, target_namer : &Namer, comp : &mut BranchComp) -> MakeInsnResult {
     use tenyr::*;
@@ -177,7 +177,7 @@ fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target :
     dest.push(Destination::Address(target.into()));
     let o = make_target(target, target_namer)?;
 
-    let (temp_reg, sequence) = comp(sm);
+    let (temp_reg, sequence) = comp(sm)?;
     let branch = Instruction {
         kind : Type2(
             InsnGeneral {
@@ -424,7 +424,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     x : top,
                     dd : MemoryOpType::NoLoad,
                 });
-                (temp_reg, v)
+                Ok((temp_reg, v))
             };
 
             make_int_branch(sm, *addr, false, target, target_namer, &mut op1)
@@ -452,7 +452,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     x : lhs,
                     dd : MemoryOpType::NoLoad,
                 });
-                (temp_reg, v)
+                Ok((temp_reg, v))
             };
 
             make_int_branch(sm, *addr, invert, target, target_namer, &mut op2)
@@ -482,8 +482,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                         x : top,
                         dd : MemoryOpType::NoLoad,
                     };
-                    let insns = expand_immediate_load(sm, insn, imm).unwrap();
-                    (temp_reg, insns)
+                    let insns = expand_immediate_load(sm, insn, imm)?;
+                    Ok((temp_reg, insns))
                 }
             };
 
@@ -531,8 +531,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                         x : top,
                         dd : MemoryOpType::NoLoad,
                     };
-                    let insns = expand_immediate_load(sm, insn, imm).unwrap();
-                    (temp_reg, insns)
+                    let insns = expand_immediate_load(sm, insn, imm)?;
+                    Ok((temp_reg, insns))
                 }
             };
 
