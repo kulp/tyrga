@@ -34,7 +34,7 @@ enum Destination {
 }
 
 fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
-    -> Vec<Instruction>
+    -> GeneralResult<Vec<Instruction>>
 {
     use tenyr::InsnGeneral;
     use tenyr::InstructionType::*;
@@ -42,7 +42,7 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
     use tenyr::Opcode::*;
     use SmallestImmediate::*;
 
-    let imm = SmallestImmediate::try_from(imm).unwrap(); // cannot fail, Infallible
+    let imm = SmallestImmediate::try_from(imm)?; // cannot fail, Infallible
     let adder  = InsnGeneral { y : Register::A, op : Add , imm : 0u8.into() };
     let packer = InsnGeneral { y : Register::A, op : Pack, imm : 0u8.into() };
 
@@ -66,7 +66,7 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
         }.into_iter()
     };
 
-    match (insn.kind, imm) {
+    let v = match (insn.kind, imm) {
         (Type3(..), Imm12(imm)) => vec![ Instruction { kind : Type3(imm.into()), ..insn } ],
         (Type3(..), Imm20(imm)) => vec![ Instruction { kind : Type3(imm), ..insn } ],
         (Type0(g) , Imm12(imm)) => vec![ Instruction { kind : Type0(InsnGeneral { imm, ..g }), ..insn } ],
@@ -78,7 +78,7 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
             use tenyr::Opcode::*;
 
             let reserve = sm.reserve(1).into_iter();
-            let temp = sm.get(0).unwrap();
+            let temp = sm.get(0).ok_or_else(|| TranslationError::new("stack unexpectedly empty"))?;
             let pack = make_imm(temp, imm);
             let (op, a, b, c) = match kind {
                 Type3(_) => (BitwiseOr, insn.x, Register::A, temp), // should never be reached, but provides generality
@@ -97,11 +97,13 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
                 .chain(release)
                 .collect()
         },
-    }
+    };
+
+    Ok(v)
 }
 
 #[test]
-fn test_expand() {
+fn test_expand() -> GeneralResult<()> {
     use tenyr::*;
     use Register::*;
     use InstructionType::*;
@@ -113,7 +115,7 @@ fn test_expand() {
     {
         let imm = 8675390i32;
         let insn = Instruction { kind : Type0(InsnGeneral { y : B, imm : 0u8.into(), op : Opcode::Multiply }), x : C, dd : StoreRight, z : D };
-        let vv = expand_immediate_load(&mut sm, insn, imm);
+        let vv = expand_immediate_load(&mut sm, insn, imm)?;
         eprintln!("{:?}", vv);
         assert_eq!(vv.len(), 4);
     }
@@ -121,7 +123,7 @@ fn test_expand() {
     {
         let imm = 123;
         let insn = Instruction { kind : Type3(0u8.into()), x : C, dd : StoreRight, z : D };
-        let vv = expand_immediate_load(&mut sm, insn.clone(), imm);
+        let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
         assert_eq!(vv.len(), 1);
         // TODO more robust test
     }
@@ -129,7 +131,7 @@ fn test_expand() {
     {
         let imm = 8675309i32;
         let insn = Instruction { kind : Type3(0u8.into()), x : C, dd : StoreRight, z : D };
-        let vv = expand_immediate_load(&mut sm, insn.clone(), imm);
+        let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
         assert_eq!(vv.len(), 4);
         // TODO more robust test
     }
@@ -137,7 +139,7 @@ fn test_expand() {
     {
         let imm = 123;
         let insn = Instruction { kind : Type0(InsnGeneral { y : B, imm : 0u8.into(), op : Opcode::Multiply }), x : C, dd : StoreRight, z : D };
-        let vv = expand_immediate_load(&mut sm, insn.clone(), imm);
+        let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
         assert_eq!(vv.len(), 1);
         if let Type0(ref g) = vv[0].kind {
             assert_eq!(g.imm, 123u8.into());
@@ -145,6 +147,8 @@ fn test_expand() {
             panic!("wrong type");
         }
     }
+
+    Ok(())
 }
 
 type Namer = Fn(usize) -> GeneralResult<String>;
@@ -309,7 +313,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         let mut v = Vec::new();
         v.extend(sm.reserve(1));
         let insn = make_mov(get_reg(sm.get(0)), Register::A);
-        v.extend(expand_immediate_load(sm, insn, value));
+        v.extend(expand_immediate_load(sm, insn, value)?);
         Ok((*addr, v, default_dest.clone()))
     };
 
@@ -477,7 +481,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                         x : top,
                         dd : MemoryOpType::NoLoad,
                     };
-                    let insns = expand_immediate_load(sm, insn, imm);
+                    let insns = expand_immediate_load(sm, insn, imm).unwrap();
                     (temp_reg, insns)
                 }
             };
@@ -526,7 +530,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                         x : top,
                         dd : MemoryOpType::NoLoad,
                     };
-                    let insns = expand_immediate_load(sm, insn, imm);
+                    let insns = expand_immediate_load(sm, insn, imm).unwrap();
                     (temp_reg, insns)
                 }
             };
@@ -543,7 +547,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             let kind = Type1(InsnGeneral { y : Register::P, op : Opcode::Subtract, imm : 0u8.into() /* placeholder */ });
             let insn = Instruction { kind, z : Register::P, x : top, dd : NoLoad };
-            insns.extend(expand_immediate_load(sm, insn, low));
+            insns.extend(expand_immediate_load(sm, insn, low)?);
 
             let (i, d) : (Vec<_>, Vec<_>) =
                 offsets
