@@ -43,27 +43,28 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
     use SmallestImmediate::*;
 
     let imm = SmallestImmediate::try_from(imm)?; // cannot fail, Infallible
-    let adder  = InsnGeneral { y : Register::A, op : Add , imm : 0u8.into() };
-    let packer = InsnGeneral { y : Register::A, op : Pack, imm : 0u8.into() };
 
-    let noop = Instruction { kind : Type0(adder.clone()), z : Register::A, x : Register::A, dd : NoLoad };
+    fn make_imm(temp_reg : Register, imm : SmallestImmediate) -> GeneralResult<Vec<Instruction>> {
+        let adder  = InsnGeneral { y : Register::A, op : Add , imm : 0u8.into() };
+        let packer = InsnGeneral { y : Register::A, op : Pack, imm : 0u8.into() };
 
-    let make_imm = |temp_reg, imm| {
-        match imm {
+        let noop = Instruction { kind : Type0(adder.clone()), z : Register::A, x : Register::A, dd : NoLoad };
+        let result = match imm {
             Imm12(imm) => // This path is fairly useless, but it completes generality
                 vec![ Instruction { kind : Type0(InsnGeneral { imm, ..adder }), z : temp_reg, ..noop } ],
             Imm20(imm) =>
                 vec![ Instruction { kind : Type3(imm), z : temp_reg, ..noop } ],
             Imm32(imm) => {
                 let top = ((imm >> 12) as u16).into();
-                let bot = tenyr::Immediate12::try_from_bits((imm & 0xfff) as u16).unwrap(); // cannot fail
+                let bot = tenyr::Immediate12::try_from_bits((imm & 0xfff) as u16)?; // cannot fail
 
                 vec![
                     Instruction { kind : Type3(top), z : temp_reg, ..noop },
                     Instruction { kind : Type1(InsnGeneral { imm : bot, ..packer }), z : temp_reg, x : temp_reg, ..noop },
                 ]
             },
-        }.into_iter()
+        };
+        Ok(result)
     };
 
     let v = match (insn.kind, imm) {
@@ -77,9 +78,10 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
             use std::iter::once;
             use tenyr::Opcode::*;
 
+            let adder  = InsnGeneral { y : Register::A, op : Add , imm : 0u8.into() };
             let reserve = sm.reserve(1).into_iter();
             let temp = sm.get(0).ok_or_else(|| TranslationError::new("stack unexpectedly empty"))?;
-            let pack = make_imm(temp, imm);
+            let pack = make_imm(temp, imm)?.into_iter();
             let (op, a, b, c) = match kind {
                 Type3(_) => (BitwiseOr, insn.x, Register::A, temp), // should never be reached, but provides generality
                 Type0(g) => (g.op, insn.x, g.y, temp),
