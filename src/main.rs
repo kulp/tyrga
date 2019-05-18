@@ -211,7 +211,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     // same depth of the operand stack every time that instance is executed.
     let default_dest = vec![Destination::Successor];
 
-    let get_reg = |t : Option<_>| t.expect("asked but did not receive");
+    let get_reg = |t : Option<_>| t.ok_or_else(|| TranslationError::new("asked but did not receive"));
 
     let translate_arithmetic_op =
         |x| {
@@ -314,7 +314,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     let make_int_constant = |sm : &mut StackManager, value : i32| {
         let mut v = Vec::new();
         v.extend(sm.reserve(1));
-        let insn = make_mov(get_reg(sm.get(0)), Register::A);
+        let insn = make_mov(get_reg(sm.get(0))?, Register::A);
         v.extend(expand_immediate_load(sm, insn, value)?);
         Ok((*addr, v, default_dest.clone()))
     };
@@ -330,13 +330,13 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     vec![ ret ],
                 Int | Float | Object | Short | Char | Byte =>
                     vec![
-                        store_local(sm, get_reg(sm.get(0)), 0),
+                        store_local(sm, get_reg(sm.get(0))?, 0),
                         ret,
                     ],
                 Double | Long =>
                     vec![
-                        store_local(sm, get_reg(sm.get(1)), 0),
-                        store_local(sm, get_reg(sm.get(0)), 1),
+                        store_local(sm, get_reg(sm.get(1))?, 0),
+                        store_local(sm, get_reg(sm.get(0))?, 1),
                         ret
                     ],
             };
@@ -347,7 +347,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         Arithmetic { kind : JType::Int, op : ArithmeticOperation::Neg }
             => {
                 use tenyr::*;
-                let y = get_reg(sm.get(0));
+                let y = get_reg(sm.get(0))?;
                 let x = Register::A;
                 let z = x; // update same location on stack
                 let op = Opcode::Subtract;
@@ -359,8 +359,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some()
             => {
                 use tenyr::*;
-                let y = get_reg(sm.get(0));
-                let x = get_reg(sm.get(1));
+                let y = get_reg(sm.get(0))?;
+                let x = get_reg(sm.get(1))?;
                 let z = x;
                 let op = translate_arithmetic_op(op).ok_or_else(|| TranslationError::new("no op for this opcode"))?;
                 let dd = MemoryOpType::NoLoad;
@@ -376,13 +376,13 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             => {
                 let mut v = Vec::new();
                 v.extend(sm.reserve(1));
-                v.push(load_local(sm, get_reg(sm.get(0)), index.into()));
+                v.push(load_local(sm, get_reg(sm.get(0))?, index.into()));
                 Ok((*addr, v, default_dest))
             },
         StoreLocal { kind, index } if kind == JType::Int || kind == JType::Object
             => {
                 let mut v = Vec::new();
-                v.push(store_local(sm, get_reg(sm.get(0)), index.into()));
+                v.push(store_local(sm, get_reg(sm.get(0))?, index.into()));
                 v.extend(sm.release(1));
                 Ok((*addr, v, default_dest))
             },
@@ -394,7 +394,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             // method, but we should try to avoid dedicated temporary registers.
             let mut v = Vec::new();
             v.extend(sm.reserve(1));
-            let temp_reg = get_reg(sm.get(0));
+            let temp_reg = get_reg(sm.get(0))?;
             v.extend(vec![
                 load_local(sm, temp_reg, index),
                 Instruction { kind : Type3(imm), ..make_mov(temp_reg, temp_reg) },
@@ -411,7 +411,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let (op, _, _) = translate_way(way);
 
             let mut op1 = move |sm : &mut StackManager| {
-                let top = get_reg(sm.get(0));
+                let top = get_reg(sm.get(0))?;
                 let temp_reg = top;
                 let mut v = sm.release(1);
                 v.push(Instruction {
@@ -437,8 +437,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let (op, swap, invert) = translate_way(way);
 
             let mut op2 = move |sm : &mut StackManager| {
-                let rhs = get_reg(sm.get(0));
-                let lhs = get_reg(sm.get(1));
+                let rhs = get_reg(sm.get(0))?;
+                let lhs = get_reg(sm.get(1))?;
                 let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
                 let temp_reg = lhs;
                 let mut v = sm.release(2);
@@ -466,9 +466,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let there = (default + here) as u16;
 
             let mut dests = Vec::new();
-            let top = get_reg(sm.get(0));
+            let top = get_reg(sm.get(0))?;
             let mut insns = sm.reserve(1); // need a persistent temporary
-            let temp_reg = get_reg(sm.get(0));
+            let temp_reg = get_reg(sm.get(0))?;
 
             let maker = |imm : i32| {
                 move |sm : &mut StackManager| {
@@ -515,9 +515,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
 
             let mut dests = Vec::new();
-            let top = get_reg(sm.get(0));
+            let top = get_reg(sm.get(0))?;
             let mut insns = sm.reserve(1); // need a persistent temporary
-            let temp_reg = get_reg(sm.get(0));
+            let temp_reg = get_reg(sm.get(0))?;
 
             let maker = |kind : &'static InsnType, imm : i32| {
                 move |sm : &mut StackManager| {
@@ -578,23 +578,23 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         LoadArray(kind) | StoreArray(kind) => {
             let mut v = Vec::new();
             let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
-                let idx = get_reg(sm.get(0));
-                let arr = get_reg(sm.get(1));
+                let idx = get_reg(sm.get(0))?;
+                let arr = get_reg(sm.get(1))?;
                 v.extend(sm.release(2));
-                (idx, arr)
+                Ok((idx, arr)) as GeneralResult<(Register, Register)>
             };
             use tenyr::*;
             let (x, y, z, dd) = match *op {
                 LoadArray(_) => {
-                    let (idx, arr) = array_params(sm, &mut v);
+                    let (idx, arr) = array_params(sm, &mut v)?;
                     v.extend(sm.reserve(1));
-                    let res = get_reg(sm.get(0));
+                    let res = get_reg(sm.get(0))?;
                     (idx, arr, res, LoadRight)
                 },
                 StoreArray(_) => {
-                    let val = get_reg(sm.get(0));
+                    let val = get_reg(sm.get(0))?;
                     v.extend(sm.release(1));
-                    let (idx, arr) = array_params(sm, &mut v);
+                    let (idx, arr) = array_params(sm, &mut v)?;
                     (idx, arr, val, StoreRight)
                 },
                 _ => unreachable!(),
@@ -617,7 +617,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             // TODO document layout of arrays
             // This implementation assumes a reference to an array points to its first element, and
             // that one word below that element is a word containing the number of elements.
-            let top = get_reg(sm.get(0));
+            let top = get_reg(sm.get(0))?;
             let insn = Instruction { kind : Type3((-1i8).into()), ..make_load(top, top) };
             Ok((*addr, vec![ insn ], default_dest))
         },
