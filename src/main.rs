@@ -624,7 +624,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         // TODO fully handle Special (this is dumb partial handling)
         Invocation { kind : InvokeKind::Special, index } |
             Invocation { kind : InvokeKind::Static, index } =>
-            make_call(sm, &make_callable_name(get_constant, index)?, &get_method_parts(get_constant, index).2),
+            make_call(sm, &make_callable_name(get_constant, index)?, &get_method_parts(get_constant, index)?.2),
         StackOp { op : StackOperation::Pop, size } => {
             let size : u8 = size.into();
             let v = sm.release(size.into());
@@ -809,7 +809,7 @@ fn join_name_parts(class : &str, name : &str, desc : &str) -> String {
 
 type MethodNameParts = (String, String, String);
 
-fn get_method_parts(get_constant : &ConstantGetter, pool_index : u16) -> MethodNameParts {
+fn get_method_parts(get_constant : &ConstantGetter, pool_index : u16) -> GeneralResult<MethodNameParts> {
     use classfile_parser::constant_info::ConstantInfo::*;
 
     let get_string = |n| get_string(get_constant, n);
@@ -817,20 +817,21 @@ fn get_method_parts(get_constant : &ConstantGetter, pool_index : u16) -> MethodN
     if let MethodRef(mr) = get_constant(pool_index) {
         if let Class(cl) = get_constant(mr.class_index) {
             if let NameAndType(nt) = get_constant(mr.name_and_type_index) {
-                return (
-                        get_string(cl.name_index).expect("bad class name"),
-                        get_string(nt.name_index).expect("bad method name"),
-                        get_string(nt.descriptor_index).expect("bad method descriptor"),
-                    );
+                let te = TranslationError::new;
+                return Ok((
+                        get_string(cl.name_index).ok_or_else(|| te("bad class name"))?,
+                        get_string(nt.name_index).ok_or_else(|| te("bad method name"))?,
+                        get_string(nt.descriptor_index).ok_or_else(|| te("bad method descriptor"))?,
+                    ));
             }
         }
     }
 
-    panic!("error during constant pool lookup");
+    Err(TranslationError::new("error during constant pool lookup").into())
 }
 
 fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> GeneralResult<String> {
-    let parts = get_method_parts(get_constant, pool_index);
+    let parts = get_method_parts(get_constant, pool_index)?;
     let joined = join_name_parts(&parts.0, &parts.1, &parts.2);
     mangling::mangle(joined.bytes())
 }
