@@ -683,10 +683,10 @@ fn generic_error<E>(e : E) -> Box<TranslationError>
 }
 
 #[cfg(test)]
-fn parse_class(stem : &str) -> ClassFile {
+fn parse_class(stem : &str) -> GeneralResult<ClassFile> {
     let mut name = String::from(concat!(env!("OUT_DIR"), "/"));
     name.push_str(stem);
-    classfile_parser::parse_class(&name).expect("failed to parse class")
+    classfile_parser::parse_class(&name).map_err(Into::into)
 }
 
 type RangeMap<T> = (Vec<Range<usize>>, BTreeMap<usize, T>);
@@ -955,7 +955,7 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
 
 #[cfg(test)]
 fn test_stack_map_table(stem : &str) -> GeneralResult<()> {
-    let class = parse_class(stem);
+    let class = parse_class(stem)?;
     for method in &class.methods {
         let sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
         let bbs = make_blocks_for_method(&class, method, &sm)?;
@@ -1148,7 +1148,7 @@ fn main() -> std::result::Result<(), Box<Error>> {
             let out = stem.with_extension("tas");
             let out = out.file_name().expect("failed to format name for output file");
             let stem = stem.to_str().expect("expected Unicode filename");
-            let class = classfile_parser::parse_class(&stem).expect("failed to parse class");
+            let class = classfile_parser::parse_class(&stem)?;
 
             println!("Creating {} from {} ...", out.to_str().expect("expected Unicode filename"), file);
             let mut file = File::create(out)?;
