@@ -1012,24 +1012,26 @@ mod args {
 
     fn count_internal(s : &str) -> GeneralResult<u8> {
         fn eat(s : &str) -> GeneralResult<usize> {
-            let ch = s.chars().nth(0).ok_or_else(|| TranslationError::new("string ended too soon"))?;
+            let te = TranslationError::new;
+            let ch = s.chars().nth(0).ok_or_else(|| te("string ended too soon"))?;
             match ch {
                 'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'D' | 'J' | 'V' => Ok(1),
-                'L' => Ok(1 + s.find(';').ok_or_else(|| TranslationError::new("string ended too soon"))?),
+                'L' => Ok(1 + s.find(';').ok_or_else(|| te("string ended too soon"))?),
                 '[' => Ok(1 + eat(&s[1..])?),
-                _ => Err(TranslationError::new(&format!("unexpected character {}", ch)).into()),
+                _ => Err(te(&format!("unexpected character {}", ch)).into()),
             }
         }
 
+        let te = TranslationError::new;
         if s.is_empty() { return Ok(0); }
-        let ch = s.chars().nth(0).ok_or_else(|| TranslationError::new("impossible empty string"))?; // cannot fail since s is not empty
+        let ch = s.chars().nth(0).ok_or_else(|| te("impossible empty string"))?; // cannot fail since s is not empty
         let mine = match ch {
             'B' | 'C' | 'F' | 'I' | 'S' | 'Z' => Ok(1),
             'D' | 'J' => Ok(2),
             'L' => Ok(1),
             '[' => Ok(1),
             'V' => Ok(0),
-            _ => Err(TranslationError::new(&format!("unexpected character {}", ch))),
+            _ => Err(te(&format!("unexpected character {}", ch))),
         };
         Ok(mine? + count_internal(&s[eat(s)?..])?)
     }
