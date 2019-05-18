@@ -626,7 +626,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         // TODO fully handle Special (this is dumb partial handling)
         Invocation { kind : InvokeKind::Special, index } |
             Invocation { kind : InvokeKind::Static, index } =>
-            make_call(sm, &make_callable_name(get_constant, index), &get_method_parts(get_constant, index).2),
+            make_call(sm, &make_callable_name(get_constant, index)?, &get_method_parts(get_constant, index).2),
         StackOp { op : StackOperation::Pop, size } => {
             let size : u8 = size.into();
             let v = sm.release(size.into());
@@ -831,10 +831,10 @@ fn get_method_parts(get_constant : &ConstantGetter, pool_index : u16) -> MethodN
     panic!("error during constant pool lookup");
 }
 
-fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> String {
+fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> GeneralResult<String> {
     let parts = get_method_parts(get_constant, pool_index);
     let joined = join_name_parts(&parts.0, &parts.1, &parts.2);
-    mangling::mangle(joined.bytes()).expect("failed to mangle")
+    mangling::mangle(joined.bytes())
 }
 
 fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> GeneralResult<String> {
