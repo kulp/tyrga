@@ -269,10 +269,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         });
 
         // adjust stack for returned values
-        let takes = count_args(descriptor);
-        let takes = takes.expect("failed to compute arguments size");
-        let rets = count_returns(descriptor);
-        let rets = rets.expect("failed to compute return size");
+        let takes = count_args(descriptor)?;
+        let rets = count_returns(descriptor)?;
         sm.release_frozen(takes.into());
         sm.reserve_frozen(rets.into());
         insns.extend(sm.thaw());
@@ -906,7 +904,7 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range
 fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager)
     -> GeneralResult<Vec<tenyr::BasicBlock>>
 {
-    let (ranges, ops) = get_ranges_for_method(&class, &method).expect("failed to get ranges for map");
+    let (ranges, ops) = get_ranges_for_method(&class, &method)?;
     use std::iter::FromIterator;
     let rangemap = &BTreeMap::from_iter(ranges.into_iter().map(|r| (r.start, r)));
     let ops = &ops;
