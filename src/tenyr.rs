@@ -108,8 +108,9 @@ macro_rules! tenyr_rhs {
 }
 
 macro_rules! tenyr_insn {
-    (   $z:ident   <- $( $rhs:tt )* ) => { Ok(Instruction { z : $z, ..tenyr_rhs!( $( $rhs) * )? }) as Result<_, Box<std::error::Error>> };
-    ( [ $z:ident ] <- $( $rhs:tt )* ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreLeft, ..tenyr_rhs!( $( $rhs) * )? }) as Result<_, Box<std::error::Error>> };
+    (   $z:ident   <-   $( $rhs:tt )*   ) => { Ok(Instruction { z : $z, ..tenyr_rhs!( $( $rhs) * )? }) as Result<_, Box<std::error::Error>> };
+    ( [ $z:ident ] <-   $( $rhs:tt )*   ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreLeft, ..tenyr_rhs!( $( $rhs) * )? }) as Result<_, Box<std::error::Error>> };
+    (   $z:ident   -> [ $( $rhs:tt )* ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreRight, ..tenyr_rhs!( $( $rhs) * )? }) as Result<_, Box<std::error::Error>> };
 }
 
 #[test]
@@ -129,6 +130,7 @@ fn test_macro_insn() -> Result<(), Box<std::error::Error>> {
     assert_eq!(tenyr_insn!(B <- 3 * C).unwrap(), Instruction { kind : Type2(InsnGeneral { y : A, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
     assert_eq!(tenyr_insn!(B <- 3 * C + D).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
     assert_eq!(tenyr_insn!([B] <- 3 * C + D).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : StoreLeft });
+    assert_eq!(tenyr_insn!(B -> [3 * C + D]).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : StoreRight });
 
     Ok(())
 }
