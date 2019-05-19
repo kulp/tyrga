@@ -228,10 +228,11 @@ impl<T : BitWidth, U> From<U> for Immediate<T>
 
 // Sometimes we need to convert 12-bit unsigned numbers to 12-bit signed immediates
 impl Immediate12 {
-    const BITS : u8 = 12;
+    const BITS : u8  = TwelveBit::BITS;
+    const UMAX : i32 = TwelveBit::UMAX;
 
     pub fn try_from_bits(val : u16) -> Result<Immediate12, String> {
-        if val < (1 << Self::BITS) {
+        if i32::from(val) < Self::UMAX {
             // Convert u16 into an i32 with the same bottom 12 bits
             let mask = if (val & 0x800) != 0 { -1i32 << 12 } else { 0 };
             let val = i32::from(val) | mask;

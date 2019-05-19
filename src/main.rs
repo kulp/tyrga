@@ -4,6 +4,7 @@ mod mangling;
 mod stack;
 mod tenyr;
 
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashSet;
 use std::convert::TryFrom;
@@ -12,13 +13,16 @@ use std::error::Error;
 use std::fmt;
 use std::ops::Range;
 
-use jvmtypes::*;
-
 use classfile_parser::ClassFile;
+use classfile_parser::attribute_info::CodeAttribute;
+use classfile_parser::attribute_info::StackMapFrame;
+use classfile_parser::method_info::MethodInfo;
 
-use tenyr::{Instruction, Register, SmallestImmediate};
-
+use args::*;
+use jvmtypes::*;
 use stack::*;
+use tenyr::{Instruction, Register, SmallestImmediate};
+use util::*;
 
 const STACK_PTR : Register = Register::O;
 const STACK_REGS : &[Register] = { use Register::*; &[ B, C, D, E, F, G, H, I, J, K, L, M, N ] };
@@ -27,14 +31,11 @@ const STACK_REGS : &[Register] = { use Register::*; &[ B, C, D, E, F, G, H, I, J
 enum Destination {
     Successor,
     Address(usize),
-    Return,
 }
 
 fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
     -> Vec<Instruction>
 {
-    use tenyr::Immediate12;
-    use tenyr::Immediate20;
     use tenyr::InsnGeneral;
     use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::*;
@@ -54,8 +55,8 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
             Imm20(imm) =>
                 vec![ Instruction { kind : Type3(imm), z : temp_reg, ..noop } ],
             Imm32(imm) => {
-                let top = Immediate20::from((imm >> 12) as u16);
-                let bot = Immediate12::try_from_bits((imm & 0xfff) as u16).unwrap(); // cannot fail
+                let top = ((imm >> 12) as u16).into();
+                let bot = tenyr::Immediate12::try_from_bits((imm & 0xfff) as u16).unwrap(); // cannot fail
 
                 vec![
                     Instruction { kind : Type3(top), z : temp_reg, ..noop },
@@ -146,19 +147,19 @@ fn test_expand() {
     }
 }
 
-type Namer = Fn(usize) -> String;
-type MakeInsnResult = (usize, Vec<Instruction>, Vec<Destination>);
+type Namer = Fn(usize) -> GeneralResult<String>;
+type MakeInsnResult = GeneralResult<(usize, Vec<Instruction>, Vec<Destination>)>;
 
-fn make_target(target : u16, target_namer : &Namer) -> exprtree::Atom {
+fn make_target(target : u16, target_namer : &Namer) -> GeneralResult<exprtree::Atom> {
     use exprtree::Atom::*;
     use exprtree::Expr;
     use exprtree::Operation::*;
     use std::rc::Rc;
 
-    let tn = target_namer(target.into());
+    let tn = target_namer(target.into())?;
     let a = Variable(tn);
     let b = Expression(Rc::new(Expr { a : Variable(".".to_owned()), op : Add, b : Immediate(1) }));
-    Expression(Rc::new(Expr { a, op : Sub, b }))
+    Ok(Expression(Rc::new(Expr { a, op : Sub, b })))
 }
 
 type BranchComp = FnMut(&mut StackManager) -> (tenyr::Register, Vec<Instruction>);
@@ -170,7 +171,7 @@ fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target :
     let mut dest = Vec::new();
     dest.push(Destination::Successor);
     dest.push(Destination::Address(target.into()));
-    let o = make_target(target, target_namer);
+    let o = make_target(target, target_namer)?;
 
     let (temp_reg, sequence) = comp(sm);
     let branch = Instruction {
@@ -186,7 +187,7 @@ fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target :
     };
     let mut v = sequence;
     v.push(branch);
-    (addr, v, dest)
+    Ok((addr, v, dest))
 }
 
 fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), target_namer : &Namer, get_constant : &ConstantGetter)
@@ -194,7 +195,6 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 {
     use Operation::*;
     use jvmtypes::SwitchParams::*;
-    use tenyr::Immediate20;
     use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::*;
 
@@ -224,12 +224,12 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             }
         };
 
-    let make_mov  = |to, from| Instruction { dd : NoLoad, kind : Type3(Immediate20::from(0u8)), z : to, x : from };
+    let make_mov  = |to, from| Instruction { dd : NoLoad, kind : Type3(0u8.into()), z : to, x : from };
     let make_load = |to, from| Instruction { dd : LoadRight , ..make_mov(to, from) };
 
     let make_jump = |target| {
         Instruction {
-            kind : Type3(tenyr::Immediate::Expr(make_target(target, target_namer))),
+            kind : Type3(tenyr::Immediate::Expr(make_target(target, target_namer).unwrap())),
             ..make_mov(tenyr::Register::P, tenyr::Register::P)
         }
     };
@@ -249,9 +249,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         insns.extend(sm.freeze());
 
         // Save return address into bottom of register-based stack
-        let bottom = Register::B; // TODO get bottom of StackManager instead
+        let bottom = sm.get_regs()[0];
         insns.push(Instruction {
-            kind : Type3(Immediate20::from(1u8)),
+            kind : Type3(1u8.into()),
             ..make_mov(bottom, tenyr::Register::P)
         });
 
@@ -266,10 +266,10 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         let takes = takes.expect("failed to compute arguments size");
         let rets = count_returns(descriptor);
         let rets = rets.expect("failed to compute return size");
-        sm.release_frozen(u16::from(takes));
-        sm.reserve_frozen(u16::from(rets));
+        sm.release_frozen(takes.into());
+        sm.reserve_frozen(rets.into());
         insns.extend(sm.thaw());
-        (*addr, insns, default_dest.clone())
+        Ok((*addr, insns, default_dest.clone()))
     };
 
     let name_op = |op| {
@@ -306,18 +306,18 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     };
 
     let make_int_constant = |sm : &mut StackManager, value : i32| {
-        let mut v = Vec::with_capacity(8);
+        let mut v = Vec::new();
         v.extend(sm.reserve(1));
         let insn = make_mov(get_reg(sm.get(0)), Register::A);
         v.extend(expand_immediate_load(sm, insn, value));
-        (*addr, v, default_dest.clone())
+        Ok((*addr, v, default_dest.clone()))
     };
 
     match op.clone() { // TODO obviate clone
         Constant { kind : JType::Int, value } =>
             make_int_constant(sm, value),
         Yield { kind } => {
-            let ret = Instruction { kind : Type3(Immediate20::from(1u8)), ..make_load(Register::P, sm.get_stack_ptr()) };
+            let ret = Instruction { kind : Type3(1u8.into()), ..make_load(Register::P, sm.get_stack_ptr()) };
             use JType::*;
             let mut v = match kind {
                 Void =>
@@ -335,7 +335,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                     ],
             };
             v.extend(sm.empty());
-            (*addr, v, vec![ Destination::Return ])
+            Ok((*addr, v, vec![])) // leaving the method is not a Destination we care about
         },
 
         Arithmetic { kind : JType::Int, op : ArithmeticOperation::Neg }
@@ -346,9 +346,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let z = x; // update same location on stack
                 let op = Opcode::Subtract;
                 let dd = MemoryOpType::NoLoad;
-                let imm = Immediate12::from(0u8);
+                let imm = 0u8.into();
                 let v = vec![ Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd } ];
-                (*addr, v, default_dest)
+                Ok((*addr, v, default_dest))
             },
         Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some()
             => {
@@ -356,37 +356,37 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let y = get_reg(sm.get(0));
                 let x = get_reg(sm.get(1));
                 let z = x;
-                let op = translate_arithmetic_op(op).unwrap();
+                let op = translate_arithmetic_op(op).ok_or_else(|| TranslationError::new("no op for this opcode"))?;
                 let dd = MemoryOpType::NoLoad;
-                let imm = Immediate12::from(0u8);
+                let imm = 0u8.into();
                 let mut v = Vec::new();
                 v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
                 v.extend(sm.release(1));
-                (*addr, v, default_dest)
+                Ok((*addr, v, default_dest))
             },
         Arithmetic { kind, op }
             => make_call(sm, &make_arithmetic_name(kind, op), &make_arithmetic_descriptor(kind, op)),
         LoadLocal { kind, index } if kind == JType::Int || kind == JType::Object
             => {
-                let mut v = Vec::with_capacity(10);
+                let mut v = Vec::new();
                 v.extend(sm.reserve(1));
-                v.push(load_local(sm, get_reg(sm.get(0)), i32::from(index)));
-                (*addr, v, default_dest)
+                v.push(load_local(sm, get_reg(sm.get(0)), index.into()));
+                Ok((*addr, v, default_dest))
             },
         StoreLocal { kind, index } if kind == JType::Int || kind == JType::Object
             => {
-                let mut v = Vec::with_capacity(10);
-                v.push(store_local(sm, get_reg(sm.get(0)), i32::from(index)));
+                let mut v = Vec::new();
+                v.push(store_local(sm, get_reg(sm.get(0)), index.into()));
                 v.extend(sm.release(1));
-                (*addr, v, default_dest)
+                Ok((*addr, v, default_dest))
             },
         Increment { index, value } => {
             use tenyr::*;
-            let index = i32::from(index);
+            let index = index.into();
             let imm = value.into();
             // This reserving of a stack slot may exceed the "maximum depth" statistic on the
             // method, but we should try to avoid dedicated temporary registers.
-            let mut v = Vec::with_capacity(10);
+            let mut v = Vec::new();
             v.extend(sm.reserve(1));
             let temp_reg = get_reg(sm.get(0));
             v.extend(vec![
@@ -396,7 +396,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             ]);
             v.extend(sm.release(1));
 
-            (*addr, v, default_dest)
+            Ok((*addr, v, default_dest))
         },
         Branch { kind : JType::Int, ops : OperandCount::_1, way, target } => {
             use tenyr::*;
@@ -413,7 +413,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                         InsnGeneral {
                            y : Register::A,
                            op,
-                           imm : Immediate12::from(0u8),
+                           imm : 0u8.into(),
                         }),
                     z : temp_reg,
                     x : top,
@@ -441,7 +441,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                         InsnGeneral {
                            y : rhs,
                            op,
-                           imm : Immediate12::from(0u8),
+                           imm : 0u8.into(),
                         }),
                     z : temp_reg,
                     x : lhs,
@@ -484,7 +484,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             let (i, d) : (Vec<_>, Vec<_>) = pairs.iter().map(|&(compare, target)| {
                 let (_, insns, dests) =
-                    make_int_branch(sm, *addr, false, (target + here) as u16, target_namer, &mut maker(compare));
+                    make_int_branch(sm, *addr, false, (target + here) as u16, target_namer, &mut maker(compare)).unwrap();
                 (insns, dests)
             }).unzip();
 
@@ -495,9 +495,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             dests.extend(d);
 
             insns.push(make_jump(there));
-            dests.push(Destination::Address(usize::from(there)));
+            dests.push(Destination::Address(there.into()));
 
-            (*addr, insns, dests)
+            Ok((*addr, insns, dests))
         },
         Switch(Table { default, low, high, offsets }) => {
             use tenyr::*;
@@ -532,9 +532,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             };
 
             let (lo_addr, lo_insns, lo_dests) =
-                make_int_branch(sm, *addr, false, there, target_namer, &mut maker(&Type1, low));
+                make_int_branch(sm, *addr, false, there, target_namer, &mut maker(&Type1, low))?;
             let (_hi_addr, hi_insns, hi_dests) =
-                make_int_branch(sm, *addr, false, there, target_namer, &mut maker(&Type2, high));
+                make_int_branch(sm, *addr, false, there, target_namer, &mut maker(&Type2, high))?;
 
             let addr = lo_addr;
 
@@ -559,11 +559,11 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             insns.extend(sm.release(1)); // release temporary
 
-            (addr, insns, dests)
+            Ok((addr, insns, dests))
         },
-        Jump { target } => (*addr, vec![ make_jump(target) ], vec![ Destination::Address(target as usize) ]),
+        Jump { target } => Ok((*addr, vec![ make_jump(target) ], vec![ Destination::Address(target as usize) ])),
         LoadArray(kind) | StoreArray(kind) => {
-            let mut v = Vec::with_capacity(10);
+            let mut v = Vec::new();
             let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
                 let idx = get_reg(sm.get(0));
                 let arr = get_reg(sm.get(1));
@@ -597,16 +597,16 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let kind = Type1(InsnGeneral { y, op, imm });
             let insn = Instruction { kind, z, x, dd };
             v.push(insn);
-            (*addr, v, default_dest)
+            Ok((*addr, v, default_dest))
         },
-        Noop => (*addr, vec![ make_mov(Register::A, Register::A) ], default_dest),
+        Noop => Ok((*addr, vec![ make_mov(Register::A, Register::A) ], default_dest)),
         Length => {
             // TODO document layout of arrays
             // This implementation assumes a reference to an array points to its first element, and
             // that one word below that element is a word containing the number of elements.
             let top = get_reg(sm.get(0));
             let insn = Instruction { kind : Type3((-1i8).into()), ..make_load(top, top) };
-            (*addr, vec![ insn ], default_dest)
+            Ok((*addr, vec![ insn ], default_dest))
         },
         // TODO fully handle Special (this is dumb partial handling)
         Invocation { kind : InvokeKind::Special, index } |
@@ -615,7 +615,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         StackOp { op : StackOperation::Pop, size } => {
             let size : u8 = size.into();
             let v = sm.release(size.into());
-            (*addr, v, default_dest)
+            Ok((*addr, v, default_dest))
         },
 
         _ => panic!("unhandled operation {:?}", op),
@@ -623,19 +623,21 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 }
 
 #[test]
-fn test_make_instruction() {
+fn test_make_instruction() -> GeneralResult<()> {
     use tenyr::MemoryOpType::*;
     use Register::*;
     use Instruction;
     use tenyr::InstructionType::*;
     let mut sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
     let op = Operation::Constant { kind : JType::Int, value : 5 };
-    let namer = |x| format!("{}:{}", "test", x);
+    let namer = |x| Ok(format!("{}:{}", "test", x));
     use classfile_parser::constant_info::ConstantInfo::Unusable;
-    let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| Unusable);
+    let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| &Unusable)?;
     let imm = 5u8.into();
     assert_eq!(insn.1, vec![ Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad } ]);
     assert_eq!(insn.1[0].to_string(), " B  <-  5");
+
+    Ok(())
 }
 
 #[derive(Clone, Debug)]
@@ -657,7 +659,7 @@ impl Error for TranslationError {
     fn description(&self) -> &str { &self.0 }
 }
 
-pub type Result<T> = std::result::Result<T, Box<Error>>;
+pub type GeneralResult<T> = std::result::Result<T, Box<Error>>;
 
 fn generic_error<E>(e : E) -> Box<TranslationError>
     where E : std::error::Error
@@ -674,14 +676,12 @@ fn parse_class(stem : &str) -> ClassFile {
 
 type RangeMap<T> = (Vec<Range<usize>>, BTreeMap<usize, T>);
 
-use classfile_parser::attribute_info::StackMapFrame;
-use std::collections::BTreeMap;
 fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
-    -> Result<RangeMap<&'a T>>
+    -> GeneralResult<RangeMap<&'a T>>
 {
     use classfile_parser::attribute_info::StackMapFrame::*;
     let get_delta = |f : &StackMapFrame| match *f {
-        SameFrame                           { frame_type }       => u16::from(frame_type),
+        SameFrame                           { frame_type }       => frame_type.into(),
 
         SameLocals1StackItemFrame           { frame_type, .. }   => u16::from(frame_type) - 64,
 
@@ -716,10 +716,8 @@ fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
     Ok((ranges, tree))
 }
 
-use classfile_parser::attribute_info::CodeAttribute;
-use classfile_parser::method_info::MethodInfo;
 
-fn get_method_code(method : &MethodInfo) -> Result<CodeAttribute> {
+fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
     use classfile_parser::attribute_info::code_attribute_parser;
     Ok(code_attribute_parser(&method.attributes[0].info).map_err(generic_error)?.1)
 }
@@ -728,12 +726,10 @@ mod util {
     use classfile_parser::ClassFile;
     use classfile_parser::constant_info::ConstantInfo;
 
-    pub type ConstantGetter = Fn(u16) -> ConstantInfo;
+    pub type ConstantGetter<'a> = Fn(u16) -> &'a ConstantInfo + 'a;
 
-    // TODO make this return a reference once we can appease the borrow checker
-    pub fn get_constant_getter(class : &ClassFile) -> impl Fn(u16) -> ConstantInfo {
-        let pool = class.const_pool.clone();
-        move |n| pool[usize::from(n) - 1].clone()
+    pub fn get_constant_getter<'a>(class : &'a ClassFile) -> impl Fn(u16) -> &'a ConstantInfo + 'a {
+        move |n| &class.const_pool[usize::from(n) - 1]
     }
 
     pub fn get_string(get_constant : &ConstantGetter, i : u16) -> Option<String>
@@ -760,10 +756,9 @@ mod util {
         Instruction { dd : StoreRight, ..index_local(sm, reg, idx) }
     }
 }
-use util::*;
 
 fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
-    -> Result<RangeMap<Operation>>
+    -> GeneralResult<RangeMap<Operation>>
 {
     use classfile_parser::attribute_info::AttributeInfo;
     use classfile_parser::attribute_info::stack_map_table_attribute_parser;
@@ -827,31 +822,35 @@ fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> Strin
     mangling::mangle(joined.bytes()).expect("failed to mangle")
 }
 
-fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> String {
+fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> GeneralResult<String> {
     use classfile_parser::constant_info::ConstantInfo::*;
 
     let get_constant = get_constant_getter(class);
     let get_string = |n| get_string(&get_constant, n);
+    let te = TranslationError::new;
 
     let cl = match get_constant(class.this_class) { Class(c) => c, _ => panic!("not a class") };
-    join_name_parts(
-        get_string(cl.name_index).expect("bad class name").as_ref(),
-        get_string(method.name_index).expect("bad method name").as_ref(),
-        get_string(method.descriptor_index).expect("bad method descriptor").as_ref()
-    )
+    let name = join_name_parts(
+        get_string(cl.name_index).ok_or_else(|| te("bad class name"))?.as_ref(),
+        get_string(method.name_index).ok_or_else(|| te("bad method name"))?.as_ref(),
+        get_string(method.descriptor_index).ok_or_else(|| te("bad method descriptor"))?.as_ref()
+    );
+    Ok(name)
 }
 
-fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> String {
-    mangling::mangle(make_unique_method_name(class, method).bytes()).expect("failed to mangle")
+fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> GeneralResult<String> {
+    let name = make_unique_method_name(class, method)?;
+    mangling::mangle(name.bytes())
 }
 
-fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> String {
-    format!(".L{}{}",
-        make_mangled_method_name(class, method),
-        mangling::mangle(format!(":__{}", suffix).bytes()).expect("failed to mangle"))
+fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> GeneralResult<String> {
+    Ok(format!(".L{}{}",
+        make_mangled_method_name(class, method)?,
+        mangling::mangle(format!(":__{}", suffix).bytes())?))
 }
 
-fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range : &Range<usize>) -> (tenyr::BasicBlock, BTreeSet<usize>)
+fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range : &Range<usize>)
+    -> GeneralResult<(tenyr::BasicBlock, BTreeSet<usize>)>
     where T : IntoIterator<Item=MakeInsnResult>
 {
     use tenyr::BasicBlock;
@@ -867,7 +866,7 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range
     for insn in list {
         let does_branch = |&e| if let Address(n) = e { Some(n) } else { None };
 
-        let (_, ins, exs) = insn;
+        let (_, ins, exs) = insn?;
 
         // update the state of includes_successor each time so that the last instruction's behavior
         // is captured
@@ -876,7 +875,7 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range
         exits.extend(exs.iter().filter_map(does_branch).filter(|&e| !inside(e)));
         insns.extend(ins);
     }
-    let label = make_label(class, method, &range.start.to_string());
+    let label = make_label(class, method, &range.start.to_string())?;
 
     if includes_successor {
         exits.insert(range.end);
@@ -884,12 +883,14 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range
 
     insns.shrink_to_fit();
 
-    (BasicBlock { label, insns }, exits)
+    Ok((BasicBlock { label, insns }, exits))
 }
 
 // The incoming StackManager represents a "prototype" StackManager which should be empty, and which
 // will be cloned each time a new BasicBlock is seen.
-fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager) -> Vec<tenyr::BasicBlock> {
+fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager)
+    -> GeneralResult<Vec<tenyr::BasicBlock>>
+{
     let (ranges, ops) = get_ranges_for_method(&class, &method).expect("failed to get ranges for map");
     use std::iter::FromIterator;
     let rangemap = &BTreeMap::from_iter(ranges.into_iter().map(|r| (r.start, r)));
@@ -906,10 +907,10 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
 
     let mut seen = HashSet::new();
 
-    fn make_blocks(params : &Params, seen : &mut HashSet<usize>, mut sm : StackManager, which : &Range<usize>) -> Vec<tenyr::BasicBlock> {
+    fn make_blocks(params : &Params, seen : &mut HashSet<usize>, mut sm : StackManager, which : &Range<usize>) -> GeneralResult<Vec<tenyr::BasicBlock>> {
         let (class, method, rangemap, ops) = (params.class, params.method, params.rangemap, params.ops);
         if seen.contains(&which.start) {
-            return vec![];
+            return Ok(vec![]);
         }
         seen.insert(which.start);
 
@@ -923,30 +924,32 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
         let get_constant = get_constant_getter(&class);
 
         let block : Vec<_> = ops.range(which.clone()).map(|x| make_instructions(&mut sm, x, &namer, &get_constant)).collect();
-        let (bb, ee) = make_basic_block(&class, &method, block, which);
+        let (bb, ee) = make_basic_block(&class, &method, block, which)?;
         let mut out = Vec::new();
         out.push(bb);
 
         for exit in &ee {
-            out.extend(make_blocks(params, seen, sm.clone(), &rangemap[&exit])); // intentional clone of StackManager
+            out.extend(make_blocks(params, seen, sm.clone(), &rangemap[&exit])?); // intentional clone of StackManager
         }
 
-        out
+        Ok(out)
     }
 
     make_blocks(&params, &mut seen, sm.clone(), &rangemap[&0]) // intentional clone of StackManager
 }
 
 #[cfg(test)]
-fn test_stack_map_table(stem : &str) {
+fn test_stack_map_table(stem : &str) -> GeneralResult<()> {
     let class = parse_class(stem);
     for method in &class.methods {
         let sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
-        let bbs = make_blocks_for_method(&class, method, &sm);
+        let bbs = make_blocks_for_method(&class, method, &sm)?;
         for bb in &bbs {
             eprintln!("{}", bb);
         }
     }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -961,11 +964,13 @@ const CLASS_LIST : &[&str] = &[
 ];
 
 #[test]
-fn test_parse_classes()
+fn test_parse_classes() -> GeneralResult<()>
 {
     for name in CLASS_LIST {
-        test_stack_map_table(name);
+        test_stack_map_table(name)?;
     }
+
+    Ok(())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -989,10 +994,10 @@ impl fmt::Display for Method {
 
 mod args {
     use super::TranslationError;
-    use super::Result;
+    use super::GeneralResult;
 
-    fn count_internal(s : &str) -> Result<u8> {
-        fn eat(s : &str) -> Result<usize> {
+    fn count_internal(s : &str) -> GeneralResult<u8> {
+        fn eat(s : &str) -> GeneralResult<usize> {
             let ch = s.chars().nth(0).ok_or_else(|| TranslationError::new("string ended too soon"))?;
             match ch {
                 'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'D' | 'J' | 'V' => Ok(1),
@@ -1003,7 +1008,7 @@ mod args {
         }
 
         if s.is_empty() { return Ok(0); }
-        let ch = s.chars().nth(0).unwrap(); // cannot fail since s is not empty
+        let ch = s.chars().nth(0).ok_or_else(|| TranslationError::new("impossible empty string"))?; // cannot fail since s is not empty
         let mine = match ch {
             'B' | 'C' | 'F' | 'I' | 'S' | 'Z' => Ok(1),
             'D' | 'J' => Ok(2),
@@ -1016,22 +1021,21 @@ mod args {
     }
 
     // JVM limitations restrict the count of method parameters to 255 at most
-    pub fn count_args(descriptor : &str) -> Result<u8> {
+    pub fn count_args(descriptor : &str) -> GeneralResult<u8> {
         let open = 1; // byte index of open parenthesis is 0
         let close = descriptor.rfind(')').ok_or_else(|| TranslationError::new("descriptor missing closing parenthesis"))?;
         count_internal(&descriptor[open..close])
     }
 
     // JVM limitations restrict the count of return values to 1 at most, of size 2 at most
-    pub fn count_returns(descriptor : &str) -> Result<u8> {
+    pub fn count_returns(descriptor : &str) -> GeneralResult<u8> {
         let close = descriptor.rfind(')').ok_or_else(|| TranslationError::new("descriptor missing closing parenthesis"))?;
         count_internal(&descriptor[close+1..])
     }
 }
-use args::*;
 
 #[test]
-fn test_count_args() -> Result<()> {
+fn test_count_args() -> GeneralResult<()> {
     assert_eq!(3, count_args("(III)V")?);
     assert_eq!(4, count_args("(JD)I")?);
     assert_eq!(2, count_args("(Lmetasyntactic;Lvariable;)I")?);
@@ -1042,7 +1046,7 @@ fn test_count_args() -> Result<()> {
 }
 
 #[test]
-fn test_count_returns() -> Result<()> {
+fn test_count_returns() -> GeneralResult<()> {
     assert_eq!(0, count_returns("(III)V")?);
     assert_eq!(1, count_returns("(JD)I")?);
     assert_eq!(1, count_returns("(Lmetasyntactic;Lvariable;)I")?);
@@ -1052,12 +1056,12 @@ fn test_count_returns() -> Result<()> {
     Ok(())
 }
 
-fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager) -> Result<Method> {
+fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager) -> GeneralResult<Method> {
     use tenyr::*;
     use tenyr::MemoryOpType::*;
     use tenyr::InstructionType::*;
 
-    let sm = &mut sm.clone();
+    let sm = &mut sm.clone(); // intentional clone of StackManager
 
     let insns = {
         let err = || TranslationError::new("method descriptor missing");
@@ -1077,11 +1081,11 @@ fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager
             store_local(sm, bottom, max_locals),
         ]
     };
-    let label = make_label(class, method, "preamble");
+    let label = make_label(class, method, "preamble")?;
     let preamble = tenyr::BasicBlock { label, insns };
 
-    let blocks = make_blocks_for_method(class, method, sm);
-    let name = make_mangled_method_name(class, method);
+    let blocks = make_blocks_for_method(class, method, sm)?;
+    let name = make_mangled_method_name(class, method)?;
     Ok(Method { name, preamble, blocks })
 }
 
