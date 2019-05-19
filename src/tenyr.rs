@@ -54,56 +54,62 @@ fn test_macro_ops() {
     assert_eq!(tenyr_op!( >=  ), CompareGe       );
 }
 
-macro_rules! tenyr_insn {
-    ( $z:ident <- $x:ident + $imm:expr ) => {
+macro_rules! tenyr_rhs {
+    ( $x:ident + $imm:expr ) => {
         {
             use $crate::tenyr::*;
             use std::convert::TryInto;
             let imm = $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?;
             let kind = Type3(imm);
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::$z, x : Register::$x, dd : MemoryOpType::NoLoad });
+            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : Register::$x, dd : MemoryOpType::NoLoad });
             result
         }
     };
-    ( $z:ident <- $x:ident $( $op:tt $y:ident $( + $imm:expr )? )? ) => {
+    ( $x:ident $( $op:tt $y:ident $( + $imm:expr )? )? ) => {
         {
             use $crate::tenyr::*;
             #[allow(unused_imports)] use std::convert::TryInto;
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
             let kind = Type0(InsnGeneral { $( y : Register::$y, op : tenyr_op!($op), $( imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, )? )? ..gen });
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::$z, x : Register::$x, dd : MemoryOpType::NoLoad });
+            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : Register::$x, dd : MemoryOpType::NoLoad });
             result
         }
     };
-    ( $z:ident <- $x:ident $( $op:tt $imm:tt $( + $y:ident )? )? ) => {
+    ( $x:ident $( $op:tt $imm:tt $( + $y:ident )? )? ) => {
         {
             use $crate::tenyr::*;
             #[allow(unused_imports)] use std::convert::TryInto;
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
             let kind = Type1(InsnGeneral { $( $( y : Register::$y, )? op : tenyr_op!($op), imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, )? ..gen });
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::$z, x : Register::$x, dd : MemoryOpType::NoLoad });
+            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : Register::$x, dd : MemoryOpType::NoLoad });
             result
         }
     };
-    ( $z:ident <- $imm:tt ) => {
+    ( $imm:tt ) => {
         {
             use $crate::tenyr::*;
             use std::convert::TryInto;
             let imm = $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?;
             let kind = Type3(imm);
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::$z, x : Register::A, dd : MemoryOpType::NoLoad });
+            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad });
             result
         }
     };
-    ( $z:ident <- $imm:tt $( $op:tt $x:ident $( + $y:ident )? )? ) => {
+    ( $imm:tt $( $op:tt $x:ident $( + $y:ident )? )? ) => {
         {
             use $crate::tenyr::*;
             #[allow(unused_imports)] use std::convert::TryInto;
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
             let kind = Type2(InsnGeneral { $( $( y : Register::$y, )? op : tenyr_op!($op), imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, )? ..gen });
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::$z, $( x : Register::$x, )? dd : MemoryOpType::NoLoad });
+            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, $( x : Register::$x, )? dd : MemoryOpType::NoLoad });
             result
         }
+    };
+}
+
+macro_rules! tenyr_insn {
+    ( $z:ident <- $( $rhs:tt )* ) => {
+        Ok(Instruction { z : Register::$z, ..tenyr_rhs!( $( $rhs) * )? }) as Result<_, Box<std::error::Error>>
     };
 }
 
