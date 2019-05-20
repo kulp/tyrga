@@ -1,7 +1,7 @@
 mod exprtree;
 mod jvmtypes;
 pub mod mangling;
-pub mod stack;
+mod stack;
 mod tenyr;
 
 use std::collections::BTreeMap;
@@ -24,8 +24,8 @@ use stack::*;
 use tenyr::{Instruction, Register, SmallestImmediate};
 use util::*;
 
-pub const STACK_PTR : Register = Register::O;
-pub const STACK_REGS : &[Register] = { use Register::*; &[ B, C, D, E, F, G, H, I, J, K, L, M, N ] };
+const STACK_PTR : Register = Register::O;
+const STACK_REGS : &[Register] = { use Register::*; &[ B, C, D, E, F, G, H, I, J, K, L, M, N ] };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum Destination {
@@ -730,7 +730,7 @@ fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
 }
 
 
-pub fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
+fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
     use classfile_parser::attribute_info::code_attribute_parser;
     Ok(code_attribute_parser(&method.attributes[0].info).map_err(generic_error)?.1)
 }
@@ -1072,18 +1072,20 @@ fn test_count_returns() -> GeneralResult<()> {
     Ok(())
 }
 
-pub fn translate_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager) -> GeneralResult<Method> {
+pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResult<Method> {
     use tenyr::*;
     use tenyr::MemoryOpType::*;
     use tenyr::InstructionType::*;
 
-    let sm = &mut sm.clone(); // intentional clone of StackManager
+    let max_locals = get_method_code(method)?.max_locals;
+    let sm = StackManager::new(max_locals, STACK_PTR, STACK_REGS.to_owned());
+    let sm = &sm;
 
     let insns = {
         let err = || TranslationError::new("method descriptor missing");
         let descriptor = get_string(&get_constant_getter(class), method.descriptor_index).ok_or_else(err)?;
 
-        let max_locals = i32::from(get_method_code(method)?.max_locals);
+        let max_locals = i32::from(max_locals);
         let net = max_locals - i32::from(count_args(&descriptor)?);
 
         let z = sm.get_stack_ptr();

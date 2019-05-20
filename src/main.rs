@@ -47,10 +47,7 @@ fn main() -> std::result::Result<(), Box<std::error::Error>> {
             println!("Creating {} from {} ...", out.to_str().expect("expected Unicode filename"), file);
             let mut file = File::create(out)?;
             for method in &class.methods {
-                let code = tyrga::get_method_code(method)?;
-                use tyrga::stack::StackManager;
-                let sm = StackManager::new(code.max_locals, tyrga::STACK_PTR, tyrga::STACK_REGS.to_owned());
-                let mm = tyrga::translate_method(&class, method, &sm)?;
+                let mm = tyrga::translate_method(&class, method)?;
                 writeln!(file, "{}", mm)?;
             }
         }
