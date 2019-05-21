@@ -770,18 +770,19 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
     use classfile_parser::constant_info::ConstantInfo::Utf8;
 
     let get_constant = get_constant_getter(class);
-    let name_of = |a : &AttributeInfo|
+    let named = |a : &AttributeInfo|
         match get_constant(a.attribute_name_index) {
-            Utf8(u) => u.utf8_string.to_string(),
-            _ => panic!("not a name")
+            Utf8(u) => Ok((a.info.clone(), &u.utf8_string)),
+            _ => Err("not a name"),
         };
 
     let code = get_method_code(method)?;
-    let attr = &code.attributes.iter().find(|a| name_of(a) == "StackMapTable");
+    let names : Result<Vec<_>,_> = code.attributes.iter().map(named).collect();
+    let info = names?.into_iter().find(|(_, name)| name == &"StackMapTable").map(|t| t.0);
     let keep;
-    let table = match attr {
-        Some(attr) => {
-            keep = stack_map_table_attribute_parser(&attr.info).map_err(generic_error)?;
+    let table = match info {
+        Some(info) => {
+            keep = stack_map_table_attribute_parser(&info).map_err(generic_error)?;
             &keep.1.entries
         },
         _ => &[] as &[StackMapFrame],
