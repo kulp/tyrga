@@ -164,10 +164,10 @@ impl From<Immediate12> for Immediate20 {
     }
 }
 
-use std::fmt::{Display, Error, Formatter};
+use std::fmt::{Display, Formatter};
 
 impl<T : BitWidth> Display for SizedImmediate<T> {
-    fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f : &mut Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.0.to_string())
     }
 }
@@ -179,7 +179,7 @@ pub enum Immediate<T : BitWidth> {
 }
 
 impl<T : BitWidth> fmt::Display for Immediate<T> {
-    fn fmt(&self, f : &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f : &mut Formatter) -> Result<(), fmt::Error> {
         match self {
             Immediate::Fixed(x) => write!(f, "{}", x.to_string()),
             Immediate::Expr(x)  => write!(f, "{}", x.to_string()),
@@ -344,14 +344,16 @@ impl fmt::Display for BasicBlock {
 }
 
 #[test]
-fn test_basicblock_display() {
+fn test_basicblock_display() -> Result<(), Box<std::error::Error>> {
     let (_, insns) : (Vec<_>, Vec<_>) = instruction_test_cases().iter().cloned().unzip();
     let label = "testbb".to_string();
     let bb = BasicBlock { label, insns };
     let ss = bb.to_string();
-    let first_line = ss.lines().nth(0).expect("unexpectedly empty input");
-    assert_eq!(':', first_line.chars().last().expect("unexpected empty line"));
+    let first_line = ss.lines().nth(0).ok_or("no lines in input")?;
+    assert_eq!(':', first_line.chars().last().ok_or("no characters in line")?);
     assert_eq!(bb.label, first_line[..first_line.len()-1]);
     assert_eq!(bb.insns.len() + 1, ss.lines().count());
+
+    Ok(())
 }
 
