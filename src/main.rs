@@ -53,12 +53,12 @@ fn main() -> std::result::Result<(), Box<std::error::Error>> {
         }
     } else if let Some(m) = m.subcommand_matches("mangle") {
         for string in m.values_of("strings").ok_or("expected at least one string to mangle")? {
-            println!("{}", tyrga::mangling::mangle(string.bytes()).expect("failed to mangle"));
+            println!("{}", tyrga::mangling::mangle(string.bytes())?);
         }
     } else if let Some(m) = m.subcommand_matches("demangle") {
         for string in m.values_of("strings").ok_or("expected at least one string to mangle")? {
-            let de = tyrga::mangling::demangle(&string).expect("failed to demangle");
-            let st = String::from_utf8(de).expect("expected UTF-8 result from demangle");
+            let de = tyrga::mangling::demangle(&string)?;
+            let st = String::from_utf8(de)?;
             println!("{}", st);
         }
     }
