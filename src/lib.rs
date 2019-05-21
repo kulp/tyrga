@@ -80,7 +80,7 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
 
             let adder  = InsnGeneral { y : Register::A, op : Add , imm : 0u8.into() };
             let reserve = sm.reserve(1).into_iter();
-            let temp = sm.get(0).ok_or_else(|| TranslationError::new("stack unexpectedly empty"))?;
+            let temp = sm.get(0).ok_or("stack unexpectedly empty")?;
             let pack = make_imm(temp, imm)?.into_iter();
             let (op, a, b, c) = match kind {
                 Type3(_) => (BitwiseOr, insn.x, Register::A, temp), // should never be reached, but provides generality
@@ -211,7 +211,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     // same depth of the operand stack every time that instance is executed.
     let default_dest = vec![Destination::Successor];
 
-    let get_reg = |t : Option<_>| t.ok_or_else(|| TranslationError::new("asked but did not receive"));
+    let get_reg = |t : Option<_>| t.ok_or("asked but did not receive");
 
     let translate_arithmetic_op =
         |x| {
@@ -297,7 +297,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     let make_arithmetic_descriptor = |kind : JType, op| {
         let ch : GeneralResult<_> =
             kind.get_char()
-                .ok_or_else(|| TranslationError::new("no char for kind"))
+                .ok_or("no char for kind")
                 .map_err(Into::into);
         let ch : char = ch?;
 
@@ -311,7 +311,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     };
     let make_arithmetic_name = |kind, op| {
         let descriptor = make_arithmetic_descriptor(kind, op)?;
-        let k = kind.get_char().ok_or_else(|| TranslationError::new("no char for kind"))?;
+        let k = kind.get_char().ok_or("no char for kind")?;
         let proc = format!("{}{}", name_op(op).to_lowercase(), k);
         mangling::mangle(join_name_parts("tyrga/Builtin", &proc, &descriptor).bytes())
     };
@@ -367,7 +367,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let y = get_reg(sm.get(0))?;
                 let x = get_reg(sm.get(1))?;
                 let z = x;
-                let op = translate_arithmetic_op(op).ok_or_else(|| TranslationError::new("no op for this opcode"))?;
+                let op = translate_arithmetic_op(op).ok_or("no op for this opcode")?;
                 let dd = MemoryOpType::NoLoad;
                 let imm = 0u8.into();
                 let mut v = Vec::new();
@@ -665,31 +665,12 @@ fn test_make_instruction() -> GeneralResult<()> {
     Ok(())
 }
 
-#[derive(Clone, Debug)]
-struct TranslationError(String);
-
-impl TranslationError {
-    pub fn new(msg : &str) -> Self {
-        Self(msg.to_string())
-    }
-}
-
-impl fmt::Display for TranslationError {
-    fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl Error for TranslationError {
-    fn description(&self) -> &str { &self.0 }
-}
-
 pub type GeneralResult<T> = std::result::Result<T, Box<Error>>;
 
-fn generic_error<E>(e : E) -> Box<TranslationError>
+fn generic_error<E>(e : E) -> Box<Error>
     where E : std::error::Error
 {
-    Box::new(TranslationError::new(&format!("unknown error: {}", e)))
+    format!("unknown error: {}", e).into()
 }
 
 #[cfg(test)]
@@ -720,8 +701,7 @@ fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
 
     let before = deltas.iter().take(1);
     let after  = deltas.iter().skip(1);
-    let err = Box::new(TranslationError::new("body unexpectedly empty"));
-    let max = body.last().ok_or(err)?.0 + 1;
+    let max = body.last().ok_or("body unexpectedly empty")?.0 + 1;
 
     use std::iter::once;
     #[allow(clippy::len_zero)] // is_empty is ambiguous at the time of this writing
@@ -829,17 +809,16 @@ fn get_method_parts(get_constant : &ConstantGetter, pool_index : u16) -> General
     if let MethodRef(mr) = get_constant(pool_index) {
         if let Class(cl) = get_constant(mr.class_index) {
             if let NameAndType(nt) = get_constant(mr.name_and_type_index) {
-                let te = TranslationError::new;
                 return Ok((
-                        get_string(cl.name_index).ok_or_else(|| te("bad class name"))?,
-                        get_string(nt.name_index).ok_or_else(|| te("bad method name"))?,
-                        get_string(nt.descriptor_index).ok_or_else(|| te("bad method descriptor"))?,
+                        get_string(cl.name_index).ok_or("bad class name")?,
+                        get_string(nt.name_index).ok_or("bad method name")?,
+                        get_string(nt.descriptor_index).ok_or("bad method descriptor")?,
                     ));
             }
         }
     }
 
-    Err(TranslationError::new("error during constant pool lookup").into())
+    Err("error during constant pool lookup".into())
 }
 
 fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> GeneralResult<String> {
@@ -853,13 +832,12 @@ fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> GeneralR
 
     let get_constant = get_constant_getter(class);
     let get_string = |n| get_string(&get_constant, n);
-    let te = TranslationError::new;
 
     let cl = match get_constant(class.this_class) { Class(c) => c, _ => panic!("not a class") };
     let name = join_name_parts(
-        get_string(cl.name_index).ok_or_else(|| te("bad class name"))?.as_ref(),
-        get_string(method.name_index).ok_or_else(|| te("bad method name"))?.as_ref(),
-        get_string(method.descriptor_index).ok_or_else(|| te("bad method descriptor"))?.as_ref()
+        get_string(cl.name_index).ok_or("bad class name")?.as_ref(),
+        get_string(method.name_index).ok_or("bad method name")?.as_ref(),
+        get_string(method.descriptor_index).ok_or("bad method descriptor")?.as_ref()
     );
     Ok(name)
 }
@@ -1019,31 +997,28 @@ impl fmt::Display for Method {
 }
 
 mod args {
-    use super::TranslationError;
     use super::GeneralResult;
 
     fn count_internal(s : &str) -> GeneralResult<u8> {
         fn eat(s : &str) -> GeneralResult<usize> {
-            let te = TranslationError::new;
-            let ch = s.chars().nth(0).ok_or_else(|| te("string ended too soon"))?;
+            let ch = s.chars().nth(0).ok_or("string ended too soon")?;
             match ch {
                 'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'D' | 'J' | 'V' => Ok(1),
-                'L' => Ok(1 + s.find(';').ok_or_else(|| te("string ended too soon"))?),
+                'L' => Ok(1 + s.find(';').ok_or("string ended too soon")?),
                 '[' => Ok(1 + eat(&s[1..])?),
-                _ => Err(te(&format!("unexpected character {}", ch)).into()),
+                _ => Err(format!("unexpected character {}", ch).into()),
             }
         }
 
-        let te = TranslationError::new;
         if s.is_empty() { return Ok(0); }
-        let ch = s.chars().nth(0).ok_or_else(|| te("impossible empty string"))?; // cannot fail since s is not empty
+        let ch = s.chars().nth(0).ok_or("impossible empty string")?; // cannot fail since s is not empty
         let mine = match ch {
             'B' | 'C' | 'F' | 'I' | 'S' | 'Z' => Ok(1),
             'D' | 'J' => Ok(2),
             'L' => Ok(1),
             '[' => Ok(1),
             'V' => Ok(0),
-            _ => Err(te(&format!("unexpected character {}", ch))),
+            _ => Err(format!("unexpected character {}", ch)),
         };
         Ok(mine? + count_internal(&s[eat(s)?..])?)
     }
@@ -1051,13 +1026,13 @@ mod args {
     // JVM limitations restrict the count of method parameters to 255 at most
     pub fn count_args(descriptor : &str) -> GeneralResult<u8> {
         let open = 1; // byte index of open parenthesis is 0
-        let close = descriptor.rfind(')').ok_or_else(|| TranslationError::new("descriptor missing closing parenthesis"))?;
+        let close = descriptor.rfind(')').ok_or("descriptor missing closing parenthesis")?;
         count_internal(&descriptor[open..close])
     }
 
     // JVM limitations restrict the count of return values to 1 at most, of size 2 at most
     pub fn count_returns(descriptor : &str) -> GeneralResult<u8> {
-        let close = descriptor.rfind(')').ok_or_else(|| TranslationError::new("descriptor missing closing parenthesis"))?;
+        let close = descriptor.rfind(')').ok_or("descriptor missing closing parenthesis")?;
         count_internal(&descriptor[close+1..])
     }
 }
@@ -1094,8 +1069,7 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
     let sm = &sm;
 
     let insns = {
-        let err = || TranslationError::new("method descriptor missing");
-        let descriptor = get_string(&get_constant_getter(class), method.descriptor_index).ok_or_else(err)?;
+        let descriptor = get_string(&get_constant_getter(class), method.descriptor_index).ok_or("method descriptor missing")?;
 
         let max_locals = i32::from(max_locals);
         let net = max_locals - i32::from(count_args(&descriptor)?);
