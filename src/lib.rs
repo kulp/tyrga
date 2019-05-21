@@ -146,7 +146,7 @@ fn test_expand() -> GeneralResult<()> {
         if let Type0(ref g) = vv[0].kind {
             assert_eq!(g.imm, 123u8.into());
         } else {
-            panic!("wrong type");
+            return Err("wrong type".into());
         }
     }
 
@@ -614,10 +614,10 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
             // per 32-bit tenyr word)
             let (op, imm) = match kind.size() {
-                1 => (Opcode::BitwiseOr, 0u8),
-                2 => (Opcode::ShiftLeft, 1u8),
-                _ => panic!("bad kind size"),
-            };
+                1 => Ok((Opcode::BitwiseOr, 0u8)),
+                2 => Ok((Opcode::ShiftLeft, 1u8)),
+                _ => Err("bad kind size"),
+            }?;
             let imm = imm.into();
             let kind = Type1(InsnGeneral { y, op, imm });
             let insn = Instruction { kind, z, x, dd };
@@ -643,7 +643,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             Ok((*addr, v, default_dest))
         },
 
-        _ => panic!("unhandled operation {:?}", op),
+        _ => Err(format!("unhandled operation {:?}", op).into()),
     }
 }
 
@@ -833,7 +833,7 @@ fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> GeneralR
     let get_constant = get_constant_getter(class);
     let get_string = |n| get_string(&get_constant, n);
 
-    let cl = match get_constant(class.this_class) { Class(c) => c, _ => panic!("not a class") };
+    let cl = match get_constant(class.this_class) { Class(c) => Ok(c), _ => Err("not a class") }?;
     let name = join_name_parts(
         get_string(cl.name_index).ok_or("bad class name")?.as_ref(),
         get_string(method.name_index).ok_or("bad method name")?.as_ref(),
