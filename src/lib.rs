@@ -295,19 +295,24 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         }
     };
     let make_arithmetic_descriptor = |kind : JType, op| {
-        let ch = kind.get_char().unwrap();
+        let ch : GeneralResult<_> =
+            kind.get_char()
+                .ok_or_else(|| TranslationError::new("no char for kind"))
+                .map_err(Into::into);
+        let ch : char = ch?;
 
         use ArithmeticOperation::*;
         let nargs = match op {
             Add | Sub | Mul | Div | Rem | Shl | Shr | Ushr | And | Or | Xor => 2,
             Neg => 1,
         };
-        format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch)
+        let result = format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch);
+        Ok(result) as GeneralResult<String>
     };
     let make_arithmetic_name = |kind, op| {
-        let descriptor = make_arithmetic_descriptor(kind, op);
-        let k = kind.get_char().ok_or_else(|| TranslationError::new("no char for kind"));
-        let proc = format!("{}{}", name_op(op).to_lowercase(), k?);
+        let descriptor = make_arithmetic_descriptor(kind, op)?;
+        let k = kind.get_char().ok_or_else(|| TranslationError::new("no char for kind"))?;
+        let proc = format!("{}{}", name_op(op).to_lowercase(), k);
         mangling::mangle(join_name_parts("tyrga/Builtin", &proc, &descriptor).bytes())
     };
 
@@ -371,7 +376,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 Ok((*addr, v, default_dest))
             },
         Arithmetic { kind, op }
-            => make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)),
+            => make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)?),
         LoadLocal { kind, index } if kind == JType::Int || kind == JType::Object
             => {
                 let mut v = Vec::new();
