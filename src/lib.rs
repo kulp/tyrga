@@ -493,11 +493,18 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 }
             };
 
-            let (i, d) : (Vec<_>, Vec<_>) = pairs.into_iter().map(|(compare, target)| {
-                let (_, insns, dests) =
-                    make_int_branch(sm, *addr, false, (target + here) as u16, target_namer, &mut maker(compare)).unwrap();
-                (insns, dests)
-            }).unzip();
+            let brancher = |(compare, target)| {
+                let result = make_int_branch(sm, *addr, false, (target + here) as u16, target_namer, &mut maker(compare));
+                let (_, insns, dests) = result?;
+                Ok((insns, dests)) as GeneralResult<(_,_)>
+            };
+            let (i, d) : (Vec<_>, Vec<_>) =
+                pairs
+                    .into_iter()
+                    .map(brancher)
+                    .collect::<Result<Vec<_>,_>>()?
+                    .into_iter()
+                    .unzip();
 
             let i = i.concat();
             let d = d.concat();
