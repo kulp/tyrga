@@ -174,9 +174,6 @@ fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target :
     use tenyr::*;
     use tenyr::InstructionType::*;
 
-    let mut dest = Vec::new();
-    dest.push(Destination::Successor);
-    dest.push(Destination::Address(target.into()));
     let o = make_target(target, target_namer)?;
 
     let (temp_reg, sequence) = comp(sm)?;
@@ -193,6 +190,10 @@ fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target :
     };
     let mut v = sequence;
     v.push(branch);
+    let dest = vec![
+        Destination::Successor,
+        Destination::Address(target.into()),
+    ];
     Ok((addr, v, dest))
 }
 
