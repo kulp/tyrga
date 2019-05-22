@@ -46,6 +46,7 @@ impl StackManager {
         // frame_offset computes how much higher in memory the base of the current
         // (downward-growing) frame is than the current stack_ptr
         let frame_offset = self.frozen + saved + self.max_locals;
+        #[allow(clippy::result_unwrap_used)]
         let imm = (i32::from(frame_offset) - n).try_into().unwrap();
         let kind = Type3(imm);
         let z = Register::A; // this one will be overwritten by caller
@@ -127,6 +128,7 @@ impl StackManager {
         let new_frozen = frozen as i32 - stack_movement;
         self.frozen = new_frozen as u16;
 
+        #[allow(clippy::result_unwrap_used)]
         let make_insn = |reg, offset : i32| Instruction { dd : NoLoad, kind : Type3(offset.try_into().unwrap()), z : reg, x : stack_ptr };
         let make_move = |i, offset| make_insn(self.get_reg(i as u16), i + offset + 1);
         // Only one of { `freezing`, `thawing` } will have any elements in it

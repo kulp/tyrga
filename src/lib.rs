@@ -1,3 +1,6 @@
+#![deny(clippy::option_unwrap_used)]
+#![deny(clippy::result_unwrap_used)]
+
 mod exprtree;
 mod jvmtypes;
 pub mod mangling;

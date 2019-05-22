@@ -435,7 +435,10 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Invokeinterface { index, count } => Invocation { kind : InvokeKind::Interface(count), index },
 
         New(index) => Allocation { index },
-        Newarray(kind) => ArrayAlloc { kind : ArrayKind::from_u8(kind).unwrap() },
+        Newarray(kind) => {
+            #[allow(clippy::option_unwrap_used)]
+            ArrayAlloc { kind : ArrayKind::from_u8(kind).unwrap() }
+        },
         Multianewarray { .. } | Anewarray(_) => Unhandled(insn),
 
         Arraylength => Length,
