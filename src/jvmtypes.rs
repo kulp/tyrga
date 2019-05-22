@@ -166,14 +166,13 @@ pub enum Operation {
 }
 
 // returns any Operation parsed and the number of bytes consumed
-pub fn decode_insn(insn : (usize, &Instruction)) -> (usize, Operation) {
+pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
     use JType::*;
     use Instruction::*;
     use Operation::*;
     use SwitchParams::*;
 
     let (addr, insn) = insn;
-    let insn = insn.clone(); // TODO obviate clone
 
     let op = match insn {
         Nop => Noop,

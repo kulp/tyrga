@@ -682,8 +682,8 @@ fn parse_class(stem : &str) -> GeneralResult<ClassFile> {
 
 type RangeMap<T> = (Vec<Range<usize>>, BTreeMap<usize, T>);
 
-fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
-    -> GeneralResult<RangeMap<&'a T>>
+fn derive_ranges<T>(body : Vec<(usize, T)>, table : &[StackMapFrame])
+    -> GeneralResult<RangeMap<T>>
 {
     use classfile_parser::attribute_info::StackMapFrame::*;
     let get_delta = |f : &StackMapFrame| match *f {
@@ -717,10 +717,9 @@ fn derive_ranges<'a, T>(body : &[(usize, &'a T)], table : &[StackMapFrame])
             .filter(|x| x.len() > 0)
             .collect::<Vec<_>>();
 
-    let tree = body.iter().cloned().collect();
+    let tree = body.into_iter().collect();
     Ok((ranges, tree))
 }
-
 
 fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
     use classfile_parser::attribute_info::code_attribute_parser;
@@ -790,8 +789,7 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
 
     use classfile_parser::code_attribute::code_parser;
     let vec = code_parser(&code.code).map_err(generic_error)?.1;
-    let refed = vec.iter().map(|(s, x)| (*s, x)).collect::<Vec<_>>();
-    let (ranges, map) = derive_ranges(&refed, table)?;
+    let (ranges, map) = derive_ranges(vec, table)?;
     let ops = map.into_iter().map(decode_insn).collect::<BTreeMap<_,_>>();
     Ok((ranges, ops))
 }
