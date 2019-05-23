@@ -381,14 +381,16 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             },
         Arithmetic { kind, op }
             => make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)?),
-        LoadLocal { kind, index } if kind == JType::Int || kind == JType::Object
+        LoadLocal { kind : JType::Int, index } |
+        LoadLocal { kind : JType::Object, index }
             => {
                 let mut v = Vec::new();
                 v.extend(sm.reserve(1));
                 v.push(load_local(sm, get_reg(sm.get(0))?, index.into()));
                 Ok((*addr, v, default_dest))
             },
-        StoreLocal { kind, index } if kind == JType::Int || kind == JType::Object
+        StoreLocal { kind : JType::Int, index } |
+        StoreLocal { kind : JType::Object, index }
             => {
                 let mut v = Vec::new();
                 v.push(store_local(sm, get_reg(sm.get(0))?, index.into()));
