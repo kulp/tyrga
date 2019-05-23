@@ -140,10 +140,10 @@ macro_rules! tenyr_rhs {
 }
 
 macro_rules! tenyr_insn {
-    (   $z:ident   <- [ $( $rhs:tt )* ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::LoadRight, ..tenyr_rhs!( $( $rhs) * )? }) as Result<_, Box<std::error::Error>> };
-    (   $z:ident   <-   $( $rhs:tt )*   ) => { Ok(Instruction { z : $z, ..tenyr_rhs!( $( $rhs) * )? }) as Result<_, Box<std::error::Error>> };
-    ( [ $z:ident ] <-   $( $rhs:tt )*   ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreLeft, ..tenyr_rhs!( $( $rhs) * )? }) as Result<_, Box<std::error::Error>> };
-    (   $z:ident   -> [ $( $rhs:tt )* ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreRight, ..tenyr_rhs!( $( $rhs) * )? }) as Result<_, Box<std::error::Error>> };
+    (   $z:ident   <- [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::LoadRight, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<_, Box<std::error::Error>> };
+    (   $z:ident   <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<_, Box<std::error::Error>> };
+    ( [ $z:ident ] <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreLeft, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<_, Box<std::error::Error>> };
+    (   $z:ident   -> [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreRight, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<_, Box<std::error::Error>> };
 }
 
 #[test]
