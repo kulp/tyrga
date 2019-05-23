@@ -17,7 +17,7 @@ pub enum Register {
 
 impl fmt::Display for Register {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        (self as &fmt::Debug).fmt(f)
     }
 }
 
