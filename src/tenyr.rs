@@ -17,6 +17,7 @@ impl fmt::Display for Register {
     }
 }
 
+#[allow(dead_code)] // not all Opcodes are popular
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Opcode {
     BitwiseOr       = 0x0, BitwiseOrn       = 0x8,
