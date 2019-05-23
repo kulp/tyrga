@@ -55,22 +55,22 @@ fn test_macro_ops() {
 }
 
 macro_rules! tenyr_rhs {
-    ( $x:ident + $imm:expr ) => {
-        {
-            use $crate::tenyr::*;
-            use std::convert::TryInto;
-            let imm = $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?;
-            let kind = Type3(imm);
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : $x, dd : MemoryOpType::NoLoad });
-            result
-        }
-    };
     ( $x:ident $( $op:tt $y:ident $( + $imm:expr )? )? ) => {
         {
             use $crate::tenyr::*;
             #[allow(unused_imports)] use std::convert::TryInto;
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
             let kind = Type0(InsnGeneral { $( y : $y, op : tenyr_op!($op), $( imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, )? )? ..gen });
+            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : $x, dd : MemoryOpType::NoLoad });
+            result
+        }
+    };
+    ( $x:ident + $imm:expr ) => {
+        {
+            use $crate::tenyr::*;
+            use std::convert::TryInto;
+            let imm = $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?;
+            let kind = Type3(imm);
             let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : $x, dd : MemoryOpType::NoLoad });
             result
         }
@@ -123,9 +123,11 @@ fn test_macro_insn() -> Result<(), Box<std::error::Error>> {
 
     use std::convert::TryInto;
 
+    assert_eq!(tenyr_insn!(B <- C + D + 3).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Add, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
     assert_eq!(tenyr_insn!(B <- C * D + 3).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
     assert_eq!(tenyr_insn!(B <- C + 0x12345).unwrap(), Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : C, dd : NoLoad });
     assert_eq!(tenyr_insn!(B <- 0x12345).unwrap(), Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : A, dd : NoLoad });
+    assert_eq!(tenyr_insn!(B <- C + D).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Add, imm : 0u8.into() }), z : B, x : C, dd : NoLoad });
     assert_eq!(tenyr_insn!(B <- C * D).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply, imm : 0u8.into() }), z : B, x : C, dd : NoLoad });
     assert_eq!(tenyr_insn!(B <- C * 3).unwrap(), Instruction { kind : Type1(InsnGeneral { y : A, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
     assert_eq!(tenyr_insn!(B <- 3 * C).unwrap(), Instruction { kind : Type2(InsnGeneral { y : A, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
