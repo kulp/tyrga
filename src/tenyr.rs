@@ -123,18 +123,18 @@ fn test_macro_insn() -> Result<(), Box<std::error::Error>> {
 
     use std::convert::TryInto;
 
-    assert_eq!(tenyr_insn!(B <- C + D + 3).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Add, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!(B <- C * D + 3).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!(B <- C + 0x12345).unwrap(), Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!(B <- 0x12345).unwrap(), Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : A, dd : NoLoad });
-    assert_eq!(tenyr_insn!(B <- C + D).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Add, imm : 0u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!(B <- C * D).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply, imm : 0u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!(B <- C * 3).unwrap(), Instruction { kind : Type1(InsnGeneral { y : A, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!(B <- 3 * C).unwrap(), Instruction { kind : Type2(InsnGeneral { y : A, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!(B <- 3 * C + D).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!([B] <- 3 * C + D).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : StoreLeft });
-    assert_eq!(tenyr_insn!(B -> [3 * C + D]).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : StoreRight });
-    assert_eq!(tenyr_insn!(B <- [3 * C + D]).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : LoadRight });
+    assert_eq!(tenyr_insn!( B  <-  C  +  D + 3      ).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Add     , imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
+    assert_eq!(tenyr_insn!( B  <-  C  *  D + 3      ).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
+    assert_eq!(tenyr_insn!( B  <-  C  +  0x12345    ).unwrap(), Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : C, dd : NoLoad });
+    assert_eq!(tenyr_insn!( B  <-        0x12345    ).unwrap(), Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : A, dd : NoLoad });
+    assert_eq!(tenyr_insn!( B  <-  C  +  D          ).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Add       , imm : 0u8.into() }), z : B, x : C, dd : NoLoad });
+    assert_eq!(tenyr_insn!( B  <-  C  *  D          ).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply, imm : 0u8.into() }), z : B, x : C, dd : NoLoad });
+    assert_eq!(tenyr_insn!( B  <-  C  *  3          ).unwrap(), Instruction { kind : Type1(InsnGeneral { y : A, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
+    assert_eq!(tenyr_insn!( B  <-  3  *  C          ).unwrap(), Instruction { kind : Type2(InsnGeneral { y : A, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
+    assert_eq!(tenyr_insn!( B  <-  3  *  C + D      ).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
+    assert_eq!(tenyr_insn!([B] <-  3  *  C + D      ).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : StoreLeft });
+    assert_eq!(tenyr_insn!( B  -> [3  *  C + D]     ).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : StoreRight });
+    assert_eq!(tenyr_insn!( B  <- [3  *  C + D]     ).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : LoadRight });
 
     Ok(())
 }
