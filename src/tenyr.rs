@@ -1,11 +1,11 @@
+use crate::exprtree;
 use enum_primitive::*;
 
 use std::convert::Infallible;
 use std::convert::TryFrom;
+use std::fmt::{Display, Formatter};
 use std::fmt;
 use std::marker::PhantomData;
-
-use crate::exprtree;
 
 enum_from_primitive! {
 #[repr(u8)]
@@ -163,8 +163,6 @@ impl From<Immediate12> for Immediate20 {
         }
     }
 }
-
-use std::fmt::{Display, Formatter};
 
 impl<T : BitWidth> Display for SizedImmediate<T> {
     fn fmt(&self, f : &mut Formatter) -> Result<(), fmt::Error> {
