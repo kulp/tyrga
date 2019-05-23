@@ -1,5 +1,4 @@
 use crate::exprtree;
-use enum_primitive::*;
 
 use std::convert::Infallible;
 use std::convert::TryFrom;
@@ -7,12 +6,9 @@ use std::fmt::{Display, Formatter};
 use std::fmt;
 use std::marker::PhantomData;
 
-enum_from_primitive! {
-#[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Register {
     A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P,
-}
 }
 
 impl fmt::Display for Register {
@@ -21,8 +17,6 @@ impl fmt::Display for Register {
     }
 }
 
-enum_from_primitive! {
-#[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Opcode {
     BitwiseOr       = 0x0, BitwiseOrn       = 0x8,
@@ -34,7 +28,6 @@ pub enum Opcode {
     Multiply        = 0x5, ShiftLeft        = 0xd,
     CompareEq       = 0x6, TestBit          = 0xe,
     CompareLt       = 0x7, CompareGe        = 0xf,
-}
 }
 
 impl fmt::Display for Opcode {
