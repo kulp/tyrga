@@ -54,6 +54,15 @@ fn test_macro_ops() {
     assert_eq!(tenyr_op!( >=  ), CompareGe       );
 }
 
+// Some tenyr ops are more than one token, so require special treatment
+macro_rules! tenyr_get_op {
+    ( $callback:ident |~     $( $rest:tt )+ ) => { { let op = tenyr_op!(|~ ); $callback!(op $( $rest )+) } };
+    ( $callback:ident &~     $( $rest:tt )+ ) => { { let op = tenyr_op!(&~ ); $callback!(op $( $rest )+) } };
+    ( $callback:ident ^^     $( $rest:tt )+ ) => { { let op = tenyr_op!(^^ ); $callback!(op $( $rest )+) } };
+    ( $callback:ident >>>    $( $rest:tt )+ ) => { { let op = tenyr_op!(>>>); $callback!(op $( $rest )+) } };
+    ( $callback:ident $op:tt $( $rest:tt )+ ) => { { let op = tenyr_op!($op); $callback!(op $( $rest )+) } };
+}
+
 macro_rules! tenyr_rhs {
     ( $x:ident $( $op:tt $y:ident $( + $imm:expr )? )? ) => {
         {
