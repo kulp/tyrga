@@ -64,7 +64,7 @@ macro_rules! tenyr_get_op {
 }
 
 macro_rules! tenyr_type01 {
-    ( $opname:ident $y:ident $( + $imm:expr )? ) => {
+    ( $opname:ident $y:ident $( + $imm:literal )? ) => {
         {
             use $crate::tenyr::*;
             #[allow(unused_imports)] use std::convert::TryInto;
@@ -74,7 +74,7 @@ macro_rules! tenyr_type01 {
             result
         }
     };
-    ( $opname:ident $imm:tt $( + $y:ident )? ) => {
+    ( $opname:ident $imm:literal $( + $y:ident )? ) => {
         {
             use $crate::tenyr::*;
             use std::convert::TryInto;
@@ -97,7 +97,7 @@ macro_rules! tenyr_rhs {
             result
         }
     };
-    ( $x:ident + $imm:expr ) => {
+    ( $x:ident + $imm:literal ) => {
         {
             use $crate::tenyr::*;
             use std::convert::TryInto;
@@ -107,7 +107,7 @@ macro_rules! tenyr_rhs {
             result
         }
     };
-    ( $x:ident $( $op:tt $imm:tt $( + $y:ident )? )? ) => {
+    ( $x:ident $( $op:tt $imm:literal $( + $y:ident )? )? ) => {
         {
             use $crate::tenyr::*;
             use std::convert::TryInto;
@@ -117,7 +117,7 @@ macro_rules! tenyr_rhs {
             result
         }
     };
-    ( $imm:tt ) => {
+    ( $imm:literal ) => {
         {
             use $crate::tenyr::*;
             use std::convert::TryInto;
@@ -127,7 +127,7 @@ macro_rules! tenyr_rhs {
             result
         }
     };
-    ( $imm:tt $( $op:tt $x:ident $( + $y:ident )? )? ) => {
+    ( $imm:literal $( $op:tt $x:ident $( + $y:ident )? )? ) => {
         {
             use $crate::tenyr::*;
             #[allow(unused_imports)] use std::convert::TryInto;
