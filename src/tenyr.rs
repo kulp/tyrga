@@ -99,13 +99,15 @@ macro_rules! tenyr_type2 {
 }
 
 macro_rules! tenyr_rhs {
-    ( $x:ident + $imm:literal ) => {
+    ( $( $x:ident + )? $imm:literal ) => {
         {
             use $crate::tenyr::*;
             use std::convert::TryInto;
             let imm = $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?;
             let kind = Type3(imm);
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : $x, dd : MemoryOpType::NoLoad });
+            #[allow(unused_variables)] let x = Register::A;
+            $( let x = $x; )?
+            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x, dd : MemoryOpType::NoLoad });
             result
         }
     };
@@ -114,16 +116,6 @@ macro_rules! tenyr_rhs {
             use $crate::tenyr::*;
             let base = tenyr_get_op!(tenyr_type013 $( $rest )*);
             let result : Result<_, Box<std::error::Error>> = Ok(Instruction { z : Register::A, x : $x, dd : MemoryOpType::NoLoad, ..base? });
-            result
-        }
-    };
-    ( $imm:literal ) => {
-        {
-            use $crate::tenyr::*;
-            use std::convert::TryInto;
-            let imm = $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?;
-            let kind = Type3(imm);
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad });
             result
         }
     };
