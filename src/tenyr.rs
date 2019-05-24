@@ -63,17 +63,7 @@ macro_rules! tenyr_get_op {
     ( $callback:ident $op:tt $( $rest:tt )+ ) => { { let op = tenyr_op!($op); $callback!(op $( $rest )+) } };
 }
 
-macro_rules! tenyr_type01 {
-    ( $opname:ident $y:ident $( + $imm:literal )? ) => {
-        {
-            use $crate::tenyr::*;
-            #[allow(unused_imports)] use std::convert::TryInto;
-            let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
-            let kind = Type0(InsnGeneral { y : $y, op : $opname, $( imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, )? ..gen });
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad });
-            result
-        }
-    };
+macro_rules! tenyr_type013 {
     ( $opname:ident $imm:literal $( + $y:ident )? ) => {
         {
             use $crate::tenyr::*;
@@ -84,19 +74,31 @@ macro_rules! tenyr_type01 {
             result
         }
     };
-}
-
-macro_rules! tenyr_rhs {
-    ( $x:ident $( $op:tt $y:ident $( + $imm:expr )? )? ) => {
+    ( $opname:ident $y:ident $( + $imm:literal )? ) => {
         {
             use $crate::tenyr::*;
             #[allow(unused_imports)] use std::convert::TryInto;
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
-            let kind = Type0(InsnGeneral { $( y : $y, op : tenyr_op!($op), $( imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, )? )? ..gen });
+            let kind = Type0(InsnGeneral { y : $y, op : $opname, $( imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, )? ..gen });
+            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad });
+            result
+        }
+    };
+}
+
+macro_rules! tenyr_type2 {
+    ( $opname:ident $x:ident $( + $y:ident )? ) => {
+        {
+            use $crate::tenyr::*;
+            let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
+            let kind = Type2(InsnGeneral { $( y : $y, )? op : $opname, ..gen });
             let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : $x, dd : MemoryOpType::NoLoad });
             result
         }
     };
+}
+
+macro_rules! tenyr_rhs {
     ( $x:ident + $imm:literal ) => {
         {
             use $crate::tenyr::*;
@@ -107,13 +109,11 @@ macro_rules! tenyr_rhs {
             result
         }
     };
-    ( $x:ident $( $op:tt $imm:literal $( + $y:ident )? )? ) => {
+    ( $x:ident $( $rest:tt )* ) => {
         {
             use $crate::tenyr::*;
-            use std::convert::TryInto;
-            let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
-            let kind = Type1(InsnGeneral { $( $( y : $y, )? op : tenyr_op!($op), imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, )? ..gen });
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : $x, dd : MemoryOpType::NoLoad });
+            let base = tenyr_get_op!(tenyr_type013 $( $rest )*);
+            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { z : Register::A, x : $x, dd : MemoryOpType::NoLoad, ..base? });
             result
         }
     };
@@ -127,14 +127,18 @@ macro_rules! tenyr_rhs {
             result
         }
     };
-    ( $imm:literal $( $op:tt $x:ident $( + $y:ident )? )? ) => {
+    ( $imm:literal $( $rest:tt )+ ) => {
         {
             use $crate::tenyr::*;
-            #[allow(unused_imports)] use std::convert::TryInto;
-            let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
-            let kind = Type2(InsnGeneral { $( $( y : $y, )? op : tenyr_op!($op), imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, )? ..gen });
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, $( x : $x, )? dd : MemoryOpType::NoLoad });
-            result
+            use std::convert::TryInto;
+            let base = tenyr_get_op!(tenyr_type2 $( $rest )*)?;
+            if let Type2(gen) = base.kind {
+                let kind = Type2(InsnGeneral { imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, ..gen });
+                let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, ..base });
+                result
+            } else {
+                Err("internal error - did not get expected Type2".into())
+            }
         }
     };
 }
@@ -155,18 +159,20 @@ fn test_macro_insn() -> Result<(), Box<std::error::Error>> {
 
     use std::convert::TryInto;
 
+    assert_eq!(tenyr_insn!( B  <-  C  |~ D + 3      ).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
+    assert_eq!(tenyr_insn!( B  <-  C >>> D + 3      ).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : ShiftRightLogic, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
     assert_eq!(tenyr_insn!( B  <-  C  +  D + 3      ).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Add     , imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
     assert_eq!(tenyr_insn!( B  <-  C  *  D + 3      ).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
     assert_eq!(tenyr_insn!( B  <-  C  +  0x12345    ).unwrap(), Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : C, dd : NoLoad });
     assert_eq!(tenyr_insn!( B  <-        0x12345    ).unwrap(), Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : A, dd : NoLoad });
     assert_eq!(tenyr_insn!( B  <-  C  +  D          ).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Add       , imm : 0u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C  *  D          ).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply, imm : 0u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C  *  3          ).unwrap(), Instruction { kind : Type1(InsnGeneral { y : A, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
+    assert_eq!(tenyr_insn!( B  <-  C  |~ D          ).unwrap(), Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn, imm : 0u8.into() }), z : B, x : C, dd : NoLoad });
+    assert_eq!(tenyr_insn!( B  <-  C  ^^ 3          ).unwrap(), Instruction { kind : Type1(InsnGeneral { y : A, op : Pack    , imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
     assert_eq!(tenyr_insn!( B  <-  3  *  C          ).unwrap(), Instruction { kind : Type2(InsnGeneral { y : A, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
     assert_eq!(tenyr_insn!( B  <-  3  *  C + D      ).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!([B] <-  3  *  C + D      ).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : StoreLeft });
-    assert_eq!(tenyr_insn!( B  -> [3  *  C + D]     ).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : StoreRight });
-    assert_eq!(tenyr_insn!( B  <- [3  *  C + D]     ).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : LoadRight });
+    assert_eq!(tenyr_insn!([B] <-  3  ^^ C + D      ).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : Pack    , imm : 3u8.into() }), z : B, x : C, dd : StoreLeft });
+    assert_eq!(tenyr_insn!( B  -> [3  &~ C + D]     ).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : BitwiseAndn, imm : 3u8.into() }), z : B, x : C, dd : StoreRight });
+    assert_eq!(tenyr_insn!( B  <- [3  @  C + D]     ).unwrap(), Instruction { kind : Type2(InsnGeneral { y : D, op : TestBit , imm : 3u8.into() }), z : B, x : C, dd : LoadRight });
 
     Ok(())
 }
