@@ -508,10 +508,11 @@ pub enum Immediate<T : BitWidth> {
 
 impl<T : BitWidth> fmt::Display for Immediate<T> {
     fn fmt(&self, f : &mut Formatter) -> Result<(), fmt::Error> {
-        match self {
-            Immediate::Fixed(x) => write!(f, "{}", x.to_string()),
-            Immediate::Expr(x)  => write!(f, "{}", x.to_string()),
-        }
+        let d : &Display = match self {
+            Immediate::Fixed(x) => x,
+            Immediate::Expr(x)  => x,
+        };
+        write!(f, "{}", d.to_string())
     }
 }
 
