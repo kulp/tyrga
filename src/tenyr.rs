@@ -381,7 +381,11 @@ impl fmt::Display for Opcode {
             CompareEq       => "==", TestBit          => "@"  ,
             CompareLt       => "<" , CompareGe        => ">=" ,
         };
-        write!(f, "{}", s)
+        // Support a tiny, inconsistent subset of formatting commands
+        match f.align() {
+            Some(fmt::Alignment::Center) => write!(f, "{:^3}", s),
+            _ => write!(f, "{}", s),
+        }
     }
 }
 
@@ -595,13 +599,13 @@ impl fmt::Display for Instruction {
             Type3(..)
                 => format!("{a} + {c}", a=a, c=c),
             Type0(Gen { op, imm : Immediate::Fixed(ref imm), .. }) if *imm == 0u8.into()
-                => format!("{a} {op:^3} {b}", a=a, b=b, op=op.to_string()),
+                => format!("{a} {op:^3} {b}", a=a, b=b, op=op),
             Type1(Gen { op, y, .. }) | Type2(Gen { op, y, .. }) if y == Register::A
-                => format!("{a} {op:^3} {b}", a=a, b=b, op=op.to_string()),
+                => format!("{a} {op:^3} {b}", a=a, b=b, op=op),
             Type0(Gen { op, .. }) |
             Type1(Gen { op, .. }) |
             Type2(Gen { op, .. })
-                => format!("{a} {op:^3} {b} + {c}", a=a, b=b, c=c, op=op.to_string()),
+                => format!("{a} {op:^3} {b} + {c}", a=a, b=b, c=c, op=op),
         };
 
         use MemoryOpType::*;
