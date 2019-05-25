@@ -2,7 +2,7 @@ mod exprtree;
 mod jvmtypes;
 pub mod mangling;
 mod stack;
-mod tenyr;
+#[macro_use] mod tenyr;
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -39,29 +39,25 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
     use tenyr::InsnGeneral;
     use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::*;
-    use tenyr::Opcode::*;
     use SmallestImmediate::*;
 
     let imm = SmallestImmediate::try_from(imm)?; // cannot fail, Infallible
 
     fn make_imm(temp_reg : Register, imm : SmallestImmediate) -> GeneralResult<Vec<Instruction>> {
-        let adder  = InsnGeneral { y : Register::A, op : Add , imm : 0u8.into() };
-        let packer = InsnGeneral { y : Register::A, op : Pack, imm : 0u8.into() };
+        use tenyr::Register::*;
 
-        let noop = Instruction { kind : Type0(adder.clone()), z : Register::A, x : Register::A, dd : NoLoad };
         let result = match imm {
             Imm12(imm) => // This path is fairly useless, but it completes generality
-                vec![ Instruction { kind : Type0(InsnGeneral { imm, ..adder }), z : temp_reg, ..noop } ],
+                vec![ tenyr_insn!( temp_reg <- A | A + (imm) )? ],
             Imm20(imm) =>
-                vec![ Instruction { kind : Type3(imm), z : temp_reg, ..noop } ],
+                vec![ tenyr_insn!( temp_reg <- (imm) )? ],
             Imm32(imm) => {
-                let top = ((imm >> 12) as u16).into();
                 let bot = tenyr::Immediate12::try_from_bits((imm & 0xfff) as u16)?; // cannot fail
 
-                vec![
-                    Instruction { kind : Type3(top), z : temp_reg, ..noop },
-                    Instruction { kind : Type1(InsnGeneral { imm : bot, ..packer }), z : temp_reg, x : temp_reg, ..noop },
-                ]
+                tenyr_insn_list!(
+                    temp_reg <- (imm >> 12)         ;
+                    temp_reg <- temp_reg ^^ (bot)   ;
+                ).collect()
             },
         };
         Ok(result)
