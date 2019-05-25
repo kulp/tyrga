@@ -463,18 +463,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             let maker = |imm : i32| {
                 move |sm : &mut StackManager| {
-                    let insn = Instruction {
-                        kind : Type1(
-                            InsnGeneral {
-                               y : Register::A,
-                               op : Opcode::CompareEq,
-                               imm : 0u8.into(), // placeholder
-                            }),
-                        z : temp_reg,
-                        x : top,
-                        dd : MemoryOpType::NoLoad,
-                    };
-                    let insns = expand_immediate_load(sm, insn, imm)?;
+                    let insn = tenyr_insn!( temp_reg <- top == 0 );
+                    let insns = expand_immediate_load(sm, insn?, imm)?;
                     Ok((temp_reg, insns))
                 }
             };
@@ -538,9 +528,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             insns.extend(lo_insns);
             insns.extend(hi_insns);
 
-            let kind = Type1(InsnGeneral { y : Register::P, op : Opcode::Subtract, imm : 0u8.into() /* placeholder */ });
-            let insn = Instruction { kind, z : Register::P, x : top, dd : NoLoad };
-            insns.extend(expand_immediate_load(sm, insn, low)?);
+            use tenyr::Register::*;
+            let insn = tenyr_insn!( P <- top - 0 + P );
+            insns.extend(expand_immediate_load(sm, insn?, low)?);
 
             let make_pairs = |n| {
                 let result : GeneralResult<(_,_)> =
