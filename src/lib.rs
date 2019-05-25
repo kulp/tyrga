@@ -169,6 +169,7 @@ type BranchComp = FnMut(&mut StackManager) -> GeneralResult<(tenyr::Register, Ve
 fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target : u16, target_namer : &Namer, comp : &mut BranchComp) -> MakeInsnResult {
     use tenyr::*;
     use tenyr::InstructionType::*;
+    use tenyr::Register::*;
 
     let mut dest = Vec::new();
     dest.push(Destination::Successor);
@@ -176,19 +177,13 @@ fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target :
     let o = make_target(target, target_namer)?;
 
     let (temp_reg, sequence) = comp(sm)?;
-    let branch = Instruction {
-        kind : Type2(
-            InsnGeneral {
-               y : Register::P,
-               op : if invert { Opcode::BitwiseAndn } else { Opcode::BitwiseAnd },
-               imm : tenyr::Immediate::Expr(o),
-            }),
-        z : Register::P,
-        x : temp_reg,
-        dd : MemoryOpType::NoLoad,
+    let imm = tenyr::Immediate::Expr(o);
+    let branch = match invert {
+        false => tenyr_insn!(   P <- (imm) &  temp_reg + P ),
+        true  => tenyr_insn!(   P <- (imm) &~ temp_reg + P ),
     };
     let mut v = sequence;
-    v.push(branch);
+    v.push(branch?);
     Ok((addr, v, dest))
 }
 
