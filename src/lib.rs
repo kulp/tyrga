@@ -5,7 +5,7 @@ mod exprtree;
 mod jvmtypes;
 pub mod mangling;
 mod stack;
-mod tenyr;
+#[macro_use] mod tenyr;
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -42,29 +42,25 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
     use tenyr::InsnGeneral;
     use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::*;
-    use tenyr::Opcode::*;
     use SmallestImmediate::*;
 
     let imm = SmallestImmediate::try_from(imm)?; // cannot fail, Infallible
 
     fn make_imm(temp_reg : Register, imm : SmallestImmediate) -> GeneralResult<Vec<Instruction>> {
-        let adder  = InsnGeneral { y : Register::A, op : Add , imm : 0u8.into() };
-        let packer = InsnGeneral { y : Register::A, op : Pack, imm : 0u8.into() };
+        use tenyr::Register::*;
 
-        let noop = Instruction { kind : Type0(adder.clone()), z : Register::A, x : Register::A, dd : NoLoad };
         let result = match imm {
             Imm12(imm) => // This path is fairly useless, but it completes generality
-                vec![ Instruction { kind : Type0(InsnGeneral { imm, ..adder }), z : temp_reg, ..noop } ],
+                vec![ tenyr_insn!( temp_reg <- A | A + (imm) )? ],
             Imm20(imm) =>
-                vec![ Instruction { kind : Type3(imm), z : temp_reg, ..noop } ],
+                vec![ tenyr_insn!( temp_reg <- (imm) )? ],
             Imm32(imm) => {
-                let top = ((imm >> 12) as u16).into();
                 let bot = tenyr::Immediate12::try_from_bits((imm & 0xfff) as u16)?; // cannot fail
 
-                vec![
-                    Instruction { kind : Type3(top), z : temp_reg, ..noop },
-                    Instruction { kind : Type1(InsnGeneral { imm : bot, ..packer }), z : temp_reg, x : temp_reg, ..noop },
-                ]
+                tenyr_insn_list!(
+                    temp_reg <- (imm >> 12)         ;
+                    temp_reg <- temp_reg ^^ (bot)   ;
+                ).collect()
             },
         };
         Ok(result)
@@ -176,23 +172,18 @@ type BranchComp = FnMut(&mut StackManager) -> GeneralResult<(tenyr::Register, Ve
 fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target : u16, target_namer : &Namer, comp : &mut BranchComp) -> MakeInsnResult {
     use tenyr::*;
     use tenyr::InstructionType::*;
+    use tenyr::Register::*;
 
     let o = make_target(target, target_namer)?;
 
     let (temp_reg, sequence) = comp(sm)?;
-    let branch = Instruction {
-        kind : Type2(
-            InsnGeneral {
-               y : Register::P,
-               op : if invert { Opcode::BitwiseAndn } else { Opcode::BitwiseAnd },
-               imm : tenyr::Immediate::Expr(o),
-            }),
-        z : Register::P,
-        x : temp_reg,
-        dd : MemoryOpType::NoLoad,
+    let imm = tenyr::Immediate::Expr(o);
+    let branch = match invert {
+        false => tenyr_insn!(   P <- (imm) &  temp_reg + P ),
+        true  => tenyr_insn!(   P <- (imm) &~ temp_reg + P ),
     };
     let mut v = sequence;
-    v.push(branch);
+    v.push(branch?);
     let dest = vec![
         Destination::Successor,
         Destination::Address(target.into()),
@@ -483,18 +474,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             let maker = |imm : i32| {
                 move |sm : &mut StackManager| {
-                    let insn = Instruction {
-                        kind : Type1(
-                            InsnGeneral {
-                               y : Register::A,
-                               op : Opcode::CompareEq,
-                               imm : 0u8.into(), // placeholder
-                            }),
-                        z : temp_reg,
-                        x : top,
-                        dd : MemoryOpType::NoLoad,
-                    };
-                    let insns = expand_immediate_load(sm, insn, imm)?;
+                    let insn = tenyr_insn!( temp_reg <- top == 0 );
+                    let insns = expand_immediate_load(sm, insn?, imm)?;
                     Ok((temp_reg, insns))
                 }
             };
@@ -565,9 +546,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             insns.extend(lo_insns);
             insns.extend(hi_insns);
 
-            let kind = Type1(InsnGeneral { y : Register::P, op : Opcode::Subtract, imm : 0u8.into() /* placeholder */ });
-            let insn = Instruction { kind, z : Register::P, x : top, dd : NoLoad };
-            insns.extend(expand_immediate_load(sm, insn, low)?);
+            use tenyr::Register::*;
+            let insn = tenyr_insn!( P <- top - 0 + P );
+            insns.extend(expand_immediate_load(sm, insn?, low)?);
 
             let make_pairs = |n| {
                 let result : GeneralResult<(_,_)> =
