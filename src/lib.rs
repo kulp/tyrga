@@ -178,10 +178,9 @@ fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target :
 
     let (temp_reg, sequence) = comp(sm)?;
     let imm = tenyr::Immediate::Expr(o);
-    let branch = match invert {
-        false => tenyr_insn!(   P <- (imm) &  temp_reg + P ),
-        true  => tenyr_insn!(   P <- (imm) &~ temp_reg + P ),
-    };
+    let branch =
+        if invert   { tenyr_insn!(   P <- (imm) &~ temp_reg + P     ) }
+        else        { tenyr_insn!(   P <- (imm) &  temp_reg + P     ) };
     let mut v = sequence;
     v.push(branch?);
     let dest = vec![

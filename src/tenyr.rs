@@ -82,6 +82,7 @@ macro_rules! tenyr_type013 {
             use $crate::tenyr::*;
             use std::convert::TryInto;
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
+            #[allow(clippy::needless_update)]
             let kind = Type1(InsnGeneral { $( y : $y, )? op : $opname, imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, ..gen });
             let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad });
             result
@@ -92,6 +93,7 @@ macro_rules! tenyr_type013 {
             use $crate::tenyr::*;
             #[allow(unused_imports)] use std::convert::TryInto;
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
+            #[allow(clippy::needless_update)]
             let kind = Type0(InsnGeneral { op : $opname, $( y : $y, $( imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, )? )?  ..gen });
             let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad });
             result
