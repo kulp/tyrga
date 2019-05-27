@@ -238,30 +238,14 @@ fn test_macro_insn() -> Result<(), Box<std::error::Error>> {
 #[macro_export]
 macro_rules! tenyr_insn_list {
     () => { vec![] };
-    ( $lhs:tt <- $a:tt $op:tt$op2:tt $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => {
-        {
-            let insn = tenyr_insn!($lhs <- $a $op$op2 $b $( + $c )? );
-            std::iter::once(insn?).chain(tenyr_insn_list!($( $tok )*))
-        }
-    };
-    ( $lhs:tt <- $a:tt $op:tt $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => {
-        {
-            let insn = tenyr_insn!($lhs <- $a $op $b $( + $c )? );
-            std::iter::once(insn?).chain(tenyr_insn_list!($( $tok )*))
-        }
-    };
-    ( $lhs:tt <- $rhs:tt ; $( $tok:tt )* ) => {
-        {
-            let insn = tenyr_insn!($lhs <- $rhs );
-            std::iter::once(insn?).chain(tenyr_insn_list!($( $tok )*))
-        }
-    };
-    ( $lhs:tt -> $rhs:tt ; $( $tok:tt )* ) => {
-        {
-            let insn = tenyr_insn!($lhs -> $rhs );
-            std::iter::once(insn?).chain(tenyr_insn_list!($( $tok )*))
-        }
-    };
+    ( $lhs:tt <- $a:tt $op:tt$op2:tt $b:tt $( + $c:tt )? ; $( $tok:tt )* ) =>
+        { std::iter::once(tenyr_insn!($lhs <- $a $op$op2 $b $( + $c )?  )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <- $a:tt $op:tt $b:tt $( + $c:tt )? ; $( $tok:tt )* ) =>
+        { std::iter::once(tenyr_insn!($lhs <- $a $op $b $( + $c )?      )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <- $rhs:tt ; $( $tok:tt )* ) =>
+        { std::iter::once(tenyr_insn!($lhs <- $rhs                      )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt -> $rhs:tt ; $( $tok:tt )* ) =>
+        { std::iter::once(tenyr_insn!($lhs -> $rhs                      )?).chain(tenyr_insn_list!($( $tok )*)) };
 }
 
 #[test]
