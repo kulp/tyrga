@@ -130,9 +130,8 @@ macro_rules! tenyr_rhs {
             use std::convert::TryInto;
             let imm = $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?;
             let kind = Type3(imm);
-            #[allow(unused_variables)] let x = Register::A;
-            $( let x = $x; )?
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x, dd : MemoryOpType::NoLoad });
+            let base = Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad };
+            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { $( x : $x, )? ..base });
             result
         }
     };
@@ -142,9 +141,8 @@ macro_rules! tenyr_rhs {
             use std::convert::TryInto;
             let imm = $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?;
             let kind = Type3(imm);
-            #[allow(unused_variables)] let x = Register::A;
-            $( let x = $x; )?
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x, dd : MemoryOpType::NoLoad });
+            let base = Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad };
+            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { $( x : $x, )? ..base });
             result
         }
     };
