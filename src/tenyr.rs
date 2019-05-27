@@ -186,10 +186,10 @@ macro_rules! tenyr_rhs {
 
 #[macro_export]
 macro_rules! tenyr_insn {
-    (   $z:ident   <- [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::LoadRight, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<_, Box<std::error::Error>> };
-    (   $z:ident   <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<_, Box<std::error::Error>> };
-    ( [ $z:ident ] <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreLeft, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<_, Box<std::error::Error>> };
-    (   $z:ident   -> [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreRight, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<_, Box<std::error::Error>> };
+    (   $z:ident   <- [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::LoadRight, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<Instruction, Box<std::error::Error>> };
+    (   $z:ident   <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<Instruction, Box<std::error::Error>> };
+    ( [ $z:ident ] <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreLeft, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<Instruction, Box<std::error::Error>> };
+    (   $z:ident   -> [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreRight, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<Instruction, Box<std::error::Error>> };
 }
 
 #[test]
@@ -240,25 +240,25 @@ macro_rules! tenyr_insn_list {
     () => { vec![] };
     ( $lhs:tt <- $a:tt $op:tt$op2:tt $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => {
         {
-            let insn : Result<Instruction,_> = tenyr_insn!($lhs <- $a $op$op2 $b $( + $c )? );
+            let insn = tenyr_insn!($lhs <- $a $op$op2 $b $( + $c )? );
             std::iter::once(insn?).chain(tenyr_insn_list!($( $tok )*))
         }
     };
     ( $lhs:tt <- $a:tt $op:tt $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => {
         {
-            let insn : Result<Instruction,_> = tenyr_insn!($lhs <- $a $op $b $( + $c )? );
+            let insn = tenyr_insn!($lhs <- $a $op $b $( + $c )? );
             std::iter::once(insn?).chain(tenyr_insn_list!($( $tok )*))
         }
     };
     ( $lhs:tt <- $rhs:tt ; $( $tok:tt )* ) => {
         {
-            let insn : Result<Instruction,_> = tenyr_insn!($lhs <- $rhs );
+            let insn = tenyr_insn!($lhs <- $rhs );
             std::iter::once(insn?).chain(tenyr_insn_list!($( $tok )*))
         }
     };
     ( $lhs:tt -> $rhs:tt ; $( $tok:tt )* ) => {
         {
-            let insn : Result<Instruction,_> = tenyr_insn!($lhs -> $rhs );
+            let insn = tenyr_insn!($lhs -> $rhs );
             std::iter::once(insn?).chain(tenyr_insn_list!($( $tok )*))
         }
     };
