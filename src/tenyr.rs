@@ -73,8 +73,7 @@ macro_rules! tenyr_type013 {
             use std::convert::TryInto;
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
             let kind = Type1(InsnGeneral { $( y : $y, )? op : $opname, imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, ..gen });
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad });
-            result
+            Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad }) as Result<Instruction, Box<std::error::Error>>
         }
     };
     ( $opname:ident $imm:literal $( + $y:ident )? ) => {
@@ -84,8 +83,7 @@ macro_rules! tenyr_type013 {
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
             #[allow(clippy::needless_update)]
             let kind = Type1(InsnGeneral { $( y : $y, )? op : $opname, imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, ..gen });
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad });
-            result
+            Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad }) as Result<Instruction, Box<std::error::Error>>
         }
     };
     ( $opname:ident $( $y:ident $( + ( $imm:expr ) )? )? ) => {
@@ -94,9 +92,8 @@ macro_rules! tenyr_type013 {
             #[allow(unused_imports)] use std::convert::TryInto;
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
             #[allow(clippy::needless_update)]
-            let kind = Type0(InsnGeneral { op : $opname, $( y : $y, $( imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, )? )?  ..gen });
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad });
-            result
+            let kind = Type0(InsnGeneral { op : $opname, $( y : $y, $( imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, )? )? ..gen });
+            Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad }) as Result<Instruction, Box<std::error::Error>>
         }
     };
     ( $opname:ident $( $y:ident $( + $imm:literal )? )? ) => {
@@ -105,8 +102,7 @@ macro_rules! tenyr_type013 {
             #[allow(unused_imports)] use std::convert::TryInto;
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
             let kind = Type0(InsnGeneral { op : $opname, $( y : $y, $( imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, )? )?  ..gen });
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad });
-            result
+            Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad }) as Result<Instruction, Box<std::error::Error>>
         }
     };
 }
@@ -117,8 +113,7 @@ macro_rules! tenyr_type2 {
             use $crate::tenyr::*;
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
             let kind = Type2(InsnGeneral { $( y : $y, )? op : $opname, ..gen });
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, z : Register::A, x : $x, dd : MemoryOpType::NoLoad });
-            result
+            Ok(Instruction { kind, z : Register::A, x : $x, dd : MemoryOpType::NoLoad }) as Result<Instruction, Box<std::error::Error>>
         }
     };
 }
@@ -131,8 +126,7 @@ macro_rules! tenyr_rhs {
             let imm = $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?;
             let kind = Type3(imm);
             let base = Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad };
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { $( x : $x, )? ..base });
-            result
+            Ok(Instruction { $( x : $x, )? ..base }) as Result<Instruction, Box<std::error::Error>>
         }
     };
     ( $( $x:ident + )? $imm:literal ) => {
@@ -142,16 +136,14 @@ macro_rules! tenyr_rhs {
             let imm = $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?;
             let kind = Type3(imm);
             let base = Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad };
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { $( x : $x, )? ..base });
-            result
+            Ok(Instruction { $( x : $x, )? ..base }) as Result<Instruction, Box<std::error::Error>>
         }
     };
     ( $x:ident $( $rest:tt )* ) => {
         {
             use $crate::tenyr::*;
             let base = tenyr_get_op!(tenyr_type013 $( $rest )*);
-            let result : Result<_, Box<std::error::Error>> = Ok(Instruction { z : Register::A, x : $x, dd : MemoryOpType::NoLoad, ..base? });
-            result
+            Ok(Instruction { z : Register::A, x : $x, dd : MemoryOpType::NoLoad, ..base? }) as Result<Instruction, Box<std::error::Error>>
         }
     };
     ( ( $imm:expr ) $( $rest:tt )+ ) => {
@@ -161,8 +153,7 @@ macro_rules! tenyr_rhs {
             let base = tenyr_get_op!(tenyr_type2 $( $rest )*)?;
             if let Type2(gen) = base.kind {
                 let kind = Type2(InsnGeneral { imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, ..gen });
-                let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, ..base });
-                result
+                Ok(Instruction { kind, ..base }) as Result<Instruction, Box<std::error::Error>>
             } else {
                 Err("internal error - did not get expected Type2".into())
             }
@@ -175,8 +166,7 @@ macro_rules! tenyr_rhs {
             let base = tenyr_get_op!(tenyr_type2 $( $rest )*)?;
             if let Type2(gen) = base.kind {
                 let kind = Type2(InsnGeneral { imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, ..gen });
-                let result : Result<_, Box<std::error::Error>> = Ok(Instruction { kind, ..base });
-                result
+                Ok(Instruction { kind, ..base }) as Result<Instruction, Box<std::error::Error>>
             } else {
                 Err("internal error - did not get expected Type2".into())
             }
