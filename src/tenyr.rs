@@ -189,10 +189,10 @@ macro_rules! tenyr_rhs {
 
 #[macro_export]
 macro_rules! tenyr_insn {
-    (   $z:ident   <- [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::LoadRight, ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
-    (   $z:ident   <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z, ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
-    ( [ $z:ident ] <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreLeft, ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
+    (   $z:ident   <- [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::LoadRight , ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
+    ( [ $z:ident ] <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreLeft , ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
     (   $z:ident   -> [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreRight, ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
+    (   $z:ident   <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z,                                               ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
 }
 
 #[test]
@@ -204,36 +204,35 @@ fn test_macro_insn() -> Result<(), Box<std::error::Error>> {
 
     use std::convert::TryInto;
 
-    assert_eq!(tenyr_insn!( B  <-  C  |~ D + 3      )?, Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C >>> D + 3      )?, Instruction { kind : Type0(InsnGeneral { y : D, op : ShiftRightLogic, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C  +  D + 3      )?, Instruction { kind : Type0(InsnGeneral { y : D, op : Add     , imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C  *  D + 3      )?, Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C  +  0x12345    )?, Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-        0x12345    )?, Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : A, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C                )?, Instruction { kind : Type0(InsnGeneral { y : A, op : BitwiseOr , imm : 0u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C  +  D          )?, Instruction { kind : Type0(InsnGeneral { y : D, op : Add       , imm : 0u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C  |~ D          )?, Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn, imm : 0u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C  ^^ 3          )?, Instruction { kind : Type1(InsnGeneral { y : A, op : Pack    , imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  3  *  C          )?, Instruction { kind : Type2(InsnGeneral { y : A, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  3  *  C + D      )?, Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!([B] <-  3  ^^ C + D      )?, Instruction { kind : Type2(InsnGeneral { y : D, op : Pack    , imm : 3u8.into() }), z : B, x : C, dd : StoreLeft });
-    assert_eq!(tenyr_insn!( B  -> [3  &~ C + D]     )?, Instruction { kind : Type2(InsnGeneral { y : D, op : BitwiseAndn, imm : 3u8.into() }), z : B, x : C, dd : StoreRight });
-    assert_eq!(tenyr_insn!( B  <- [3  @  C + D]     )?, Instruction { kind : Type2(InsnGeneral { y : D, op : TestBit , imm : 3u8.into() }), z : B, x : C, dd : LoadRight });
-
     let three = 3;
 
-    assert_eq!(tenyr_insn!( B  <-  C  |~ D + (three))?, Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C >>> D + (three))?, Instruction { kind : Type0(InsnGeneral { y : D, op : ShiftRightLogic, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C  +  D + (three))?, Instruction { kind : Type0(InsnGeneral { y : D, op : Add     , imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C  *  D + (three))?, Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C  +  (three)    )?, Instruction { kind : Type3(3u8.into()), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-        (three)    )?, Instruction { kind : Type3(3u8.into()), z : B, x : A, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C  ^^ (three)    )?, Instruction { kind : Type1(InsnGeneral { y : A, op : Pack    , imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  (three) * C      )?, Instruction { kind : Type2(InsnGeneral { y : A, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  (three) * C + D  )?, Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!([B] <-  (three) ^^ C + D )?, Instruction { kind : Type2(InsnGeneral { y : D, op : Pack    , imm : 3u8.into() }), z : B, x : C, dd : StoreLeft });
-    assert_eq!(tenyr_insn!( B  -> [(three) &~ C + D])?, Instruction { kind : Type2(InsnGeneral { y : D, op : BitwiseAndn, imm : 3u8.into() }), z : B, x : C, dd : StoreRight });
-    assert_eq!(tenyr_insn!( B  <- [(three) @  C + D])?, Instruction { kind : Type2(InsnGeneral { y : D, op : TestBit , imm : 3u8.into() }), z : B, x : C, dd : LoadRight });
+    assert_eq!(tenyr_insn!( B  <-  C  |~ D + 3      )?, Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn      , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!( B  <-  C >>> D + 3      )?, Instruction { kind : Type0(InsnGeneral { y : D, op : ShiftRightLogic , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!( B  <-  C  +  D + 3      )?, Instruction { kind : Type0(InsnGeneral { y : D, op : Add             , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!( B  <-  C  *  D + 3      )?, Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply        , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!( B  <-  C                )?, Instruction { kind : Type0(InsnGeneral { y : A, op : BitwiseOr       , imm : 0u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!( B  <-  C  +  D          )?, Instruction { kind : Type0(InsnGeneral { y : D, op : Add             , imm : 0u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!( B  <-  C  |~ D          )?, Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn      , imm : 0u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!( B  <-  C  ^^ 3          )?, Instruction { kind : Type1(InsnGeneral { y : A, op : Pack            , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!( B  <-  3  *  C          )?, Instruction { kind : Type2(InsnGeneral { y : A, op : Multiply        , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!( B  <-  3  *  C + D      )?, Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply        , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!([B] <-  3  ^^ C + D      )?, Instruction { kind : Type2(InsnGeneral { y : D, op : Pack            , imm : 3u8.into() } ) , z : B, x : C, dd : StoreLeft  });
+    assert_eq!(tenyr_insn!( B  -> [3  &~ C + D]     )?, Instruction { kind : Type2(InsnGeneral { y : D, op : BitwiseAndn     , imm : 3u8.into() } ) , z : B, x : C, dd : StoreRight });
+    assert_eq!(tenyr_insn!( B  <- [3  @  C + D]     )?, Instruction { kind : Type2(InsnGeneral { y : D, op : TestBit         , imm : 3u8.into() } ) , z : B, x : C, dd : LoadRight  });
+    assert_eq!(tenyr_insn!( B  <-  C  |~ D + (three))?, Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn      , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!( B  <-  C >>> D + (three))?, Instruction { kind : Type0(InsnGeneral { y : D, op : ShiftRightLogic , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!( B  <-  C  +  D + (three))?, Instruction { kind : Type0(InsnGeneral { y : D, op : Add             , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!( B  <-  C  *  D + (three))?, Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply        , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!( B  <-  C  ^^ (three)    )?, Instruction { kind : Type1(InsnGeneral { y : A, op : Pack            , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!( B  <-  (three) * C      )?, Instruction { kind : Type2(InsnGeneral { y : A, op : Multiply        , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!( B  <-  (three) * C + D  )?, Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply        , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     });
+    assert_eq!(tenyr_insn!([B] <-  (three) ^^ C + D )?, Instruction { kind : Type2(InsnGeneral { y : D, op : Pack            , imm : 3u8.into() } ) , z : B, x : C, dd : StoreLeft  });
+    assert_eq!(tenyr_insn!( B  -> [(three) &~ C + D])?, Instruction { kind : Type2(InsnGeneral { y : D, op : BitwiseAndn     , imm : 3u8.into() } ) , z : B, x : C, dd : StoreRight });
+    assert_eq!(tenyr_insn!( B  <- [(three) @  C + D])?, Instruction { kind : Type2(InsnGeneral { y : D, op : TestBit         , imm : 3u8.into() } ) , z : B, x : C, dd : LoadRight  });
+    assert_eq!(tenyr_insn!( B  <-  C  +  0x12345    )?, Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : C, dd : NoLoad });
+    assert_eq!(tenyr_insn!( B  <-        0x12345    )?, Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : A, dd : NoLoad });
+    assert_eq!(tenyr_insn!( B  <-  C  +  (three)    )?, Instruction { kind : Type3(3u8.into())             , z : B, x : C, dd : NoLoad });
+    assert_eq!(tenyr_insn!( B  <-        (three)    )?, Instruction { kind : Type3(3u8.into())             , z : B, x : A, dd : NoLoad });
 
     Ok(())
 }
@@ -241,14 +240,10 @@ fn test_macro_insn() -> Result<(), Box<std::error::Error>> {
 #[macro_export]
 macro_rules! tenyr_insn_list {
     () => { vec![] };
-    ( $lhs:tt <- $a:tt $op:tt$op2:tt $b:tt $( + $c:tt )? ; $( $tok:tt )* ) =>
-        { std::iter::once(tenyr_insn!($lhs <- $a $op$op2 $b $( + $c )?  )?).chain(tenyr_insn_list!($( $tok )*)) };
-    ( $lhs:tt <- $a:tt $op:tt $b:tt $( + $c:tt )? ; $( $tok:tt )* ) =>
-        { std::iter::once(tenyr_insn!($lhs <- $a $op $b $( + $c )?      )?).chain(tenyr_insn_list!($( $tok )*)) };
-    ( $lhs:tt <- $rhs:tt ; $( $tok:tt )* ) =>
-        { std::iter::once(tenyr_insn!($lhs <- $rhs                      )?).chain(tenyr_insn_list!($( $tok )*)) };
-    ( $lhs:tt -> $rhs:tt ; $( $tok:tt )* ) =>
-        { std::iter::once(tenyr_insn!($lhs -> $rhs                      )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <- $a:tt $op:tt$op2:tt $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $a $op$op2 $b $( + $c )?  )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <- $a:tt $op:tt        $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $a $op     $b $( + $c )?  )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <- $rhs:tt                                 ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $rhs                      )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt -> $rhs:tt                                 ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs -> $rhs                      )?).chain(tenyr_insn_list!($( $tok )*)) };
 }
 
 #[test]
@@ -265,8 +260,6 @@ fn test_macro_insn_list() -> Result<(), Box<std::error::Error>> {
          B  <-  C >>> D + 3      ;
          B  <-  C  +  D + 3      ;
          B  <-  C  *  D + 3      ;
-         B  <-  C  +  0x12345    ;
-         B  <-        0x12345    ;
          B  <-  C                ;
          B  <-  C  +  D          ;
          B  <-  C  |~ D          ;
@@ -280,14 +273,16 @@ fn test_macro_insn_list() -> Result<(), Box<std::error::Error>> {
          B  <-  C >>> D + (three);
          B  <-  C  +  D + (three);
          B  <-  C  *  D + (three);
-         B  <-  C  +  (three)    ;
-         B  <-        (three)    ;
          B  <-  C  ^^ (three)    ;
          B  <-  (three) * C      ;
          B  <-  (three) * C + D  ;
         [B] <-  (three) ^^ C + D ;
          B  -> [(three) &~ C + D];
          B  <- [(three) @  C + D];
+         B  <-  C  +  0x12345    ;
+         B  <-        0x12345    ;
+         B  <-  C  +  (three)    ;
+         B  <-        (three)    ;
     };
 
     let from : Vec<_> = from.collect();
@@ -295,33 +290,33 @@ fn test_macro_insn_list() -> Result<(), Box<std::error::Error>> {
     use std::convert::TryInto;
 
     let to = vec![
-        Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn, imm : 3u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type0(InsnGeneral { y : D, op : ShiftRightLogic, imm : 3u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type0(InsnGeneral { y : D, op : Add     , imm : 3u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad },
+        Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn      , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type0(InsnGeneral { y : D, op : ShiftRightLogic , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type0(InsnGeneral { y : D, op : Add             , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply        , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type0(InsnGeneral { y : A, op : BitwiseOr       , imm : 0u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type0(InsnGeneral { y : D, op : Add             , imm : 0u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn      , imm : 0u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type1(InsnGeneral { y : A, op : Pack            , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type2(InsnGeneral { y : A, op : Multiply        , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply        , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type2(InsnGeneral { y : D, op : Pack            , imm : 3u8.into() } ) , z : B, x : C, dd : StoreLeft  },
+        Instruction { kind : Type2(InsnGeneral { y : D, op : BitwiseAndn     , imm : 3u8.into() } ) , z : B, x : C, dd : StoreRight },
+        Instruction { kind : Type2(InsnGeneral { y : D, op : TestBit         , imm : 3u8.into() } ) , z : B, x : C, dd : LoadRight  },
+        Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn      , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type0(InsnGeneral { y : D, op : ShiftRightLogic , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type0(InsnGeneral { y : D, op : Add             , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply        , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type1(InsnGeneral { y : A, op : Pack            , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type2(InsnGeneral { y : A, op : Multiply        , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply        , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     },
+        Instruction { kind : Type2(InsnGeneral { y : D, op : Pack            , imm : 3u8.into() } ) , z : B, x : C, dd : StoreLeft  },
+        Instruction { kind : Type2(InsnGeneral { y : D, op : BitwiseAndn     , imm : 3u8.into() } ) , z : B, x : C, dd : StoreRight },
+        Instruction { kind : Type2(InsnGeneral { y : D, op : TestBit         , imm : 3u8.into() } ) , z : B, x : C, dd : LoadRight  },
         Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : C, dd : NoLoad },
         Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : A, dd : NoLoad },
-        Instruction { kind : Type0(InsnGeneral { y : A, op : BitwiseOr , imm : 0u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type0(InsnGeneral { y : D, op : Add       , imm : 0u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn, imm : 0u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type1(InsnGeneral { y : A, op : Pack    , imm : 3u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type2(InsnGeneral { y : A, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type2(InsnGeneral { y : D, op : Pack    , imm : 3u8.into() }), z : B, x : C, dd : StoreLeft },
-        Instruction { kind : Type2(InsnGeneral { y : D, op : BitwiseAndn, imm : 3u8.into() }), z : B, x : C, dd : StoreRight },
-        Instruction { kind : Type2(InsnGeneral { y : D, op : TestBit , imm : 3u8.into() }), z : B, x : C, dd : LoadRight },
-        Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn, imm : 3u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type0(InsnGeneral { y : D, op : ShiftRightLogic, imm : 3u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type0(InsnGeneral { y : D, op : Add     , imm : 3u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type3(3u8.into()), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type3(3u8.into()), z : B, x : A, dd : NoLoad },
-        Instruction { kind : Type1(InsnGeneral { y : A, op : Pack    , imm : 3u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type2(InsnGeneral { y : A, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply, imm : 3u8.into() }), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type2(InsnGeneral { y : D, op : Pack    , imm : 3u8.into() }), z : B, x : C, dd : StoreLeft },
-        Instruction { kind : Type2(InsnGeneral { y : D, op : BitwiseAndn, imm : 3u8.into() }), z : B, x : C, dd : StoreRight },
-        Instruction { kind : Type2(InsnGeneral { y : D, op : TestBit , imm : 3u8.into() }), z : B, x : C, dd : LoadRight },
+        Instruction { kind : Type3(3u8.into())             , z : B, x : C, dd : NoLoad },
+        Instruction { kind : Type3(3u8.into())             , z : B, x : A, dd : NoLoad },
     ];
 
     assert_eq!(from, to);
