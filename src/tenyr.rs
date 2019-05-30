@@ -56,6 +56,8 @@ macro_rules! tenyr_get_op {
     ( $callback:ident $op:tt $( $rest:tt )+ ) => { { use $crate::tenyr::Opcode::*; let op = tenyr_op!($op); $callback!(op $( $rest )+) } };
 }
 
+pub type InsnResult = Result<Instruction, Box<std::error::Error>>;
+
 macro_rules! tenyr_type013 {
     ( $opname:ident ( $imm:expr ) $( + $y:ident )? ) => {
         {
@@ -63,7 +65,7 @@ macro_rules! tenyr_type013 {
             use std::convert::TryInto;
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
             let kind = Type1(InsnGeneral { $( y : $y, )? op : $opname, imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, ..gen });
-            Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad }) as Result<Instruction, Box<std::error::Error>>
+            Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad }) as $crate::tenyr::InsnResult
         }
     };
     ( $opname:ident $imm:literal $( + $y:ident )? ) => {
@@ -73,7 +75,7 @@ macro_rules! tenyr_type013 {
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
             #[allow(clippy::needless_update)]
             let kind = Type1(InsnGeneral { $( y : $y, )? op : $opname, imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, ..gen });
-            Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad }) as Result<Instruction, Box<std::error::Error>>
+            Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad }) as $crate::tenyr::InsnResult
         }
     };
     ( $opname:ident $( $y:ident $( + ( $imm:expr ) )? )? ) => {
@@ -83,7 +85,7 @@ macro_rules! tenyr_type013 {
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
             #[allow(clippy::needless_update)]
             let kind = Type0(InsnGeneral { op : $opname, $( y : $y, $( imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, )? )? ..gen });
-            Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad }) as Result<Instruction, Box<std::error::Error>>
+            Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad }) as $crate::tenyr::InsnResult
         }
     };
     ( $opname:ident $( $y:ident $( + $imm:literal )? )? ) => {
@@ -92,7 +94,7 @@ macro_rules! tenyr_type013 {
             #[allow(unused_imports)] use std::convert::TryInto;
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
             let kind = Type0(InsnGeneral { op : $opname, $( y : $y, $( imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, )? )?  ..gen });
-            Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad }) as Result<Instruction, Box<std::error::Error>>
+            Ok(Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad }) as $crate::tenyr::InsnResult
         }
     };
 }
@@ -103,7 +105,7 @@ macro_rules! tenyr_type2 {
             use $crate::tenyr::*;
             let gen = InsnGeneral { y : Register::A, op : Opcode::BitwiseOr, imm : 0u8.into() };
             let kind = Type2(InsnGeneral { $( y : $y, )? op : $opname, ..gen });
-            Ok(Instruction { kind, z : Register::A, x : $x, dd : MemoryOpType::NoLoad }) as Result<Instruction, Box<std::error::Error>>
+            Ok(Instruction { kind, z : Register::A, x : $x, dd : MemoryOpType::NoLoad }) as $crate::tenyr::InsnResult
         }
     };
 }
@@ -116,7 +118,7 @@ macro_rules! tenyr_rhs {
             let imm = $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?;
             let kind = Type3(imm);
             let base = Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad };
-            Ok(Instruction { $( x : $x, )? ..base }) as Result<Instruction, Box<std::error::Error>>
+            Ok(Instruction { $( x : $x, )? ..base }) as $crate::tenyr::InsnResult
         }
     };
     ( $( $x:ident + )? $imm:literal ) => {
@@ -126,14 +128,14 @@ macro_rules! tenyr_rhs {
             let imm = $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?;
             let kind = Type3(imm);
             let base = Instruction { kind, z : Register::A, x : Register::A, dd : MemoryOpType::NoLoad };
-            Ok(Instruction { $( x : $x, )? ..base }) as Result<Instruction, Box<std::error::Error>>
+            Ok(Instruction { $( x : $x, )? ..base }) as $crate::tenyr::InsnResult
         }
     };
     ( $x:ident $( $rest:tt )* ) => {
         {
             use $crate::tenyr::*;
             let base = tenyr_get_op!(tenyr_type013 $( $rest )*);
-            Ok(Instruction { z : Register::A, x : $x, dd : MemoryOpType::NoLoad, ..base? }) as Result<Instruction, Box<std::error::Error>>
+            Ok(Instruction { z : Register::A, x : $x, dd : MemoryOpType::NoLoad, ..base? }) as $crate::tenyr::InsnResult
         }
     };
     ( ( $imm:expr ) $( $rest:tt )+ ) => {
@@ -143,7 +145,7 @@ macro_rules! tenyr_rhs {
             let base = tenyr_get_op!(tenyr_type2 $( $rest )*)?;
             if let Type2(gen) = base.kind {
                 let kind = Type2(InsnGeneral { imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, ..gen });
-                Ok(Instruction { kind, ..base }) as Result<Instruction, Box<std::error::Error>>
+                Ok(Instruction { kind, ..base }) as $crate::tenyr::InsnResult
             } else {
                 Err("internal error - did not get expected Type2".into())
             }
@@ -156,7 +158,7 @@ macro_rules! tenyr_rhs {
             let base = tenyr_get_op!(tenyr_type2 $( $rest )*)?;
             if let Type2(gen) = base.kind {
                 let kind = Type2(InsnGeneral { imm : $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?, ..gen });
-                Ok(Instruction { kind, ..base }) as Result<Instruction, Box<std::error::Error>>
+                Ok(Instruction { kind, ..base }) as $crate::tenyr::InsnResult
             } else {
                 Err("internal error - did not get expected Type2".into())
             }
@@ -166,10 +168,10 @@ macro_rules! tenyr_rhs {
 
 #[macro_export]
 macro_rules! tenyr_insn {
-    (   $z:ident   <- [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::LoadRight, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<Instruction, Box<std::error::Error>> };
-    (   $z:ident   <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<Instruction, Box<std::error::Error>> };
-    ( [ $z:ident ] <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreLeft, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<Instruction, Box<std::error::Error>> };
-    (   $z:ident   -> [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreRight, ..tenyr_rhs!( $( $rhs )+ )? }) as Result<Instruction, Box<std::error::Error>> };
+    (   $z:ident   <- [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::LoadRight, ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
+    (   $z:ident   <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z, ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
+    ( [ $z:ident ] <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreLeft, ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
+    (   $z:ident   -> [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreRight, ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
 }
 
 #[test]
