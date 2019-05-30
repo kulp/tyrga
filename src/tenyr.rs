@@ -382,6 +382,10 @@ impl BitWidth for TwentyBit { const BITS : u8 = 20; }
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct SizedImmediate<T : BitWidth>(i32, PhantomData<T>);
 
+impl<T : BitWidth> SizedImmediate<T> {
+    pub const ZERO : SizedImmediate<T> = SizedImmediate(0, PhantomData);
+}
+
 impl<T : BitWidth> From<i8> for SizedImmediate<T> {
     fn from(val : i8) -> Self { Self(val.into(), PhantomData) }
 }
@@ -474,6 +478,10 @@ impl<T : BitWidth> Display for SizedImmediate<T> {
 pub enum Immediate<T : BitWidth> {
     Fixed(SizedImmediate<T>),
     Expr(exprtree::Atom),
+}
+
+impl<T : BitWidth> Immediate<T> {
+    pub const ZERO : Immediate<T> = Immediate::Fixed(SizedImmediate::ZERO);
 }
 
 impl<T : BitWidth> fmt::Display for Immediate<T> {
