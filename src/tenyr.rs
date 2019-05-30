@@ -9,25 +9,15 @@ use std::marker::PhantomData;
 use crate::exprtree;
 
 macro_rules! tenyr_op {
-    ( |   ) => { $crate::tenyr::Opcode::BitwiseOr       };
-    ( &   ) => { $crate::tenyr::Opcode::BitwiseAnd      };
-    ( ^   ) => { $crate::tenyr::Opcode::BitwiseXor      };
-    ( >>  ) => { $crate::tenyr::Opcode::ShiftRightArith };
+    ( |   ) => { BitwiseOr       };     ( |~  ) => { BitwiseOrn      };
+    ( &   ) => { BitwiseAnd      };     ( &~  ) => { BitwiseAndn     };
+    ( ^   ) => { BitwiseXor      };     ( ^^  ) => { Pack            };
+    ( >>  ) => { ShiftRightArith };     ( >>> ) => { ShiftRightLogic };
 
-    ( |~  ) => { $crate::tenyr::Opcode::BitwiseOrn      };
-    ( &~  ) => { $crate::tenyr::Opcode::BitwiseAndn     };
-    ( ^^  ) => { $crate::tenyr::Opcode::Pack            };
-    ( >>> ) => { $crate::tenyr::Opcode::ShiftRightLogic };
-
-    ( +   ) => { $crate::tenyr::Opcode::Add             };
-    ( *   ) => { $crate::tenyr::Opcode::Multiply        };
-    ( ==  ) => { $crate::tenyr::Opcode::CompareEq       };
-    ( <   ) => { $crate::tenyr::Opcode::CompareLt       };
-
-    ( -   ) => { $crate::tenyr::Opcode::Subtract        };
-    ( <<  ) => { $crate::tenyr::Opcode::ShiftLeft       };
-    ( @   ) => { $crate::tenyr::Opcode::TestBit         };
-    ( >=  ) => { $crate::tenyr::Opcode::CompareGe       };
+    ( +   ) => { Add             };     ( -   ) => { Subtract        };
+    ( *   ) => { Multiply        };     ( <<  ) => { ShiftLeft       };
+    ( ==  ) => { CompareEq       };     ( @   ) => { TestBit         };
+    ( <   ) => { CompareLt       };     ( >=  ) => { CompareGe       };
 }
 
 #[test]
@@ -57,13 +47,13 @@ fn test_macro_ops() {
 
 // Some tenyr ops are more than one token, so require special treatment
 macro_rules! tenyr_get_op {
-    ( $callback:ident                       ) => { { let op = tenyr_op!( | ); $callback!(op            ) } };
+    ( $callback:ident                       ) => { { use $crate::tenyr::Opcode::*; let op = tenyr_op!( | ); $callback!(op            ) } };
 
-    ( $callback:ident |~     $( $rest:tt )+ ) => { { let op = tenyr_op!(|~ ); $callback!(op $( $rest )+) } };
-    ( $callback:ident &~     $( $rest:tt )+ ) => { { let op = tenyr_op!(&~ ); $callback!(op $( $rest )+) } };
-    ( $callback:ident ^^     $( $rest:tt )+ ) => { { let op = tenyr_op!(^^ ); $callback!(op $( $rest )+) } };
-    ( $callback:ident >>>    $( $rest:tt )+ ) => { { let op = tenyr_op!(>>>); $callback!(op $( $rest )+) } };
-    ( $callback:ident $op:tt $( $rest:tt )+ ) => { { let op = tenyr_op!($op); $callback!(op $( $rest )+) } };
+    ( $callback:ident |~     $( $rest:tt )+ ) => { { use $crate::tenyr::Opcode::*; let op = tenyr_op!(|~ ); $callback!(op $( $rest )+) } };
+    ( $callback:ident &~     $( $rest:tt )+ ) => { { use $crate::tenyr::Opcode::*; let op = tenyr_op!(&~ ); $callback!(op $( $rest )+) } };
+    ( $callback:ident ^^     $( $rest:tt )+ ) => { { use $crate::tenyr::Opcode::*; let op = tenyr_op!(^^ ); $callback!(op $( $rest )+) } };
+    ( $callback:ident >>>    $( $rest:tt )+ ) => { { use $crate::tenyr::Opcode::*; let op = tenyr_op!(>>>); $callback!(op $( $rest )+) } };
+    ( $callback:ident $op:tt $( $rest:tt )+ ) => { { use $crate::tenyr::Opcode::*; let op = tenyr_op!($op); $callback!(op $( $rest )+) } };
 }
 
 macro_rules! tenyr_type013 {
