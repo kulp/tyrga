@@ -79,49 +79,60 @@ macro_rules! tenyr_imm {
 
 macro_rules! tenyr_type013 {
     ( $opname:ident ( $imm:expr ) $( + $y:ident )? ) => {
-        {
-            use $crate::tenyr::*;
-            let gen = $crate::tenyr::NOOP_TYPE0_GEN;
-            let kind = Type1(InsnGeneral { $( y : $y, )? op : $opname, imm : tenyr_imm!($imm), ..gen });
-            Ok(Instruction { kind, ..$crate::tenyr::NOOP_TYPE0 }) as $crate::tenyr::InsnResult
-        }
+        Ok($crate::tenyr::Instruction {
+            kind : Type1(InsnGeneral {
+                $( y : $y, )?
+                op : $opname,
+                imm : tenyr_imm!($imm),
+                ..$crate::tenyr::NOOP_TYPE0_GEN
+            }),
+            ..$crate::tenyr::NOOP_TYPE0
+        }) as $crate::tenyr::InsnResult
     };
     ( $opname:ident $imm:literal $( + $y:ident )? ) => {
-        {
-            use $crate::tenyr::*;
-            let gen = $crate::tenyr::NOOP_TYPE0_GEN;
-            #[allow(clippy::needless_update)]
-            let kind = Type1(InsnGeneral { $( y : $y, )? op : $opname, imm : tenyr_imm!($imm), ..gen });
-            Ok(Instruction { kind, ..$crate::tenyr::NOOP_TYPE0 }) as $crate::tenyr::InsnResult
-        }
+        Ok($crate::tenyr::Instruction {
+            kind : Type1(InsnGeneral {
+                $( y : $y, )?
+                op : $opname,
+                imm : tenyr_imm!($imm),
+                ..$crate::tenyr::NOOP_TYPE0_GEN
+            }),
+            ..$crate::tenyr::NOOP_TYPE0
+        }) as $crate::tenyr::InsnResult
     };
     ( $opname:ident $( $y:ident $( + ( $imm:expr ) )? )? ) => {
-        {
-            use $crate::tenyr::*;
-            let gen = $crate::tenyr::NOOP_TYPE0_GEN;
-            #[allow(clippy::needless_update)]
-            let kind = Type0(InsnGeneral { op : $opname, $( y : $y, $( imm : tenyr_imm!($imm), )? )? ..gen });
-            Ok(Instruction { kind, ..$crate::tenyr::NOOP_TYPE0 }) as $crate::tenyr::InsnResult
-        }
+        Ok($crate::tenyr::Instruction {
+            kind : Type0(InsnGeneral {
+                $( y : $y, $( imm : tenyr_imm!($imm), )? )?
+                op : $opname,
+                ..$crate::tenyr::NOOP_TYPE0_GEN
+            }),
+            ..$crate::tenyr::NOOP_TYPE0
+        }) as $crate::tenyr::InsnResult
     };
     ( $opname:ident $( $y:ident $( + $imm:literal )? )? ) => {
-        {
-            use $crate::tenyr::*;
-            let gen = $crate::tenyr::NOOP_TYPE0_GEN;
-            let kind = Type0(InsnGeneral { op : $opname, $( y : $y, $( imm : tenyr_imm!($imm), )? )?  ..gen });
-            Ok(Instruction { kind, ..$crate::tenyr::NOOP_TYPE0 }) as $crate::tenyr::InsnResult
-        }
+        Ok($crate::tenyr::Instruction {
+            kind : Type0(InsnGeneral {
+                $( y : $y, $( imm : tenyr_imm!($imm), )? )?
+                op : $opname,
+                ..$crate::tenyr::NOOP_TYPE0_GEN
+            }),
+            ..$crate::tenyr::NOOP_TYPE0
+        }) as $crate::tenyr::InsnResult
     };
 }
 
 macro_rules! tenyr_type2 {
     ( $opname:ident $x:ident $( + $y:ident )? ) => {
-        {
-            use $crate::tenyr::*;
-            let gen = $crate::tenyr::NOOP_TYPE0_GEN;
-            let kind = Type2(InsnGeneral { $( y : $y, )? op : $opname, ..gen });
-            Ok(Instruction { kind, z : Register::A, x : $x, dd : MemoryOpType::NoLoad }) as $crate::tenyr::InsnResult
-        }
+        Ok($crate::tenyr::Instruction {
+            x : $x,
+            kind : Type2(InsnGeneral {
+                $( y : $y, )?
+                op : $opname,
+                ..$crate::tenyr::NOOP_TYPE0_GEN
+            }),
+            ..$crate::tenyr::NOOP_TYPE0
+        }) as $crate::tenyr::InsnResult
     };
 }
 
@@ -145,6 +156,7 @@ macro_rules! tenyr_rhs {
     ( $x:ident $( $rest:tt )* ) => {
         {
             use $crate::tenyr::*;
+            #[allow(clippy::needless_update)]
             let base = tenyr_get_op!(tenyr_type013 $( $rest )*);
             Ok(Instruction { z : Register::A, x : $x, dd : MemoryOpType::NoLoad, ..base? }) as $crate::tenyr::InsnResult
         }
