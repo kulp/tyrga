@@ -108,14 +108,13 @@ fn test_expand() -> GeneralResult<()> {
     use tenyr::*;
     use Register::*;
     use InstructionType::*;
-    use MemoryOpType::*;
 
     let v = vec![ C, D, E, F, G ];
     let mut sm = StackManager::new(5, O, v.clone());
 
     {
         let imm = 8675390i32;
-        let insn = Instruction { kind : Type0(InsnGeneral { y : B, imm : 0u8.into(), op : Opcode::Multiply }), x : C, dd : StoreRight, z : D };
+        let insn = tenyr_insn!( D -> [C * B] )?;
         let vv = expand_immediate_load(&mut sm, insn, imm)?;
         eprintln!("{:?}", vv);
         assert_eq!(vv.len(), 4);
@@ -123,7 +122,7 @@ fn test_expand() -> GeneralResult<()> {
 
     {
         let imm = 123;
-        let insn = Instruction { kind : Type3(0u8.into()), x : C, dd : StoreRight, z : D };
+        let insn = tenyr_insn!( D -> [C + 0] )?;
         let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
         eprintln!("{:?}", vv);
         assert_eq!(vv.len(), 1);
@@ -132,7 +131,7 @@ fn test_expand() -> GeneralResult<()> {
 
     {
         let imm = 8675309i32;
-        let insn = Instruction { kind : Type3(0u8.into()), x : C, dd : StoreRight, z : D };
+        let insn = tenyr_insn!( D -> [C + 0] )?;
         let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
         eprintln!("{:?}", vv);
         assert_eq!(vv.len(), 4);
@@ -141,7 +140,7 @@ fn test_expand() -> GeneralResult<()> {
 
     {
         let imm = 123;
-        let insn = Instruction { kind : Type0(InsnGeneral { y : B, imm : 0u8.into(), op : Opcode::Multiply }), x : C, dd : StoreRight, z : D };
+        let insn = tenyr_insn!( D -> [C * B] )?;
         let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
         eprintln!("{:?}", vv);
         assert_eq!(vv.len(), 1);
