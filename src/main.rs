@@ -45,10 +45,10 @@ fn main() -> std::result::Result<(), Box<std::error::Error>> {
             let class = classfile_parser::parse_class(&stem)?;
 
             println!("Creating {} from {} ...", out.to_str().ok_or("expected Unicode filename")?, file);
-            let mut file = File::create(out)?;
+            let mut outfile = File::create(out)?;
             for method in &class.methods {
                 let mm = tyrga::translate_method(&class, method)?;
-                writeln!(file, "{}", mm)?;
+                writeln!(outfile, "{}", mm)?;
             }
         }
     } else if let Some(m) = m.subcommand_matches("mangle") {
