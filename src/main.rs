@@ -1,8 +1,26 @@
-fn main() -> std::result::Result<(), Box<std::error::Error>> {
-    use std::fs::File;
-    use std::io::Write;
-    use std::path::Path;
+use std::fs::File;
+use std::path::Path;
+use std::path::PathBuf;
 
+type TerminatingResult = std::result::Result<(), Box<std::error::Error>>;
+
+fn translate_file(input_filename : PathBuf, output_filename : PathBuf) -> TerminatingResult {
+    use std::io::Write;
+
+    let stem = Path::new(&input_filename).with_extension("");
+    let stem = stem.to_str().ok_or("expected Unicode filename")?;
+    let class = classfile_parser::parse_class(&stem)?;
+
+    let mut outfile = File::create(output_filename)?;
+    for method in &class.methods {
+        let mm = tyrga::translate_method(&class, method)?;
+        writeln!(outfile, "{}", mm)?;
+    }
+
+    Ok(())
+}
+
+fn main() -> TerminatingResult {
     use clap::*;
 
     let m =
@@ -38,18 +56,10 @@ fn main() -> std::result::Result<(), Box<std::error::Error>> {
 
     if let Some(m) = m.subcommand_matches("translate") {
         for file in m.values_of("classes").ok_or("expected at least one input file")? {
-            let stem = Path::new(&file).with_extension("");
-            let out = stem.with_extension("tas");
-            let out = out.file_name().ok_or("failed to format name for output file")?;
-            let stem = stem.to_str().ok_or("expected Unicode filename")?;
-            let class = classfile_parser::parse_class(&stem)?;
-
-            println!("Creating {} from {} ...", out.to_str().ok_or("expected Unicode filename")?, file);
-            let mut outfile = File::create(out)?;
-            for method in &class.methods {
-                let mm = tyrga::translate_method(&class, method)?;
-                writeln!(outfile, "{}", mm)?;
-            }
+            let file = Path::new(&file);
+            let out : PathBuf = file.with_extension("tas").file_name().ok_or("expected path to have a filename")?.into();
+            println!("Creating {} from {} ...", out.display(), file.display());
+            translate_file(file.to_owned(), out)?;
         }
     } else if let Some(m) = m.subcommand_matches("mangle") {
         for string in m.values_of("strings").ok_or("expected at least one string to mangle")? {
