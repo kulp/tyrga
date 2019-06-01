@@ -4,11 +4,11 @@ use std::path::Path;
 use std::process::Command;
 
 fn main() -> Result<(), Box<Error>> {
-    let test_dir = "test";
+    let test_dir = Path::new("test");
     let out_dir = std::env::var("OUT_DIR")?;
     let out_path = Path::new(&out_dir);
 
-    for entry in fs::read_dir(Path::new(test_dir))? {
+    for entry in fs::read_dir(test_dir)? {
         let path = entry?.path();
         let name = &path.to_str().ok_or("path is not a UTF-8 string")?;
         let stem = &path.file_stem().ok_or("filename is empty")?;
@@ -31,9 +31,7 @@ fn main() -> Result<(), Box<Error>> {
                 // env!("OUT_DIR")
                 fs::copy(path, dest)?;
             },
-            _ => {
-                eprintln!("Skipping unrecognized file {}", path.display());
-            },
+            _ => eprintln!("Skipping unrecognized file {}", path.display()),
         }
     }
 
