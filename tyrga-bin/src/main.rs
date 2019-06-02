@@ -2,7 +2,7 @@ use std::fs::File;
 use std::path::Path;
 use std::path::PathBuf;
 
-type TerminatingResult = std::result::Result<(), Box<std::error::Error>>;
+type TerminatingResult = std::result::Result<(), Box<dyn std::error::Error>>;
 
 fn translate_file(input_filename : PathBuf, output_filename : PathBuf) -> TerminatingResult {
     use std::io::Write;

@@ -653,9 +653,9 @@ fn test_make_instruction() -> GeneralResult<()> {
     Ok(())
 }
 
-pub type GeneralResult<T> = std::result::Result<T, Box<Error>>;
+pub type GeneralResult<T> = std::result::Result<T, Box<dyn Error>>;
 
-fn generic_error<E>(e : E) -> Box<Error>
+fn generic_error<E>(e : E) -> Box<dyn Error>
     where E : std::error::Error
 {
     format!("unknown error: {}", e).into()

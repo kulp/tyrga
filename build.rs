@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-fn main() -> Result<(), Box<Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
     let test_dir = Path::new("../test");
     let out_dir = std::env::var("OUT_DIR")?;
     let out_path = Path::new(&out_dir);

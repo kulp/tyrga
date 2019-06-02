@@ -68,12 +68,12 @@ macro_rules! tenyr_get_op {
     ( $callback:ident $op:tt $( $rest:tt )+ ) => { { use $crate::tenyr::Opcode::*; let op = tenyr_op!($op); $callback!(op $( $rest )+) } };
 }
 
-pub type InsnResult = Result<Instruction, Box<std::error::Error>>;
+pub type InsnResult = Result<Instruction, Box<dyn std::error::Error>>;
 
 macro_rules! tenyr_imm {
     ( $imm:expr ) => { {
         use std::convert::TryInto;
-        $imm.try_into().map_err::<Box<std::error::Error>,_>(Into::into)?
+        $imm.try_into().map_err::<Box<dyn std::error::Error>,_>(Into::into)?
     } };
 }
 
@@ -232,7 +232,7 @@ macro_rules! tenyr_insn {
 }
 
 #[test]
-fn test_macro_insn() -> Result<(), Box<std::error::Error>> {
+fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
     use InstructionType::*;
     use MemoryOpType::*;
     use Opcode::*;
@@ -286,7 +286,7 @@ macro_rules! tenyr_insn_list {
 }
 
 #[test]
-fn test_macro_insn_list() -> Result<(), Box<std::error::Error>> {
+fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
     use InstructionType::*;
     use MemoryOpType::*;
     use Opcode::*;
@@ -706,7 +706,7 @@ impl fmt::Display for BasicBlock {
 }
 
 #[test]
-fn test_basicblock_display() -> Result<(), Box<std::error::Error>> {
+fn test_basicblock_display() -> Result<(), Box<dyn std::error::Error>> {
     let (_, insns) : (Vec<_>, Vec<_>) = instruction_test_cases().iter().cloned().unzip();
     let label = "testbb".to_string();
     let bb = BasicBlock { label, insns };
