@@ -4,7 +4,7 @@ use std::path::Path;
 use std::process::Command;
 
 fn main() -> Result<(), Box<Error>> {
-    let test_dir = Path::new("test");
+    let test_dir = Path::new("../test");
     let out_dir = std::env::var("OUT_DIR")?;
     let out_path = Path::new(&out_dir);
 

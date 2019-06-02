@@ -1,21 +1,6 @@
-[package]
-name = "tyrga"
-version = "0.1.0"
-authors = ["Darren Kulp <darren@kulp.ch>"]
-edition = "2018"
-categories = ["command-line-utilities", "development-tools", "emulators"]
-description = "tyrga translates JVM bytecode (.class files) into tenyr source code."
-keywords = ["jvm", "tenyr", "compiler"]
-license = "MIT"
+[workspace]
 
-[badges]
-travis-ci = { repository = "kulp/tyrga", branch = "develop" }
-maintenance = { status = "experimental" }
-
-[dependencies]
-classfile-parser = "~0.3.4"
-clap = "~2.33.0"
-enum_primitive = "0.1"
-
-[dev-dependencies]
-rand = "0.6"
+members = [
+    "tyrga-lib",
+    "tyrga-bin",
+]
