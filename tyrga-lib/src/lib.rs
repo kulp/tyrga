@@ -154,7 +154,7 @@ fn test_expand() -> GeneralResult<()> {
     Ok(())
 }
 
-type Namer = Fn(usize) -> GeneralResult<String>;
+type Namer = dyn Fn(usize) -> GeneralResult<String>;
 type MakeInsnResult = GeneralResult<(usize, Vec<Instruction>, Vec<Destination>)>;
 
 fn make_target(target : u16, target_namer : &Namer) -> GeneralResult<exprtree::Atom> {
@@ -169,7 +169,7 @@ fn make_target(target : u16, target_namer : &Namer) -> GeneralResult<exprtree::A
     Ok(Expression(Rc::new(Expr { a, op : Sub, b })))
 }
 
-type BranchComp = FnMut(&mut StackManager) -> GeneralResult<(tenyr::Register, Vec<Instruction>)>;
+type BranchComp = dyn FnMut(&mut StackManager) -> GeneralResult<(tenyr::Register, Vec<Instruction>)>;
 
 fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target : u16, target_namer : &Namer, comp : &mut BranchComp) -> MakeInsnResult {
     use tenyr::*;
@@ -718,7 +718,7 @@ mod util {
     use classfile_parser::ClassFile;
     use classfile_parser::constant_info::ConstantInfo;
 
-    pub type ConstantGetter<'a> = Fn(u16) -> &'a ConstantInfo + 'a;
+    pub type ConstantGetter<'a> = dyn Fn(u16) -> &'a ConstantInfo + 'a;
 
     pub fn get_constant_getter<'a>(class : &'a ClassFile) -> impl Fn(u16) -> &'a ConstantInfo + 'a {
         move |n| &class.const_pool[usize::from(n) - 1]

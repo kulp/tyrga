@@ -370,7 +370,7 @@ pub enum Register {
 
 impl fmt::Display for Register {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
-        (self as &fmt::Debug).fmt(f)
+        (self as &dyn fmt::Debug).fmt(f)
     }
 }
 
@@ -541,7 +541,7 @@ impl<T : BitWidth> Immediate<T> {
 
 impl<T : BitWidth> fmt::Display for Immediate<T> {
     fn fmt(&self, f : &mut Formatter) -> Result<(), fmt::Error> {
-        let d : &Display = match self {
+        let d : &dyn Display = match self {
             Immediate::Fixed(x) => x,
             Immediate::Expr(x)  => x,
         };
