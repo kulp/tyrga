@@ -16,5 +16,4 @@ maintenance = { status = "experimental" }
 classfile-parser = "~0.3.4"
 clap = "~2.33.0"
 enum_primitive = "0.1"
-num = "0.1"
 rand = "0.6"
