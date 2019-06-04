@@ -13,6 +13,7 @@ fn main() -> Result<(), Box<Error>> {
         let name = &path.to_str().ok_or("path is not a UTF-8 string")?;
         let stem = &path.file_stem().ok_or("filename is empty")?;
         let source_meta = &path.metadata()?;
+        println!("cargo:rerun-if-changed={}", path.display());
         match path.extension() {
             Some(e) if e == "java" => {
                 let dest = out_path.join(stem).with_extension("class");
