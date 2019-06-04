@@ -88,7 +88,7 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
                 Type2(g) => (g.op, temp, insn.x, g.y),
             };
             let operate = once(Instruction { kind : Type0(InsnGeneral { op, y : b, imm : 0u8.into() }), x : a, dd : NoLoad, z : insn.z });
-            let add = once(Instruction { kind : Type0(InsnGeneral { y : c, ..adder }), ..insn });
+            let add = once(Instruction { kind : Type0(InsnGeneral { y : c, ..adder }), x : insn.z, ..insn });
             let release = sm.release(1).into_iter();
 
             reserve
