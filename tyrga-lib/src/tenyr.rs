@@ -1,6 +1,6 @@
 #![allow(unused_macros)]
 
-use std::convert::{Infallible, TryFrom};
+use std::convert::TryFrom;
 use std::fmt::{Display, Formatter};
 use std::fmt;
 use std::marker::PhantomData;
@@ -573,16 +573,13 @@ pub enum SmallestImmediate {
     Imm32(Immediate32),
 }
 
-impl TryFrom<i32> for SmallestImmediate {
-    type Error = Infallible;
-
-    fn try_from(n : i32) -> Result<Self, Self::Error> {
+impl From<i32> for SmallestImmediate {
+    fn from(n : i32) -> Self {
         use SmallestImmediate::*;
 
-        Err(0)
-            .or_else(|_| Immediate12::try_from(n).map(Imm12))
+        Immediate12::try_from(n).map(Imm12)
             .or_else(|_| Immediate20::try_from(n).map(Imm20))
-            .or_else(|_| Immediate32::try_from(n).map(Imm32))
+            .unwrap_or_else(|_| Imm32(n))
     }
 }
 

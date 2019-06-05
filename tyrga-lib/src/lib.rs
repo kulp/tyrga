@@ -8,7 +8,7 @@ mod stack;
 #[macro_use] mod tenyr;
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryInto;
 use std::error::Error;
 use std::fmt;
 use std::ops::Range;
@@ -41,8 +41,6 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
     use tenyr::MemoryOpType::*;
     use SmallestImmediate::*;
 
-    let imm = SmallestImmediate::try_from(imm)?; // cannot fail, Infallible
-
     fn make_imm(temp_reg : Register, imm : SmallestImmediate) -> GeneralResult<Vec<Instruction>> {
         use tenyr::Register::*;
 
@@ -63,7 +61,7 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
         Ok(result)
     };
 
-    let v = match (insn.kind, imm) {
+    let v = match (insn.kind, imm.into()) {
         (Type3(..), Imm12(imm)) => vec![ Instruction { kind : Type3(imm.into()), ..insn } ],
         (Type3(..), Imm20(imm)) => vec![ Instruction { kind : Type3(imm), ..insn } ],
         (Type0(g) , Imm12(imm)) => vec![ Instruction { kind : Type0(InsnGeneral { imm, ..g }), ..insn } ],
