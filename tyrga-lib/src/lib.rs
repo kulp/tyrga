@@ -7,11 +7,8 @@ pub mod mangling;
 mod stack;
 #[macro_use] mod tenyr;
 
-use std::collections::BTreeMap;
-use std::collections::BTreeSet;
-use std::collections::HashSet;
-use std::convert::TryFrom;
-use std::convert::TryInto;
+use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::convert::{TryFrom, TryInto};
 use std::error::Error;
 use std::fmt;
 use std::ops::Range;

@@ -1,7 +1,6 @@
 #![allow(unused_macros)]
 
-use std::convert::Infallible;
-use std::convert::TryFrom;
+use std::convert::{Infallible, TryFrom};
 use std::fmt::{Display, Formatter};
 use std::fmt;
 use std::marker::PhantomData;
