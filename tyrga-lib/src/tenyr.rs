@@ -19,31 +19,6 @@ macro_rules! tenyr_op {
     ( <   ) => { CompareLt       };     ( >=  ) => { CompareGe       };
 }
 
-#[test]
-fn test_macro_ops() {
-    use Opcode::*;
-
-    assert_eq!(tenyr_op!( |   ), BitwiseOr       );
-    assert_eq!(tenyr_op!( &   ), BitwiseAnd      );
-    assert_eq!(tenyr_op!( ^   ), BitwiseXor      );
-    assert_eq!(tenyr_op!( >>  ), ShiftRightArith );
-
-    assert_eq!(tenyr_op!( |~  ), BitwiseOrn      );
-    assert_eq!(tenyr_op!( &~  ), BitwiseAndn     );
-    assert_eq!(tenyr_op!( ^^  ), Pack            );
-    assert_eq!(tenyr_op!( >>> ), ShiftRightLogic );
-
-    assert_eq!(tenyr_op!( +   ), Add             );
-    assert_eq!(tenyr_op!( *   ), Multiply        );
-    assert_eq!(tenyr_op!( ==  ), CompareEq       );
-    assert_eq!(tenyr_op!( <   ), CompareLt       );
-
-    assert_eq!(tenyr_op!( -   ), Subtract        );
-    assert_eq!(tenyr_op!( <<  ), ShiftLeft       );
-    assert_eq!(tenyr_op!( @   ), TestBit         );
-    assert_eq!(tenyr_op!( >=  ), CompareGe       );
-}
-
 pub const NOOP_TYPE0_GEN : InsnGeneral = InsnGeneral {
     y : Register::A,
     imm : Immediate12::ZERO,
