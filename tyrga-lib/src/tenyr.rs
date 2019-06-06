@@ -635,10 +635,10 @@ impl fmt::Display for Instruction {
 
         use MemoryOpType::*;
         match self.dd {
-            NoLoad     => write!(f, " {z}  <-  {rhs}" , z=self.z, rhs=rhs),
-            StoreRight => write!(f, " {z}  -> [{rhs}]", z=self.z, rhs=rhs),
-            StoreLeft  => write!(f, "[{z}] <-  {rhs}" , z=self.z, rhs=rhs),
-            LoadRight  => write!(f, " {z}  <- [{rhs}]", z=self.z, rhs=rhs),
+            NoLoad     => write!(f, " {}  <-  {}" , self.z, rhs),
+            StoreRight => write!(f, " {}  -> [{}]", self.z, rhs),
+            StoreLeft  => write!(f, "[{}] <-  {}" , self.z, rhs),
+            LoadRight  => write!(f, " {}  <- [{}]", self.z, rhs),
         }
     }
 }
