@@ -591,6 +591,7 @@ impl fmt::Display for Instruction {
             Type2(Gen { y, imm, .. }) => (     imm.to_string() , self.x   .to_string(), y  .to_string()),
             Type3(imm)                => (self.x  .to_string() , "unused" .to_string(), imm.to_string()),
         };
+
         let rhs = match self.kind {
             Type3(..) if self.x == Register::A
                 => c,
@@ -602,6 +603,8 @@ impl fmt::Display for Instruction {
                 => format!("{a} {op:^3} {b}", a=a, b=b, op=op),
             Type1(Gen { op, y, .. }) | Type2(Gen { op, y, .. }) if y == Register::A
                 => format!("{a} {op:^3} {b}", a=a, b=b, op=op),
+            Type0(Gen { op, imm : Immediate::Fixed(imm), .. }) if i32::from(imm) < 0
+                => format!("{a} {op:^3} {b} - {imm}", a=a, b=b, imm=(-i32::from(imm)).to_string(), op=op),
             Type0(Gen { op, .. }) |
             Type1(Gen { op, .. }) |
             Type2(Gen { op, .. })
@@ -634,15 +637,15 @@ fn instruction_test_cases() -> Vec<(&'static str, Instruction)> {
     let neg4_20 = Immediate20::from(-4i8);
 
     vec![
-        (" B  <-  C  |  D + -3" , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : D, op : BitwiseOr       }) }),
+        (" B  <-  C  |  D - 3"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : D, op : BitwiseOr       }) }),
         (" B  <-  C |~  D"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12.clone(), y : D, op : BitwiseOrn      }) }),
         (" B  <-  C  &  -3 + D" , Insn { dd : NoLoad    , z : B, x : C, kind : Type1(Gen { imm : neg3_12.clone(), y : D, op : BitwiseAnd      }) }),
         (" B  <-  C &~  0 + D"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type1(Gen { imm : zero_12.clone(), y : D, op : BitwiseAndn     }) }),
         (" B  <-  -3  ^  C + D" , Insn { dd : NoLoad    , z : B, x : C, kind : Type2(Gen { imm : neg3_12.clone(), y : D, op : BitwiseXor      }) }),
         (" B  <-  0 ^^  C + D"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type2(Gen { imm : zero_12.clone(), y : D, op : Pack            }) }),
-        (" B  <-  C >>  D + -3" , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : D, op : ShiftRightArith }) }),
+        (" B  <-  C >>  D - 3"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : D, op : ShiftRightArith }) }),
         (" B  <-  C >>> D"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12.clone(), y : D, op : ShiftRightLogic }) }),
-        (" B  <-  C ==  A + -3" , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : A, op : CompareEq       }) }),
+        (" B  <-  C ==  A - 3"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : A, op : CompareEq       }) }),
         (" B  <-  C  @  A"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12.clone(), y : A, op : TestBit         }) }),
         (" P  <-  C + -4"       , Insn { dd : NoLoad    , z : P, x : C, kind : Type3(neg4_20.clone()) }),
         (" P  <-  C"            , Insn { dd : NoLoad    , z : P, x : C, kind : Type3(zero_20.clone()) }),
