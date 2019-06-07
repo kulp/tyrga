@@ -594,11 +594,11 @@ impl fmt::Display for Instruction {
         let rhs = match self.kind {
             Type3(..) if self.x == Register::A
                 => c,
-            Type3(Immediate::Fixed(ref imm)) if *imm == 0u8.into()
+            Type3(Immediate::Fixed(imm)) if imm == 0u8.into()
                 => a,
             Type3(..)
                 => format!("{a} + {c}", a=a, c=c),
-            Type0(Gen { op, imm : Immediate::Fixed(ref imm), .. }) if *imm == 0u8.into()
+            Type0(Gen { op, imm : Immediate::Fixed(imm), .. }) if imm == 0u8.into()
                 => format!("{a} {op:^3} {b}", a=a, b=b, op=op),
             Type1(Gen { op, y, .. }) | Type2(Gen { op, y, .. }) if y == Register::A
                 => format!("{a} {op:^3} {b}", a=a, b=b, op=op),
