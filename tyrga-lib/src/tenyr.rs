@@ -597,6 +597,8 @@ impl fmt::Display for Instruction {
                 => c,
             Type3(Immediate::Fixed(imm)) if imm == 0u8.into()
                 => a,
+            Type3(Immediate::Fixed(imm)) if i32::from(imm) < 0
+                => format!("{a} - {c}", a=a, c=(-i32::from(imm)).to_string()),
             Type3(..)
                 => format!("{a} + {c}", a=a, c=c),
             Type0(Gen { op, imm : Immediate::Fixed(imm), .. }) if imm == 0u8.into()
@@ -647,7 +649,7 @@ fn instruction_test_cases() -> Vec<(&'static str, Instruction)> {
         (" B  <-  C >>> D"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12.clone(), y : D, op : ShiftRightLogic }) }),
         (" B  <-  C ==  A - 3"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : A, op : CompareEq       }) }),
         (" B  <-  C  @  A"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12.clone(), y : A, op : TestBit         }) }),
-        (" P  <-  C + -4"       , Insn { dd : NoLoad    , z : P, x : C, kind : Type3(neg4_20.clone()) }),
+        (" P  <-  C - 4"        , Insn { dd : NoLoad    , z : P, x : C, kind : Type3(neg4_20.clone()) }),
         (" P  <-  C"            , Insn { dd : NoLoad    , z : P, x : C, kind : Type3(zero_20.clone()) }),
         (" P  -> [C]"           , Insn { dd : StoreRight, z : P, x : C, kind : Type3(zero_20.clone()) }),
         (" P  <- [C]"           , Insn { dd : LoadRight , z : P, x : C, kind : Type3(zero_20.clone()) }),
