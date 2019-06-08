@@ -721,10 +721,10 @@ mod util {
 
     pub fn get_string(get_constant : &ConstantGetter, i : u16) -> Option<String>
     {
-        use classfile_parser::constant_info::ConstantInfo::Utf8;
-        match get_constant(i) {
-            Utf8(u) => Some(u.utf8_string.to_string()),
-            _ => None,
+        if let classfile_parser::constant_info::ConstantInfo::Utf8(u) = get_constant(i) {
+            Some(u.utf8_string.to_string())
+        } else {
+            None
         }
     }
 
