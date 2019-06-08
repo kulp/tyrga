@@ -189,7 +189,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Lconst1    => Constant { kind : Long  , value :  1 },
         Fconst0    => Constant { kind : Float , value :  0 },
         Fconst1    => Constant { kind : Float , value :  1 },
-        Fconst2    => Constant { kind : Float , value :  1 },
+        Fconst2    => Constant { kind : Float , value :  2 },
         Dconst0    => Constant { kind : Double, value :  0 },
         Dconst1    => Constant { kind : Double, value :  1 },
 
