@@ -437,7 +437,7 @@ impl Immediate12 {
     pub fn try_from_bits(val : u16) -> Result<Self, String> {
         if i32::from(val) < Self::UMAX {
             // Convert u16 into an i32 with the same bottom 12 bits
-            let mask = if (val & 0x800) != 0 { -1_i32 << 12 } else { 0 };
+            let mask = if (val & 0x800) == 0 { 0 } else { -1_i32 << 12 };
             let val = i32::from(val) | mask;
             Self::try_from(val)
         } else {
