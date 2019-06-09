@@ -72,7 +72,7 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
             use std::iter::once;
             use tenyr::Opcode::*;
 
-            let adder  = InsnGeneral { y : Register::A, op : Add , imm : 0u8.into() };
+            let adder  = InsnGeneral { y : Register::A, op : Add , imm : 0_u8.into() };
             let reserve = sm.reserve(1).into_iter();
             let temp = sm.get(0).ok_or("stack unexpectedly empty")?;
             let pack = make_imm(temp, imm)?.into_iter();
@@ -82,7 +82,7 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
                 Type1(g) => (g.op, insn.x, temp, g.y),
                 Type2(g) => (g.op, temp, insn.x, g.y),
             };
-            let operate = once(Instruction { kind : Type0(InsnGeneral { op, y : b, imm : 0u8.into() }), x : a, dd : NoLoad, z : insn.z });
+            let operate = once(Instruction { kind : Type0(InsnGeneral { op, y : b, imm : 0_u8.into() }), x : a, dd : NoLoad, z : insn.z });
             let add = once(Instruction { kind : Type0(InsnGeneral { y : c, ..adder }), x : insn.z, ..insn });
             let release = sm.release(1).into_iter();
 
@@ -108,7 +108,7 @@ fn test_expand() -> GeneralResult<()> {
     let mut sm = StackManager::new(5, O, v.clone());
 
     {
-        let imm = 8675390i32;
+        let imm = 8675390_i32;
         let insn = tenyr_insn!( D -> [C * B] )?;
         let vv = expand_immediate_load(&mut sm, insn, imm)?;
         eprintln!("{:?}", vv);
@@ -125,7 +125,7 @@ fn test_expand() -> GeneralResult<()> {
     }
 
     {
-        let imm = 8675309i32;
+        let imm = 8675309_i32;
         let insn = tenyr_insn!( D -> [C + 0] )?;
         let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
         eprintln!("{:?}", vv);
@@ -140,7 +140,7 @@ fn test_expand() -> GeneralResult<()> {
         eprintln!("{:?}", vv);
         assert_eq!(vv.len(), 1);
         if let Type0(ref g) = vv[0].kind {
-            assert_eq!(g.imm, 123u8.into());
+            assert_eq!(g.imm, 123_u8.into());
         } else {
             return Err("wrong type".into());
         }
@@ -221,7 +221,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             }
         };
 
-    let make_mov  = |to, from| Instruction { dd : NoLoad, kind : Type3(0u8.into()), z : to, x : from };
+    let make_mov  = |to, from| Instruction { dd : NoLoad, kind : Type3(0_u8.into()), z : to, x : from };
     let make_load = |to, from| Instruction { dd : LoadRight , ..make_mov(to, from) };
 
     let make_jump = |target| {
@@ -249,7 +249,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         // Save return address into bottom of register-based stack
         let bottom = sm.get_regs()[0];
         insns.push(Instruction {
-            kind : Type3(1u8.into()),
+            kind : Type3(1_u8.into()),
             ..make_mov(bottom, tenyr::Register::P)
         });
 
@@ -321,7 +321,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         Constant { kind : JType::Int, value } =>
             make_int_constant(sm, value),
         Yield { kind } => {
-            let ret = Instruction { kind : Type3(1u8.into()), ..make_load(Register::P, sm.get_stack_ptr()) };
+            let ret = Instruction { kind : Type3(1_u8.into()), ..make_load(Register::P, sm.get_stack_ptr()) };
             let mut v = {
                 use JType::*;
                 match kind {
@@ -352,7 +352,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let z = x; // update same location on stack
                 let op = Opcode::Subtract;
                 let dd = MemoryOpType::NoLoad;
-                let imm = 0u8.into();
+                let imm = 0_u8.into();
                 let v = vec![ Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd } ];
                 Ok((*addr, v, default_dest))
             },
@@ -364,7 +364,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 let z = x;
                 let op = translate_arithmetic_op(op).ok_or("no op for this opcode")?;
                 let dd = MemoryOpType::NoLoad;
-                let imm = 0u8.into();
+                let imm = 0_u8.into();
                 let mut v = Vec::new();
                 v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
                 v.extend(sm.release(1));
@@ -421,7 +421,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                         InsnGeneral {
                            y : Register::A,
                            op,
-                           imm : 0u8.into(),
+                           imm : 0_u8.into(),
                         }),
                     z : temp_reg,
                     x : top,
@@ -449,7 +449,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                         InsnGeneral {
                            y : rhs,
                            op,
-                           imm : 0u8.into(),
+                           imm : 0_u8.into(),
                         }),
                     z : temp_reg,
                     x : lhs,
@@ -524,7 +524,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                             InsnGeneral {
                                y : Register::A,
                                op : Opcode::CompareLt,
-                               imm : 0u8.into(), // placeholder
+                               imm : 0_u8.into(), // placeholder
                             }),
                         z : temp_reg,
                         x : top,
@@ -603,8 +603,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
             // per 32-bit tenyr word)
             let (op, imm) = match kind.size() {
-                1 => Ok((Opcode::BitwiseOr, 0u8)),
-                2 => Ok((Opcode::ShiftLeft, 1u8)),
+                1 => Ok((Opcode::BitwiseOr, 0_u8)),
+                2 => Ok((Opcode::ShiftLeft, 1_u8)),
                 _ => Err("bad kind size"),
             }?;
             let imm = imm.into();
@@ -619,7 +619,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             // This implementation assumes a reference to an array points to its first element, and
             // that one word below that element is a word containing the number of elements.
             let top = get_reg(sm.get(0))?;
-            let insn = Instruction { kind : Type3((-1i8).into()), ..make_load(top, top) };
+            let insn = Instruction { kind : Type3((-1_i8).into()), ..make_load(top, top) };
             Ok((*addr, vec![ insn ], default_dest))
         },
         // TODO fully handle Special (this is dumb partial handling)
@@ -648,7 +648,7 @@ fn test_make_instruction() -> GeneralResult<()> {
     let op = Operation::Constant { kind : JType::Int, value : 5 };
     let namer = |x| Ok(format!("{}:{}", "test", x));
     let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| &Unusable)?;
-    let imm = 5u8.into();
+    let imm = 5_u8.into();
     assert_eq!(insn.1, vec![ Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad } ]);
     assert_eq!(insn.1[0].to_string(), " B  <-  5");
 
