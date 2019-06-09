@@ -412,7 +412,7 @@ impl BitWidth for TwentyBit { const BITS : u8 = 20; }
 pub struct SizedImmediate<T : BitWidth>(i32, PhantomData<T>);
 
 impl<T : BitWidth> SizedImmediate<T> {
-    pub const ZERO : SizedImmediate<T> = SizedImmediate(0, PhantomData);
+    pub const ZERO : Self = Self(0, PhantomData);
 }
 
 impl<T : BitWidth> From<i8> for SizedImmediate<T> {
@@ -434,12 +434,12 @@ impl Immediate12 {
     const BITS : u8  = TwelveBit::BITS;
     const UMAX : i32 = TwelveBit::UMAX;
 
-    pub fn try_from_bits(val : u16) -> Result<Immediate12, String> {
+    pub fn try_from_bits(val : u16) -> Result<Self, String> {
         if i32::from(val) < Self::UMAX {
             // Convert u16 into an i32 with the same bottom 12 bits
             let mask = if (val & 0x800) != 0 { -1i32 << 12 } else { 0 };
             let val = i32::from(val) | mask;
-            Immediate12::try_from(val)
+            Self::try_from(val)
         } else {
             Err(format!("number {} is too big for a {}-bit immediate", val, Self::BITS))
         }
@@ -448,9 +448,9 @@ impl Immediate12 {
 
 impl<T : BitWidth> TryFrom<i32> for SizedImmediate<T> {
     type Error = String;
-    fn try_from(val : i32) -> Result<SizedImmediate<T>, Self::Error> {
+    fn try_from(val : i32) -> Result<Self, Self::Error> {
         if val >= T::IMIN && val <= T::IMAX {
-            Ok(SizedImmediate(val, PhantomData))
+            Ok(Self(val, PhantomData))
         } else {
             Err(format!("number {} is too big for a {}-bit immediate", val, T::BITS))
         }
@@ -459,7 +459,7 @@ impl<T : BitWidth> TryFrom<i32> for SizedImmediate<T> {
 
 impl<T : BitWidth> TryFrom<i32> for Immediate<T> {
     type Error = <SizedImmediate<T> as TryFrom<i32>>::Error;
-    fn try_from(val : i32) -> Result<Immediate<T>, Self::Error> {
+    fn try_from(val : i32) -> Result<Self, Self::Error> {
         SizedImmediate::try_from(val).map(Immediate::Fixed)
     }
 }
@@ -473,13 +473,13 @@ impl From<u16> for Immediate20 {
 }
 
 impl<T : BitWidth> From<SizedImmediate<T>> for i32 {
-    fn from(what : SizedImmediate<T>) -> i32 { what.0 }
+    fn from(what : SizedImmediate<T>) -> Self { what.0 }
 }
 
 impl<T : BitWidth> TryFrom<Immediate<T>> for i32 {
     type Error = String;
 
-    fn try_from(what : Immediate<T>) -> Result<i32, Self::Error> {
+    fn try_from(what : Immediate<T>) -> Result<Self, Self::Error> {
         match what {
             Immediate::Fixed(s) => Ok(s.into()),
             _ => Err("cannot evaluate non-Fixed Immediate".to_owned()),
@@ -510,7 +510,7 @@ pub enum Immediate<T : BitWidth> {
 }
 
 impl<T : BitWidth> Immediate<T> {
-    pub const ZERO : Immediate<T> = Immediate::Fixed(SizedImmediate::ZERO);
+    pub const ZERO : Self = Immediate::Fixed(SizedImmediate::ZERO);
 }
 
 impl<T : BitWidth> fmt::Display for Immediate<T> {
