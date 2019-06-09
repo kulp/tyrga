@@ -730,17 +730,17 @@ mod util {
 
     use super::StackManager;
     use super::tenyr::Instruction;
-    use super::tenyr::MemoryOpType::*;
+    use super::tenyr::MemoryOpType;
     use super::tenyr::Register;
 
     pub fn index_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
-        Instruction { dd : NoLoad, z : reg, ..sm.get_frame_offset(idx) }
+        Instruction { dd : MemoryOpType::NoLoad, z : reg, ..sm.get_frame_offset(idx) }
     }
     pub fn load_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
-        Instruction { dd : LoadRight, ..index_local(sm, reg, idx) }
+        Instruction { dd : MemoryOpType::LoadRight, ..index_local(sm, reg, idx) }
     }
     pub fn store_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
-        Instruction { dd : StoreRight, ..index_local(sm, reg, idx) }
+        Instruction { dd : MemoryOpType::StoreRight, ..index_local(sm, reg, idx) }
     }
 }
 
