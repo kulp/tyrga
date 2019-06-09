@@ -995,10 +995,8 @@ mod args {
         if s.is_empty() { return Ok(0); }
         let ch = s.chars().nth(0).ok_or("impossible empty string")?; // cannot fail since s is not empty
         let mine = match ch {
-            'B' | 'C' | 'F' | 'I' | 'S' | 'Z' => Ok(1),
+            'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'L' | '[' => Ok(1),
             'D' | 'J' => Ok(2),
-            'L' => Ok(1),
-            '[' => Ok(1),
             'V' => Ok(0),
             _ => Err(format!("unexpected character {}", ch)),
         };
