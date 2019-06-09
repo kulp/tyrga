@@ -1,13 +1,12 @@
 use std::fs::File;
 use std::path::Path;
-use std::path::PathBuf;
 
 type TerminatingResult = std::result::Result<(), Box<dyn std::error::Error>>;
 
-fn translate_file(input_filename : PathBuf, output_filename : PathBuf) -> TerminatingResult {
+fn translate_file(input_filename : &Path, output_filename : &Path) -> TerminatingResult {
     use std::io::Write;
 
-    let stem = Path::new(&input_filename).with_extension("");
+    let stem = Path::new(input_filename).with_extension("");
     let stem = stem.to_str().ok_or("expected Unicode filename")?;
     let class = classfile_parser::parse_class(&stem)?;
 
@@ -28,7 +27,7 @@ fn test_translate_file() -> TerminatingResult {
             if from.extension().ok_or("no extension")? == "class" {
                 let to   = from.with_extension("tas-test");
                 let gold = from.with_extension("tas");
-                translate_file(from, to.clone())?;
+                translate_file(&from, &to)?;
 
                 use std::io::Read;
                 let mut translated = Vec::new();
@@ -81,9 +80,10 @@ fn main() -> TerminatingResult {
     if let Some(m) = m.subcommand_matches("translate") {
         for file in m.values_of("classes").ok_or("expected at least one input file")? {
             let file = Path::new(&file);
-            let out : PathBuf = file.with_extension("tas").file_name().ok_or("expected path to have a filename")?.into();
+            let out = file.with_extension("tas");
+            let out = Path::new(out.file_name().ok_or("expected path to have a filename")?);
             println!("Creating {} from {} ...", out.display(), file.display());
-            translate_file(file.to_owned(), out)?;
+            translate_file(file, &out)?;
         }
     } else if let Some(m) = m.subcommand_matches("mangle") {
         for string in m.values_of("strings").ok_or("expected at least one string to mangle")? {
