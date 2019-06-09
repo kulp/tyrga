@@ -266,6 +266,8 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
     use Opcode::*;
     use Register::*;
 
+    use std::convert::TryInto;
+
     let three = 3;
 
     let from = tenyr_insn_list! {
@@ -299,8 +301,6 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let from : Vec<_> = from.collect();
-
-    use std::convert::TryInto;
 
     let to = vec![
         Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn      , imm : 3u8.into() } ) , z : B, x : C, dd : NoLoad     },
@@ -613,12 +613,14 @@ impl fmt::Display for Instruction {
                 => format!("{a} {op:^3} {b} + {c}", a=a, b=b, c=c, op=op),
         };
 
-        use MemoryOpType::*;
-        match self.dd {
-            NoLoad     => write!(f, " {}  <-  {}" , self.z, rhs),
-            StoreRight => write!(f, " {}  -> [{}]", self.z, rhs),
-            StoreLeft  => write!(f, "[{}] <-  {}" , self.z, rhs),
-            LoadRight  => write!(f, " {}  <- [{}]", self.z, rhs),
+        {
+            use MemoryOpType::*;
+            match self.dd {
+                NoLoad     => write!(f, " {}  <-  {}" , self.z, rhs),
+                StoreRight => write!(f, " {}  -> [{}]", self.z, rhs),
+                StoreLeft  => write!(f, "[{}] <-  {}" , self.z, rhs),
+                LoadRight  => write!(f, " {}  <- [{}]", self.z, rhs),
+            }
         }
     }
 }

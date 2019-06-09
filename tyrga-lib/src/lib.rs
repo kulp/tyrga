@@ -292,10 +292,12 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 .map_err(Into::into);
         let ch : char = ch?;
 
-        use ArithmeticOperation::*;
-        let nargs = match op {
-            Add | Sub | Mul | Div | Rem | Shl | Shr | Ushr | And | Or | Xor => 2,
-            Neg => 1,
+        let nargs = {
+            use ArithmeticOperation::*;
+            match op {
+                Add | Sub | Mul | Div | Rem | Shl | Shr | Ushr | And | Or | Xor => 2,
+                Neg => 1,
+            }
         };
         let result = format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch);
         Ok(result) as GeneralResult<String>
@@ -320,21 +322,23 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             make_int_constant(sm, value),
         Yield { kind } => {
             let ret = Instruction { kind : Type3(1u8.into()), ..make_load(Register::P, sm.get_stack_ptr()) };
-            use JType::*;
-            let mut v = match kind {
-                Void =>
-                    vec![ ret ],
-                Int | Float | Object | Short | Char | Byte =>
-                    vec![
-                        store_local(sm, get_reg(sm.get(0))?, 0),
-                        ret,
-                    ],
-                Double | Long =>
-                    vec![
-                        store_local(sm, get_reg(sm.get(1))?, 0),
-                        store_local(sm, get_reg(sm.get(0))?, 1),
-                        ret
-                    ],
+            let mut v = {
+                use JType::*;
+                match kind {
+                    Void =>
+                        vec![ ret ],
+                    Int | Float | Object | Short | Char | Byte =>
+                        vec![
+                            store_local(sm, get_reg(sm.get(0))?, 0),
+                            ret,
+                        ],
+                    Double | Long =>
+                        vec![
+                            store_local(sm, get_reg(sm.get(1))?, 0),
+                            store_local(sm, get_reg(sm.get(0))?, 1),
+                            ret
+                        ],
+                }
             };
             v.extend(sm.empty());
             Ok((*addr, v, vec![])) // leaving the method is not a Destination we care about
@@ -503,11 +507,10 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         Switch(Table { default, low, high, offsets }) => {
             use tenyr::*;
             use tenyr::InstructionType::*;
+            type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
 
             let here = *addr as i32;
             let far = (default + here) as u16;
-
-            type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
 
             let mut dests = Vec::new();
             let top = get_reg(sm.get(0))?;
@@ -542,8 +545,10 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             insns.extend(lo_insns);
             insns.extend(hi_insns);
 
-            use tenyr::Register::*;
-            let insn = tenyr_insn!( P <- top - 0 + P );
+            let insn = {
+                use tenyr::Register::*;
+                tenyr_insn!( P <- top - 0 + P )
+            };
             insns.extend(expand_immediate_load(sm, insn?, low)?);
 
             let make_pairs = |n| {
@@ -571,6 +576,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         },
         Jump { target } => Ok((*addr, vec![ make_jump(target)? ], vec![ Destination::Address(target as usize) ])),
         LoadArray(kind) | StoreArray(kind) => {
+            use tenyr::*;
+
             let mut v = Vec::new();
             let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
                 let idx = get_reg(sm.get(0))?;
@@ -578,7 +585,6 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 v.extend(sm.release(2));
                 Ok((idx, arr)) as GeneralResult<(Register, Register)>
             };
-            use tenyr::*;
             let (x, y, z, dd) = match *op {
                 LoadArray(_) => {
                     let (idx, arr) = array_params(sm, &mut v)?;
@@ -632,14 +638,15 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
 #[test]
 fn test_make_instruction() -> GeneralResult<()> {
-    use tenyr::MemoryOpType::*;
-    use Register::*;
     use Instruction;
+    use Register::*;
+    use classfile_parser::constant_info::ConstantInfo::Unusable;
     use tenyr::InstructionType::*;
+    use tenyr::MemoryOpType::*;
+
     let mut sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
     let op = Operation::Constant { kind : JType::Int, value : 5 };
     let namer = |x| Ok(format!("{}:{}", "test", x));
-    use classfile_parser::constant_info::ConstantInfo::Unusable;
     let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| &Unusable)?;
     let imm = 5u8.into();
     assert_eq!(insn.1, vec![ Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad } ]);
@@ -686,14 +693,13 @@ fn derive_ranges<T>(body : Vec<(usize, T)>, table : &[StackMapFrame])
     let after  = deltas.iter().skip(1);
     let max = body.last().ok_or("body unexpectedly empty")?.0 + 1;
 
-    use std::iter::once;
     #[allow(clippy::len_zero)] // is_empty is ambiguous at the time of this writing
     let ranges =
-        once(0)
+        std::iter::once(0)
             .chain(before.cloned())
-            .chain(once(0)).chain(after.map(|&n| n + 1))
+            .chain(std::iter::once(0)).chain(after.map(|&n| n + 1))
             .scan(0, |state, x| { *state += x; Some(usize::from(*state)) })
-            .chain(once(max))
+            .chain(std::iter::once(max))
             .collect::<Vec<_>>()
             .windows(2)
             .map(|x| x[0]..x[1])
@@ -749,6 +755,7 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
 {
     use classfile_parser::attribute_info::AttributeInfo;
     use classfile_parser::attribute_info::stack_map_table_attribute_parser;
+    use classfile_parser::code_attribute::code_parser;
     use classfile_parser::constant_info::ConstantInfo::Utf8;
 
     let get_constant = get_constant_getter(class);
@@ -770,7 +777,6 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
         _ => &[] as &[StackMapFrame],
     };
 
-    use classfile_parser::code_attribute::code_parser;
     let vec = code_parser(&code.code).map_err(generic_error)?.1;
     let (ranges, map) = derive_ranges(vec, table)?;
     let ops = map.into_iter().map(decode_insn).collect::<BTreeMap<_,_>>();
@@ -839,14 +845,13 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range
     -> GeneralResult<(tenyr::BasicBlock, BTreeSet<usize>)>
     where T : IntoIterator<Item=MakeInsnResult>
 {
+    use Destination::*;
     use tenyr::BasicBlock;
 
     let mut insns = Vec::with_capacity(range.len() * 2); // heuristic
     let mut exits = BTreeSet::new();
 
     let inside = |addr| addr >= range.start && addr < range.end;
-
-    use Destination::*;
 
     let mut includes_successor = false;
     for insn in list {
@@ -877,10 +882,7 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range
 fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager)
     -> GeneralResult<Vec<tenyr::BasicBlock>>
 {
-    let (ranges, ops) = get_ranges_for_method(&class, &method)?;
     use std::iter::FromIterator;
-    let rangemap = &BTreeMap::from_iter(ranges.into_iter().map(|r| (r.start, r)));
-    let ops = &ops;
 
     struct Params<'a> {
         class : &'a ClassFile,
@@ -888,10 +890,6 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
         rangemap : &'a BTreeMap<usize, Range<usize>>,
         ops : &'a BTreeMap<usize, Operation>,
     }
-
-    let params = Params { class, method, rangemap, ops };
-
-    let mut seen = HashSet::new();
 
     fn make_blocks(params : &Params, seen : &mut HashSet<usize>, mut sm : StackManager, which : &Range<usize>) -> GeneralResult<Vec<tenyr::BasicBlock>> {
         let (class, method, rangemap, ops) = (params.class, params.method, params.rangemap, params.ops);
@@ -920,6 +918,14 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
 
         Ok(out)
     }
+
+    let (ranges, ops) = get_ranges_for_method(&class, &method)?;
+    let rangemap = &BTreeMap::from_iter(ranges.into_iter().map(|r| (r.start, r)));
+    let ops = &ops;
+
+    let params = Params { class, method, rangemap, ops };
+
+    let mut seen = HashSet::new();
 
     make_blocks(&params, &mut seen, sm.clone(), &rangemap[&0]) // intentional clone of StackManager
 }

@@ -25,11 +25,12 @@ fn test_translate_file() -> TerminatingResult {
         if let Ok(path) = file {
             let from = path.path();
             if from.extension().ok_or("no extension")? == "class" {
+                use std::io::Read;
+
                 let to   = from.with_extension("tas-test");
                 let gold = from.with_extension("tas");
                 translate_file(&from, &to)?;
 
-                use std::io::Read;
                 let mut translated = Vec::new();
                 File::open(to)?.read_to_end(&mut translated)?;
                 let mut expected = Vec::new();

@@ -103,6 +103,10 @@ impl StackManager {
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     fn set_watermark(&mut self, level : u16) -> StackActions {
+        use tenyr::*;
+        use tenyr::InstructionType::*;
+        use tenyr::MemoryOpType::*;
+
         // TODO remove casts
 
         // `self.frozen` counts the number of spilled registers (from bottom of operand stack) and
@@ -115,9 +119,6 @@ impl StackManager {
         let frozen = i32::from(self.frozen);
         let unfrozen = count - frozen;
 
-        use tenyr::*;
-        use tenyr::InstructionType::*;
-        use tenyr::MemoryOpType::*;
         let stack_ptr = self.stack_ptr;
 
         let stack_movement = -(unfrozen as i32 - level as i32) as i32; // TODO check overflow issues here
