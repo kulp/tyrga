@@ -461,7 +461,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             use tenyr::InstructionType::*;
 
             let here = *addr as i32;
-            let there = (default + here) as u16;
+            let far = (default + here) as u16;
 
             let mut dests = Vec::new();
             let top = get_reg(sm.get(0))?;
@@ -495,8 +495,8 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             insns.extend(i);
             dests.extend(d);
 
-            insns.push(make_jump(there)?);
-            dests.push(Destination::Address(there.into()));
+            insns.push(make_jump(far)?);
+            dests.push(Destination::Address(far.into()));
 
             Ok((*addr, insns, dests))
         },
@@ -505,7 +505,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             use tenyr::InstructionType::*;
 
             let here = *addr as i32;
-            let there = (default + here) as u16;
+            let far = (default + here) as u16;
 
             type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
 
@@ -533,9 +533,9 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             };
 
             let (lo_addr, lo_insns, lo_dests) =
-                make_int_branch(sm, *addr, false, there, target_namer, &mut maker(&Type1, low))?;
+                make_int_branch(sm, *addr, false, far, target_namer, &mut maker(&Type1, low))?;
             let (_hi_addr, hi_insns, hi_dests) =
-                make_int_branch(sm, *addr, false, there, target_namer, &mut maker(&Type2, high))?;
+                make_int_branch(sm, *addr, false, far, target_namer, &mut maker(&Type2, high))?;
 
             let addr = lo_addr;
 
@@ -752,14 +752,14 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
     use classfile_parser::constant_info::ConstantInfo::Utf8;
 
     let get_constant = get_constant_getter(class);
-    let named = |a : &AttributeInfo|
+    let attribute_namer = |a : &AttributeInfo|
         match get_constant(a.attribute_name_index) {
             Utf8(u) => Ok((a.info.clone(), &u.utf8_string)),
             _ => Err("not a name"),
         };
 
     let code = get_method_code(method)?;
-    let names : Result<Vec<_>,_> = code.attributes.iter().map(named).collect();
+    let names : Result<Vec<_>,_> = code.attributes.iter().map(attribute_namer).collect();
     let info = names?.into_iter().find(|(_, name)| name == &"StackMapTable").map(|t| t.0);
     let keep;
     let table = match info {
