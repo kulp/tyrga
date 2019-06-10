@@ -531,12 +531,12 @@ fn test_immediates() {
     assert!(Immediate12::try_from(-(1 << 11) - 1).is_err());
     assert!(Immediate12::try_from(-(1 << 11)    ).is_ok());
     assert!(Immediate12::try_from( (1 << 11) - 1).is_ok());
-    assert!(Immediate12::try_from( (1 << 11)    ).is_err());
+    assert!(Immediate12::try_from(  1 << 11     ).is_err());
 
     assert!(Immediate20::try_from(-(1 << 19) - 1).is_err());
     assert!(Immediate20::try_from(-(1 << 19)    ).is_ok());
     assert!(Immediate20::try_from( (1 << 19) - 1).is_ok());
-    assert!(Immediate20::try_from( (1 << 19)    ).is_err());
+    assert!(Immediate20::try_from(  1 << 19     ).is_err());
 }
 
 pub type Immediate32 = i32;
