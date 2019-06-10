@@ -542,6 +542,7 @@ fn test_immediates() {
 pub type Immediate32 = i32;
 
 #[derive(Clone, PartialEq, Eq)]
+#[allow(clippy::pub_enum_variant_names)]
 pub enum SmallestImmediate {
     Imm12(Immediate12),
     Imm20(Immediate20),
@@ -566,6 +567,7 @@ pub struct InsnGeneral {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[allow(clippy::pub_enum_variant_names)]
 pub enum InstructionType {
     Type0(InsnGeneral), // [Z] <- [X f Y + I]
     Type1(InsnGeneral), // [Z] <- [X f I + Y]
