@@ -260,7 +260,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         });
 
         // adjust stack for returned values
-        let takes = count_args(descriptor)?;
+        let takes = count_params(descriptor)?;
         let rets = count_returns(descriptor)?;
         sm.release_frozen(takes.into());
         sm.reserve_frozen(rets.into());
@@ -1010,7 +1010,7 @@ mod args {
     }
 
     // JVM limitations restrict the count of method parameters to 255 at most
-    pub fn count_args(descriptor : &str) -> GeneralResult<u8> {
+    pub fn count_params(descriptor : &str) -> GeneralResult<u8> {
         let open = 1; // byte index of open parenthesis is 0
         let close = descriptor.rfind(')').ok_or("descriptor missing closing parenthesis")?;
         count_internal(&descriptor[open..close])
@@ -1024,13 +1024,13 @@ mod args {
 }
 
 #[test]
-fn test_count_args() -> GeneralResult<()> {
-    assert_eq!(3, count_args("(III)V")?);
-    assert_eq!(4, count_args("(JD)I")?);
-    assert_eq!(2, count_args("(Lmetasyntactic;Lvariable;)I")?);
-    assert_eq!(1, count_args("([[[I)I")?);
-    assert_eq!(0, count_args("()Lplaceholder;")?);
-    assert_eq!(0, count_args("()D")?);
+fn test_count_params() -> GeneralResult<()> {
+    assert_eq!(3, count_params("(III)V")?);
+    assert_eq!(4, count_params("(JD)I")?);
+    assert_eq!(2, count_params("(Lmetasyntactic;Lvariable;)I")?);
+    assert_eq!(1, count_params("([[[I)I")?);
+    assert_eq!(0, count_params("()Lplaceholder;")?);
+    assert_eq!(0, count_params("()D")?);
     Ok(())
 }
 
@@ -1058,7 +1058,7 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
         let descriptor = get_string(&get_constant_getter(class), method.descriptor_index).ok_or("method descriptor missing")?;
 
         let max_locals = i32::from(max_locals);
-        let net = max_locals - i32::from(count_args(&descriptor)?);
+        let net = max_locals - i32::from(count_params(&descriptor)?);
 
         let z = sm.get_stack_ptr();
         let x = z;
