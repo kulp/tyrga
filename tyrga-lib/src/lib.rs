@@ -108,7 +108,7 @@ fn test_expand() -> GeneralResult<()> {
     let mut sm = StackManager::new(5, O, v.clone());
 
     {
-        let imm = 8675390_i32;
+        let imm = 867_5309;
         let insn = tenyr_insn!( D -> [C * B] )?;
         let vv = expand_immediate_load(&mut sm, insn, imm)?;
         eprintln!("{:?}", vv);
@@ -125,7 +125,7 @@ fn test_expand() -> GeneralResult<()> {
     }
 
     {
-        let imm = 8675309_i32;
+        let imm = 867_5309;
         let insn = tenyr_insn!( D -> [C + 0] )?;
         let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
         eprintln!("{:?}", vv);
