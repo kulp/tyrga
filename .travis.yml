@@ -7,7 +7,7 @@ rust:
 before_script:
   - rustup component add clippy
 script:
-  - cargo clippy
+  - cargo clippy --tests
   - cargo build
   - cargo test
 matrix:
