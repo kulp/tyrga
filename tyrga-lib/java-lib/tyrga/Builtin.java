@@ -26,3 +26,29 @@ public class Builtin {
     }
 }
 
+class BuiltinTest {
+    public static boolean test_rem_int() {
+        for (int a = -100; a < 100; a++) {
+            for (int b = -100; b < 100; b++) {
+                if (b == 0)
+                    continue;
+                int got = Builtin.rem(a, b);
+                int expected = a % b;
+                if (got != expected) {
+                    System.err.println("a=" + a + ", b=" + b + ", rem(a,b)=" + got + ", a%b=" + expected);
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public static void main(String[] args) {
+        boolean failed = false;
+
+        failed |= !test_rem_int();
+
+        System.exit(failed ? 1 : 0);
+    }
+}
