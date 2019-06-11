@@ -205,16 +205,16 @@ fn test_watermark() {
     let insns = sm.set_watermark(0);
     assert!(insns.len() == 5);
     let insns = sm.set_watermark(0);
-    assert!(insns.len() == 0);
+    assert!(insns.is_empty());
 
     let insns = sm.set_watermark(3);
     assert!(insns.len() == 4);
     let insns = sm.set_watermark(3);
-    assert!(insns.len() == 0);
+    assert!(insns.is_empty());
 
     let insns = sm.set_watermark(1);
     assert!(insns.len() == 3);
     let insns = sm.set_watermark(1);
-    assert!(insns.len() == 0);
+    assert!(insns.is_empty());
 }
 

@@ -693,7 +693,7 @@ fn derive_ranges<T>(body : Vec<(usize, T)>, table : &[StackMapFrame])
     let after  = deltas.iter().skip(1);
     let max = body.last().ok_or("body unexpectedly empty")?.0 + 1;
 
-    #[allow(clippy::len_zero)] // is_empty is ambiguous at the time of this writing
+    #[allow(clippy::len_zero)] // is_empty is ambiguous for Range at the time of this writing
     let ranges =
         std::iter::once(0)
             .chain(before.cloned())
