@@ -304,8 +304,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
     };
     let make_arithmetic_name = |kind, op| {
         let descriptor = make_arithmetic_descriptor(kind, op)?;
-        let k = kind.get_char().ok_or("no char for kind")?;
-        let proc = format!("{}{}", name_op(op).to_lowercase(), k);
+        let proc = name_op(op).to_lowercase();
         mangling::mangle(join_name_parts("tyrga/Builtin", &proc, &descriptor).bytes())
     };
 

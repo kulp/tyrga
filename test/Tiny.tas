@@ -85,7 +85,7 @@ _4Tiny01_3a6primes03_3a285b1I01_291V:
      C  -> [O + 1]
      B  -> [O + 2]
      B  <-  P + 1
-     P  <-  P + @+_5tyrga01_2f7Builtin01_3a4remI02_3a282II01_291I
+     P  <-  P + @+_5tyrga01_2f7Builtin01_3a3rem02_3a282II01_291I
      O  <-  O + 1
      B  <- [O]
      B  <-  B ==  0
