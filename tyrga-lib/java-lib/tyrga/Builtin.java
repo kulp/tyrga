@@ -23,15 +23,19 @@ public class Builtin {
 }
 
 class BuiltinTest {
+    private static boolean try_rem_int(int a, int b) {
+        int expected = a % b;
+        int got = Builtin.rem(a, b);
+        return got == expected;
+    }
+
     public static boolean test_rem_int() {
         for (int a = -100; a < 100; a++) {
             for (int b = -100; b < 100; b++) {
                 if (b == 0)
                     continue;
-                int got = Builtin.rem(a, b);
-                int expected = a % b;
-                if (got != expected) {
-                    System.err.println("a=" + a + ", b=" + b + ", rem(a,b)=" + got + ", a%b=" + expected);
+                if (! try_rem_int(a, b)) {
+                    System.err.println("a=" + a + ", b=" + b);
                     return false;
                 }
             }
