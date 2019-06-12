@@ -349,7 +349,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
                 use tenyr::*;
                 let y = get_reg(sm.get(0))?;
                 let x = Register::A;
-                let z = x; // update same location on stack
+                let z = y; // update same location on stack
                 let op = Opcode::Subtract;
                 let dd = MemoryOpType::NoLoad;
                 let imm = 0_u8.into();
