@@ -206,6 +206,7 @@ macro_rules! tenyr_insn {
 }
 
 #[test]
+#[allow(clippy::cognitive_complexity)]
 fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
     use InstructionType::*;
     use MemoryOpType::*;
