@@ -33,7 +33,7 @@ enum Destination {
     Address(usize),
 }
 
-fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
+fn expand_immediate_load(sm : &mut stack::Manager, insn : Instruction, imm : i32)
     -> GeneralResult<Vec<Instruction>>
 {
     use tenyr::InsnGeneral;
@@ -105,7 +105,7 @@ fn test_expand() -> GeneralResult<()> {
     use InstructionType::*;
 
     let v = vec![ C, D, E, F, G ];
-    let mut sm = StackManager::new(5, O, v.clone());
+    let mut sm = stack::Manager::new(5, O, v.clone());
 
     {
         let imm = 867_5309;
@@ -164,9 +164,9 @@ fn make_target(target : u16, target_namer : &Namer) -> GeneralResult<exprtree::A
     Ok(Expression(Rc::new(Expr { a, op : Sub, b })))
 }
 
-type BranchComp = dyn FnMut(&mut StackManager) -> GeneralResult<(tenyr::Register, Vec<Instruction>)>;
+type BranchComp = dyn FnMut(&mut stack::Manager) -> GeneralResult<(tenyr::Register, Vec<Instruction>)>;
 
-fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target : u16, target_namer : &Namer, comp : &mut BranchComp) -> MakeInsnResult {
+fn make_int_branch(sm : &mut stack::Manager, addr : usize, invert : bool, target : u16, target_namer : &Namer, comp : &mut BranchComp) -> MakeInsnResult {
     use tenyr::*;
     use tenyr::InstructionType::*;
     use tenyr::Register::*;
@@ -187,7 +187,7 @@ fn make_int_branch(sm : &mut StackManager, addr : usize, invert : bool, target :
     Ok((addr, v, dest))
 }
 
-fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), target_namer : &Namer, get_constant : &ConstantGetter)
+fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation), target_namer : &Namer, get_constant : &ConstantGetter)
     -> MakeInsnResult
 {
     use Operation::*;
@@ -196,7 +196,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
     use tenyr::MemoryOpType::*;
 
     // We need to track destinations and return them so that the caller can track stack state
-    // through the chain of control flow, possibly cloning the StackManager state along the way to
+    // through the chain of control flow, possibly cloning the stack::Manager state along the way to
     // follow multiple destinations. Each basic block needs to be visited only once, however, since
     // the JVM guarantees that every instance of every instruction within a method always sees the
     // same depth of the operand stack every time that instance is executed.
@@ -242,7 +242,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             jvmtypes::Comparison::Le => (tenyr::Opcode::CompareGe, true , false),
         };
 
-    let make_call = |sm : &mut StackManager, target, descriptor| {
+    let make_call = |sm : &mut stack::Manager, target, descriptor| {
         let mut insns = Vec::new();
         insns.extend(sm.freeze());
 
@@ -309,7 +309,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
         mangling::mangle(join_name_parts("tyrga/Builtin", &proc, &descriptor).bytes())
     };
 
-    let make_int_constant = |sm : &mut StackManager, value : i32| {
+    let make_int_constant = |sm : &mut stack::Manager, value : i32| {
         let mut v = Vec::new();
         v.extend(sm.reserve(1));
         let insn = make_mov(get_reg(sm.get(0))?, Register::A);
@@ -412,7 +412,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             let (op, _, _) = translate_way(way);
 
-            let mut op1 = move |sm : &mut StackManager| {
+            let mut op1 = move |sm : &mut stack::Manager| {
                 let top = get_reg(sm.get(0))?;
                 let temp_reg = top;
                 let mut v = sm.release(1);
@@ -438,7 +438,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
 
             let (op, swap, invert) = translate_way(way);
 
-            let mut op2 = move |sm : &mut StackManager| {
+            let mut op2 = move |sm : &mut stack::Manager| {
                 let rhs = get_reg(sm.get(0))?;
                 let lhs = get_reg(sm.get(1))?;
                 let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
@@ -473,7 +473,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let temp_reg = get_reg(sm.get(0))?;
 
             let maker = |imm : i32| {
-                move |sm : &mut StackManager| {
+                move |sm : &mut stack::Manager| {
                     let insn = tenyr_insn!( temp_reg <- top == 0 );
                     let insns = expand_immediate_load(sm, insn?, imm)?;
                     Ok((temp_reg, insns))
@@ -518,7 +518,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             let temp_reg = get_reg(sm.get(0))?;
 
             let maker = |kind : &'static InsnType, imm : i32| {
-                move |sm : &mut StackManager| {
+                move |sm : &mut stack::Manager| {
                     let insn = Instruction {
                         kind : kind(
                             InsnGeneral {
@@ -579,7 +579,7 @@ fn make_instructions(sm : &mut StackManager, (addr, op) : (&usize, &Operation), 
             use tenyr::*;
 
             let mut v = Vec::new();
-            let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
+            let array_params = |sm : &mut stack::Manager, v : &mut Vec<Instruction>| {
                 let idx = get_reg(sm.get(0))?;
                 let arr = get_reg(sm.get(1))?;
                 v.extend(sm.release(2));
@@ -644,7 +644,7 @@ fn test_make_instruction() -> GeneralResult<()> {
     use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::*;
 
-    let mut sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
+    let mut sm = stack::Manager::new(5, STACK_PTR, STACK_REGS.to_owned());
     let op = Operation::Constant { kind : JType::Int, value : 5 };
     let namer = |x| Ok(format!("{}:{}", "test", x));
     let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| &Unusable)?;
@@ -734,18 +734,18 @@ mod util {
         }
     }
 
-    use super::StackManager;
+    use super::stack;
     use super::tenyr::Instruction;
     use super::tenyr::MemoryOpType;
     use super::tenyr::Register;
 
-    pub fn index_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
+    pub fn index_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
         Instruction { dd : MemoryOpType::NoLoad, z : reg, ..sm.get_frame_offset(idx) }
     }
-    pub fn load_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
+    pub fn load_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
         Instruction { dd : MemoryOpType::LoadRight, ..index_local(sm, reg, idx) }
     }
-    pub fn store_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
+    pub fn store_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
         Instruction { dd : MemoryOpType::StoreRight, ..index_local(sm, reg, idx) }
     }
 }
@@ -877,9 +877,9 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range
     Ok((BasicBlock { label, insns }, exits))
 }
 
-// The incoming StackManager represents a "prototype" StackManager which should be empty, and which
+// The incoming stack::Manager represents a "prototype" stack::Manager which should be empty, and which
 // will be cloned each time a new BasicBlock is seen.
-fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackManager)
+fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &stack::Manager)
     -> GeneralResult<Vec<tenyr::BasicBlock>>
 {
     use std::iter::FromIterator;
@@ -891,7 +891,7 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
         ops : &'a BTreeMap<usize, Operation>,
     }
 
-    fn make_blocks(params : &Params, seen : &mut HashSet<usize>, mut sm : StackManager, which : &Range<usize>) -> GeneralResult<Vec<tenyr::BasicBlock>> {
+    fn make_blocks(params : &Params, seen : &mut HashSet<usize>, mut sm : stack::Manager, which : &Range<usize>) -> GeneralResult<Vec<tenyr::BasicBlock>> {
         let (class, method, rangemap, ops) = (params.class, params.method, params.rangemap, params.ops);
         if seen.contains(&which.start) {
             return Ok(vec![]);
@@ -913,7 +913,7 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
         out.push(bb);
 
         for exit in &ee {
-            out.extend(make_blocks(params, seen, sm.clone(), &rangemap[&exit])?); // intentional clone of StackManager
+            out.extend(make_blocks(params, seen, sm.clone(), &rangemap[&exit])?); // intentional clone of stack::Manager
         }
 
         Ok(out)
@@ -927,14 +927,14 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &StackM
 
     let mut seen = HashSet::new();
 
-    make_blocks(&params, &mut seen, sm.clone(), &rangemap[&0]) // intentional clone of StackManager
+    make_blocks(&params, &mut seen, sm.clone(), &rangemap[&0]) // intentional clone of stack::Manager
 }
 
 #[cfg(test)]
 fn test_stack_map_table(stem : &str) -> GeneralResult<()> {
     let class = parse_class(stem)?;
     for method in &class.methods {
-        let sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
+        let sm = stack::Manager::new(5, STACK_PTR, STACK_REGS.to_owned());
         let bbs = make_blocks_for_method(&class, method, &sm)?;
         for bb in &bbs {
             eprintln!("{}", bb);
@@ -1051,7 +1051,7 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
     use tenyr::InstructionType::*;
 
     let max_locals = get_method_code(method)?.max_locals;
-    let sm = StackManager::new(max_locals, STACK_PTR, STACK_REGS.to_owned());
+    let sm = stack::Manager::new(max_locals, STACK_PTR, STACK_REGS.to_owned());
     let sm = &sm;
 
     let insns = {

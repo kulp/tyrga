@@ -3,7 +3,7 @@ use std::convert::TryInto;
 use tenyr::Register;
 
 #[derive(Clone, Debug)]
-pub struct StackManager {
+pub struct Manager {
     max_locals : u16,
     stack_ptr : Register,
     stack : Vec<Register>,
@@ -17,9 +17,9 @@ type StackActions = Vec<tenyr::Instruction>;
 // number of slots of data we will save between locals and stack
 pub const SAVE_SLOTS : u8 = 1;
 
-// This simple StackManager implementation does not do spilling to nor reloading from memory.
+// This simple Manager implementation does not do spilling to nor reloading from memory.
 // For now, it panics if we run out of free registers.
-impl StackManager {
+impl Manager {
     pub fn new<T>(max_locals : u16, sp : Register, regs : T) -> Self
         where T : IntoIterator<Item=Register>
     {
@@ -158,7 +158,7 @@ impl StackManager {
 fn test_get_reg() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
-    let mut sm = StackManager::new(5, O, v.clone());
+    let mut sm = Manager::new(5, O, v.clone());
     let _ = sm.reserve(v.len() as u16);
     assert_eq!(&v[0], &sm.get_reg(v.len() as u16 - 1));
 }
@@ -169,7 +169,7 @@ fn test_get_reg() {
 fn test_underflow() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
-    let mut sm = StackManager::new(5, O, v);
+    let mut sm = Manager::new(5, O, v);
     let _ = sm.reserve(3);
     let _ = sm.release(4);
 }
@@ -180,7 +180,7 @@ fn test_overflow() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
     let len = v.len() as u16;
-    let mut sm = StackManager::new(5, O, v);
+    let mut sm = Manager::new(5, O, v);
     let _ = sm.reserve(len + 1);
 }
 
@@ -189,7 +189,7 @@ fn test_normal_stack() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
     let t = v.clone();
-    let mut sm = StackManager::new(5, O, v);
+    let mut sm = Manager::new(5, O, v);
     let off = 3;
     let _ = sm.reserve(off as u16);
     assert_eq!(sm.get(0), t[off - 1].into());
@@ -199,7 +199,7 @@ fn test_normal_stack() {
 fn test_watermark() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
-    let mut sm = StackManager::new(5, O, v);
+    let mut sm = Manager::new(5, O, v);
     let _ = sm.reserve(4);
 
     let insns = sm.set_watermark(0);
