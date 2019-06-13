@@ -34,13 +34,16 @@ class BuiltinTest {
     public static boolean test_rem_int() {
         int smallest = -(1 << 31);
         int largest = (1 << 31) - 1;
-        boolean failed = false;
-        failed |= ! try_rem_int(smallest, smallest);
-        failed |= ! try_rem_int(largest , largest );
-        failed |= ! try_rem_int(smallest, largest );
-        failed |= ! try_rem_int(largest , smallest);
-        if (failed)
-            return false;
+        int cases[] = {
+            smallest, smallest + 1, -100, -10, -3, -2, -1, 1, 2, 3, 10, 100, largest - 1, largest
+        };
+        for (int i = 0; i < cases.length; i++) {
+            for (int j = 0; j < cases.length; j++) {
+                if (! try_rem_int(cases[i], cases[j])) {
+                    return false;
+                }
+            }
+        }
 
         for (int a = -100; a < 100; a++) {
             for (int b = -100; b < 100; b++) {
