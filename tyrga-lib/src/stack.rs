@@ -2,6 +2,9 @@ use crate::tenyr;
 use std::convert::TryInto;
 use tenyr::Register;
 
+#[cfg(test)]
+use quickcheck::{quickcheck, Gen, TestResult};
+
 #[derive(Clone, Debug)]
 pub struct Manager {
     max_locals : u16,
@@ -154,15 +157,26 @@ impl Manager {
     }
 }
 
-#[test]
-fn test_get_reg() {
-    use Register::*;
-    let v = vec![ C, D, E, F, G ];
-    let mut sm = Manager::new(5, O, v.clone());
-    let _ = sm.reserve(v.len() as u16);
-    assert_eq!(&v[0], &sm.get_reg(v.len() as u16 - 1));
+#[cfg(test)]
+impl quickcheck::Arbitrary for tenyr::Register {
+    fn arbitrary<G : Gen>(g : &mut G) -> Self {
+        // TODO use Range once iterating on it works
+        use Register::*;
+        [ A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P ][(g.next_u32() % 16) as usize]
+    }
 }
 
+#[cfg(test)]
+quickcheck! {
+fn test_get_reg(v : Vec<Register>) -> TestResult {
+    if v.is_empty() {
+        return TestResult::discard();
+    }
+    let mut sm = Manager::new(v.len() as u16, Register::O, v.clone());
+    let _ = sm.reserve(v.len() as u16);
+    TestResult::from_bool(v[0] == sm.get_reg(v.len() as u16 - 1))
+}
+}
 
 #[test]
 #[should_panic(expected="underflow")]
