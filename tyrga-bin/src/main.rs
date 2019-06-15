@@ -52,6 +52,12 @@ fn main() -> TerminatingResult {
             .subcommand(
                 SubCommand::with_name("translate")
                     .about("Translates JVM .class files into tenyr .tas assembly files")
+                    .arg(Arg::with_name("output")
+                            .short("o")
+                            .long("output")
+                            .help("Specifies the output file name")
+                            .takes_value(true)
+                        )
                     .arg(Arg::with_name("classes")
                             .help("Names .class files as input")
                             .multiple(true)
@@ -79,10 +85,21 @@ fn main() -> TerminatingResult {
             .get_matches();
 
     if let Some(m) = m.subcommand_matches("translate") {
-        for file in m.values_of("classes").ok_or("expected at least one input file")? {
+        let ins = m.values_of("classes").ok_or("expected at least one input file")?;
+        let user_out = m.value_of("output");
+        if user_out.is_some() && ins.len() > 1 {
+            return Err("The `-o,--output` flag is incompatible with multiple input files".into());
+        }
+        for file in ins {
             let file = Path::new(&file);
-            let out = file.with_extension("tas");
-            let out = Path::new(out.file_name().ok_or("expected path to have a filename")?);
+            let stem;
+            let out = match user_out {
+                Some(f) => Path::new(f),
+                None => {
+                    stem = file.with_extension("tas");
+                    Path::new(stem.file_name().ok_or("expected path to have a filename")?)
+                },
+            };
             println!("Creating {} from {} ...", out.display(), file.display());
             translate_file(file, &out)?;
         }
