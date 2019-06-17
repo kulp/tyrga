@@ -93,12 +93,11 @@ fn main() -> TerminatingResult {
         for file in ins {
             let file = Path::new(&file);
             let stem;
-            let out = match user_out {
-                Some(f) => Path::new(f),
-                None => {
-                    stem = file.with_extension("tas");
-                    Path::new(stem.file_name().ok_or("expected path to have a filename")?)
-                },
+            let out = if let Some(f) = user_out {
+                Path::new(f)
+            } else {
+                stem = file.with_extension("tas");
+                Path::new(stem.file_name().ok_or("expected path to have a filename")?)
             };
             println!("Creating {} from {} ...", out.display(), file.display());
             translate_file(file, &out)?;
