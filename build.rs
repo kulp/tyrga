@@ -8,6 +8,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let out_dir = std::env::var("OUT_DIR")?;
     let out_path = Path::new(&out_dir);
 
+    println!("cargo:rerun-if-changed={}", test_dir.display());
     for entry in fs::read_dir(test_dir)? {
         let path = entry?.path();
         let name = &path.to_str().ok_or("path is not a UTF-8 string")?;
