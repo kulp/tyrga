@@ -944,23 +944,18 @@ fn test_stack_map_table(stem : &str) -> GeneralResult<()> {
     Ok(())
 }
 
-#[cfg(test)]
-const CLASS_LIST : &[&str] = &[
-    "Except",
-    "Expr",
-    "GCD",
-    "Infinite",
-    "Nest",
-    "Sieve",
-    "Switch",
-    "Tiny",
-];
-
 #[test]
 fn test_parse_classes() -> GeneralResult<()>
 {
-    for name in CLASS_LIST {
-        test_stack_map_table(name)?;
+    for file in std::fs::read_dir(env!("OUT_DIR"))? {
+        if let Ok(path) = file {
+            let class = path.path();
+            if class.extension().ok_or("no extension")? == "class" {
+                let stem = class.file_stem().ok_or("no filename")?.to_str().ok_or("not a str")?;
+                eprintln!("Testing {} ({}) ...", stem, class.display());
+                test_stack_map_table(stem)?;
+            }
+        }
     }
 
     Ok(())
