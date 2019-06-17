@@ -949,6 +949,7 @@ const CLASS_LIST : &[&str] = &[
     "Except",
     "Expr",
     "GCD",
+    "Infinite",
     "Nest",
     "Sieve",
     "Switch",
