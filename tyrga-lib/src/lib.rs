@@ -302,10 +302,13 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         let result = format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch);
         Ok(result) as GeneralResult<String>
     };
+    let make_builtin_name = move |proc : &str, descriptor : &str| {
+        mangling::mangle(join_name_parts("tyrga/Builtin", proc, descriptor).bytes())
+    };
     let make_arithmetic_name = |kind, op| {
         let descriptor = make_arithmetic_descriptor(kind, op)?;
         let proc = name_op(op).to_lowercase();
-        mangling::mangle(join_name_parts("tyrga/Builtin", &proc, &descriptor).bytes())
+        make_builtin_name(&proc, &descriptor)
     };
 
     let make_int_constant = |sm : &mut stack::Manager, value : i32| {
