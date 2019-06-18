@@ -133,6 +133,21 @@ pub enum ArrayKind {
 }
 }
 
+impl From<ArrayKind> for JType {
+    fn from(a : ArrayKind) -> Self {
+        match a {
+            ArrayKind::Boolean => JType::Byte, // arbitrary mapping
+            ArrayKind::Char    => JType::Char,
+            ArrayKind::Float   => JType::Float,
+            ArrayKind::Double  => JType::Double,
+            ArrayKind::Byte    => JType::Byte,
+            ArrayKind::Short   => JType::Short,
+            ArrayKind::Int     => JType::Int,
+            ArrayKind::Long    => JType::Long,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum SwitchParams {
     Lookup { default : i32, pairs : Vec<(i32, i32)> },
