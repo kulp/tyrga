@@ -633,6 +633,24 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             let v = sm.release(size.into());
             Ok((*addr, v, default_dest))
         },
+        ArrayAlloc { kind } => {
+            let kind : JType = kind.into();
+            let mut pre = match kind.size() {
+                1 => Ok(vec![]),
+                // insert an instruction that doubles the top-of-stack count
+                2 => {
+                    let top = get_reg(sm.get(0))?;
+                    Ok(vec![ tenyr_insn!( top <- top + top )? ])
+                },
+                _ => Err("impossible size"),
+            }?;
+            let descriptor = "(I)Ljava.lang.Object;";
+            let proc = "alloc";
+            let name = make_builtin_name(proc, &descriptor)?;
+            let (addr, v, dest) = make_call(sm, &name, &descriptor)?;
+            pre.extend(v);
+            Ok((addr, pre, dest))
+        },
 
         _ => Err(format!("unhandled operation {:?}", op).into()),
     }
