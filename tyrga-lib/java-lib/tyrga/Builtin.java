@@ -5,15 +5,15 @@ public class Builtin {
         if (b == 0)
             return a / 0; // defer to division by zero
 
+        if (b > 0)
+            b = -b;
+
         // Optimizations
         if (b == 1)
             return 0;
 
-        if (b > 0)
-            b = -b;
-
-        // do modulus on negative numbers, because in two's-complement, those
-        // can be larger in magnitude than positive numbers can
+        // operate on negative numbers, because in two's-complement, those can
+        // be larger in magnitude than positive numbers can
         if (a > 0)
             return -rem(-a, b);
 
