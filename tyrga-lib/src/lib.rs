@@ -864,7 +864,7 @@ fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> Genera
 
 fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range : &Range<usize>)
     -> GeneralResult<(tenyr::BasicBlock, BTreeSet<usize>)>
-    where T : IntoIterator<Item=MakeInsnResult>
+    where T : IntoIterator<Item=InsnTriple>
 {
     use Destination::*;
     use tenyr::BasicBlock;
@@ -878,7 +878,7 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range
     for insn in list {
         let does_branch = |&e| if let Address(n) = e { Some(n) } else { None };
 
-        let (_, ins, exs) = insn?;
+        let (_, ins, exs) = insn;
 
         // update the state of includes_successor each time so that the last instruction's behavior
         // is captured
@@ -928,8 +928,8 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &stack:
 
         let get_constant = get_constant_getter(&class);
 
-        let block : Vec<_> = ops.range(which.clone()).map(|x| make_instructions(&mut sm, x, &namer, &get_constant)).collect();
-        let (bb, ee) = make_basic_block(&class, &method, block, which)?;
+        let block : GeneralResult<Vec<_>> = ops.range(which.clone()).map(|x| make_instructions(&mut sm, x, &namer, &get_constant)).collect();
+        let (bb, ee) = make_basic_block(&class, &method, block?, which)?;
         let mut out = Vec::new();
         out.push(bb);
 
