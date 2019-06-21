@@ -150,7 +150,8 @@ fn test_expand() -> GeneralResult<()> {
 }
 
 type Namer = dyn Fn(usize) -> GeneralResult<String>;
-type MakeInsnResult = GeneralResult<(usize, Vec<Instruction>, Vec<Destination>)>;
+type InsnTriple = (usize, Vec<Instruction>, Vec<Destination>);
+type MakeInsnResult = GeneralResult<InsnTriple>;
 
 fn make_target(target : u16, target_namer : &Namer) -> GeneralResult<exprtree::Atom> {
     use exprtree::Atom::*;
