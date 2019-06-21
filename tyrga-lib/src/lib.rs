@@ -243,7 +243,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             jvmtypes::Comparison::Le => (tenyr::Opcode::CompareGe, true , false),
         };
 
-    let make_call = |sm : &mut stack::Manager, target, descriptor| {
+    let make_call = |sm : &mut stack::Manager, target : &str, descriptor| {
         let mut insns = Vec::new();
         insns.extend(sm.freeze());
 
@@ -653,6 +653,28 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             let (addr, v, dest) = make_call(sm, &name, &descriptor)?;
             pre.extend(v);
             Ok((addr, pre, dest))
+        },
+        Compare { kind, nans } => {
+            let mut v = sm.reserve(1);
+            let name = "cmp";
+            let ch : GeneralResult<_> =
+                kind.get_char()
+                    .ok_or("no char for kind")
+                    .map_err(Into::into);
+            let ch = ch?;
+
+            let g = get_reg(sm.get(0))?;
+            let n = match nans {
+                Some(NanComparisons::Greater) => 1,
+                Some(NanComparisons::Less) => -1,
+                _ => 0,
+            };
+            v.push(tenyr_insn!( g <- (n) )?);
+
+            let desc = format!("({}{}I)I", ch, ch);
+            let (addr, insns, dests) = make_call(sm, &make_builtin_name(name, &desc)?, &desc)?;
+            v.extend(insns);
+            Ok((addr, v, dests))
         },
 
         _ => Err(format!("unhandled operation {:?}", op).into()),
