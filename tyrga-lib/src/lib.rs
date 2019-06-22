@@ -384,14 +384,15 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             }
             Ok((*addr, v, default_dest))
         },
-        StoreLocal { kind : JType::Int, index } |
-        StoreLocal { kind : JType::Object, index }
-            => {
-                let mut v = Vec::new();
-                v.push(store_local(sm, get_reg(sm.get(0))?, index.into()));
-                v.extend(sm.release(1));
-                Ok((*addr, v, default_dest))
-            },
+        StoreLocal { kind, index } => {
+            let mut v = Vec::new();
+            let size = kind.size().into();
+            for i in 0 .. size {
+                v.push(store_local(sm, get_reg(sm.get(i))?, (index + i).into()));
+            }
+            v.extend(sm.release(size));
+            Ok((*addr, v, default_dest))
+        },
         Increment { index, value } => {
             use tenyr::*;
             let index = index.into();
