@@ -1018,18 +1018,20 @@ fn test_parse_classes() -> GeneralResult<()>
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Method {
     name : String,
-    preamble : tenyr::BasicBlock,
+    prologue : tenyr::BasicBlock,
     blocks : Vec<tenyr::BasicBlock>,
+    epilogue : tenyr::BasicBlock,
 }
 
 impl fmt::Display for Method {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, ".global {}", self.name)?;
         writeln!(f, "{}:", self.name)?;
-        write!(f, "{}", self.preamble)?;
+        write!(f, "{}", self.prologue)?;
         for bb in &self.blocks {
             write!(f, "{}", bb)?
         }
+        write!(f, "{}", self.epilogue)?;
         Ok(())
     }
 }
@@ -1100,37 +1102,52 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
     use tenyr::MemoryOpType::*;
     use tenyr::InstructionType::*;
 
-    let max_locals = get_method_code(method)?.max_locals;
+    let total_locals = get_method_code(method)?.max_locals;
     let descriptor = get_string(&get_constant_getter(class), method.descriptor_index).ok_or("method descriptor missing")?;
     let num_returns = count_returns(&descriptor)?.into();
     // Pretend we have at least as many locals as we have return-slots, so we have somewhere to
     // store our results when we Yield.
-    let max_locals = max_locals.max(num_returns);
+    let max_locals = total_locals.max(num_returns);
 
     let sm = stack::Manager::new(max_locals, STACK_PTR, STACK_REGS.to_owned());
     let sm = &sm;
 
-    let insns = {
+    let prologue = {
+        let insns = {
 
-        let max_locals = i32::from(max_locals);
-        let net = max_locals - i32::from(count_params(&descriptor)?);
+            let max_locals = i32::from(max_locals);
+            let net = max_locals - i32::from(count_params(&descriptor)?);
 
-        let z = sm.get_stack_ptr();
-        let x = z;
-        let kind = Type3((-(net + i32::from(SAVE_SLOTS))).try_into()?);
-        let bottom = sm.get_regs()[0];
-        vec![
-            // update stack pointer
-            Instruction { dd : NoLoad, kind, z, x },
-            // save return address in save-slot, one past the maximum number of locals
-            store_local(sm, bottom, max_locals),
-        ]
+            let z = sm.get_stack_ptr();
+            let x = z;
+            let kind = Type3((-(net + i32::from(SAVE_SLOTS))).try_into()?);
+            let bottom = sm.get_regs()[0];
+            vec![
+                // update stack pointer
+                Instruction { dd : NoLoad, kind, z, x },
+                // save return address in save-slot, one past the maximum number of locals
+                store_local(sm, bottom, max_locals),
+            ]
+        };
+        let label = make_label(class, method, "prologue")?;
+        tenyr::BasicBlock { label, insns }
     };
-    let label = make_label(class, method, "preamble")?;
-    let preamble = tenyr::BasicBlock { label, insns };
+
+    let epilogue = {
+        let insns = {
+            use Register::P;
+
+            let sp = sm.get_stack_ptr();
+            let num_params = count_params(&descriptor)?;
+            let off = i32::from(stack::SAVE_SLOTS) + i32::from(total_locals) - i32::from(num_params);
+            vec![ tenyr_insn!( P <- [sp + (off)] )? ]
+        };
+        let label = make_label(class, method, "epilogue")?;
+        tenyr::BasicBlock { label, insns }
+    };
 
     let blocks = make_blocks_for_method(class, method, sm)?;
     let name = make_mangled_method_name(class, method)?;
-    Ok(Method { name, preamble, blocks })
+    Ok(Method { name, prologue, blocks, epilogue })
 }
 
