@@ -769,7 +769,9 @@ mod util {
     use super::tenyr::Register;
 
     pub fn index_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
-        Instruction { dd : MemoryOpType::NoLoad, z : reg, ..sm.get_frame_offset(idx) }
+        let x = sm.get_stack_ptr();
+        use super::tenyr::InstructionType::Type3;
+        Instruction { dd : MemoryOpType::NoLoad, z : reg, x, kind : Type3(sm.get_frame_offset(idx)) }
     }
     pub fn load_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
         Instruction { dd : MemoryOpType::LoadRight, ..index_local(sm, reg, idx) }

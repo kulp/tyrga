@@ -40,22 +40,14 @@ impl Manager {
     pub fn get_regs(&self) -> &Vec<Register> { &self.stack }
 
     #[must_use]
-    pub fn get_frame_offset(&self, n : i32) -> tenyr::Instruction {
-        use tenyr::*;
-        use tenyr::InstructionType::Type3;
-
+    pub fn get_frame_offset(&self, n : i32) -> tenyr::Immediate20 {
         let saved : u16 = SAVE_SLOTS.into();
 
         // frame_offset computes how much higher in memory the base of the current
         // (downward-growing) frame is than the current stack_ptr
         let frame_offset = self.frozen + saved + self.max_locals;
         #[allow(clippy::result_unwrap_used)]
-        let imm = (i32::from(frame_offset) - n).try_into().unwrap();
-        let kind = Type3(imm);
-        let z = Register::A; // this one will be overwritten by caller
-        let x = self.stack_ptr;
-        let dd = MemoryOpType::NoLoad;
-        Instruction { kind, z, x, dd }
+        (i32::from(frame_offset) - n).try_into().unwrap()
     }
 
     // Sometimes we need to accommodate actions by external agents upon our frozen stack
