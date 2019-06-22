@@ -23,7 +23,7 @@ _4Tiny01_3a6primes03_3a285b1I01_291V:
      B  <- [B - 1]
      B  -> [O + 6]
      B  <- [O + 6]
-     B  <-  0 >=  B
+     B  <-  A >=  B
      P  <-  (.L_4Tiny01_3a6primes03_3a285b1I01_291V_01_3a4__11 - (. + 1))  &  B + P
      B  <- [O + 7]
      C  <-  0
@@ -61,7 +61,7 @@ _4Tiny01_3a6primes03_3a285b1I01_291V:
      B  -> [O + 2]
 .L_4Tiny01_3a6primes03_3a285b1I01_291V_01_3a4__42:
      B  <- [O + 3]
-     B  <-  B ==  0
+     B  <-  B ==  A
      P  <-  (.L_4Tiny01_3a6primes03_3a285b1I01_291V_01_3a4__86 - (. + 1)) &~  B + P
      B  <- [O + 2]
      C  <- [O + 5]
@@ -88,7 +88,7 @@ _4Tiny01_3a6primes03_3a285b1I01_291V:
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3rem02_3a282II01_291I
      O  <-  O + 1
      B  <- [O]
-     B  <-  B ==  0
+     B  <-  B ==  A
      P  <-  (.L_4Tiny01_3a6primes03_3a285b1I01_291V_01_3a4__80 - (. + 1)) &~  B + P
      B  <-  1
      B  -> [O + 3]
@@ -99,7 +99,7 @@ _4Tiny01_3a6primes03_3a285b1I01_291V:
      P  <-  P + (.L_4Tiny01_3a6primes03_3a285b1I01_291V_01_3a4__42 - (. + 1))
 .L_4Tiny01_3a6primes03_3a285b1I01_291V_01_3a4__86:
      B  <- [O + 3]
-     B  <-  B ==  0
+     B  <-  B ==  A
      P  <-  (.L_4Tiny01_3a6primes03_3a285b1I01_291V_01_3a4__99 - (. + 1)) &~  B + P
      B  <- [O + 7]
      C  <- [O + 5]

@@ -397,19 +397,20 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             let (op, swap, invert) = translate_way(way);
 
             let mut op1 = move |sm : &mut stack::Manager| {
-                let top = get_reg(sm.get(0))?;
-                let temp_reg = top;
+                let rhs = Register::A;
+                let lhs = get_reg(sm.get(0))?;
+                let temp_reg = lhs;
                 let mut v = sm.release(1);
-                let maker = if swap { Type2 } else { Type1 };
+                let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
                 v.push(Instruction {
-                    kind : maker(
+                    kind : Type0(
                         InsnGeneral {
-                           y : Register::A,
+                           y : rhs,
                            op,
                            imm : 0_u8.into(),
                         }),
                     z : temp_reg,
-                    x : top,
+                    x : lhs,
                     dd : MemoryOpType::NoLoad,
                 });
                 Ok((temp_reg, v))
