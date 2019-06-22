@@ -626,7 +626,15 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             Ok((addr, v, dests))
         },
 
-        _ => Err(format!("unhandled operation {:?}", op).into()),
+        Allocation { .. } |
+        Branch     { .. } |
+        Constant   { .. } |
+        Conversion { .. } |
+        Invocation { .. } |
+        StackOp    { .. } |
+        VarAction  { .. } |
+        Unhandled  ( .. ) =>
+            Err(format!("unhandled operation {:?}", op).into()),
     }
 }
 
