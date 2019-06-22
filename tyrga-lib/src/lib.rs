@@ -332,31 +332,28 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             v.extend(sm.empty());
             Ok((*addr, v, vec![])) // leaving the method is not a Destination we care about
         },
-
-        Arithmetic { kind : JType::Int, op : ArithmeticOperation::Neg }
-            => {
-                use tenyr::*;
-                use Register::A;
-                let y = get_reg(sm.get(0))?;
-                let v = vec![ tenyr_insn!( y <- A - y )? ];
-                Ok((*addr, v, default_dest))
-            },
-        Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some()
-            => {
-                use tenyr::*;
-                let y = get_reg(sm.get(0))?;
-                let x = get_reg(sm.get(1))?;
-                let z = x;
-                let op = translate_arithmetic_op(op).ok_or("no op for this opcode")?;
-                let dd = MemoryOpType::NoLoad;
-                let imm = 0_u8.into();
-                let mut v = Vec::new();
-                v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
-                v.extend(sm.release(1));
-                Ok((*addr, v, default_dest))
-            },
-        Arithmetic { kind, op }
-            => make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)?),
+        Arithmetic { kind : JType::Int, op : ArithmeticOperation::Neg } => {
+            use tenyr::*;
+            use Register::A;
+            let y = get_reg(sm.get(0))?;
+            let v = vec![ tenyr_insn!( y <- A - y )? ];
+            Ok((*addr, v, default_dest))
+        },
+        Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some() => {
+            use tenyr::*;
+            let y = get_reg(sm.get(0))?;
+            let x = get_reg(sm.get(1))?;
+            let z = x;
+            let op = translate_arithmetic_op(op).ok_or("no op for this opcode")?;
+            let dd = MemoryOpType::NoLoad;
+            let imm = 0_u8.into();
+            let mut v = Vec::new();
+            v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
+            v.extend(sm.release(1));
+            Ok((*addr, v, default_dest))
+        },
+        Arithmetic { kind, op } =>
+            make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)?),
         LoadLocal { kind, index } => {
             let mut v = Vec::new();
             let size = kind.size().into();
