@@ -375,14 +375,15 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             },
         Arithmetic { kind, op }
             => make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)?),
-        LoadLocal { kind : JType::Int, index } |
-        LoadLocal { kind : JType::Object, index }
-            => {
-                let mut v = Vec::new();
-                v.extend(sm.reserve(1));
-                v.push(load_local(sm, get_reg(sm.get(0))?, index.into()));
-                Ok((*addr, v, default_dest))
-            },
+        LoadLocal { kind, index } => {
+            let mut v = Vec::new();
+            let size = kind.size().into();
+            v.extend(sm.reserve(size));
+            for i in 0 .. size {
+                v.push(load_local(sm, get_reg(sm.get(i))?, (index + i).into()));
+            }
+            Ok((*addr, v, default_dest))
+        },
         StoreLocal { kind : JType::Int, index } |
         StoreLocal { kind : JType::Object, index }
             => {
