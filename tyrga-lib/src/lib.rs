@@ -394,11 +394,11 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             };
 
             let mut opper = move |sm : &mut stack::Manager| {
-                let (rhs, lhs, count) = match ops {
-                    OperandCount::_1 => (Register::A        , get_reg(sm.get(0))?, 1),
-                    OperandCount::_2 => (get_reg(sm.get(0))?, get_reg(sm.get(1))?, 2),
+                let (rhs, lhs) = match ops {
+                    OperandCount::_1 => (Register::A        , get_reg(sm.get(0))?),
+                    OperandCount::_2 => (get_reg(sm.get(0))?, get_reg(sm.get(1))?),
                 };
-                let mut v = sm.release(count);
+                let mut v = sm.release(ops as u16);
                 let temp_reg = lhs;
                 let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
                 v.push(Instruction {
@@ -583,8 +583,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             Invocation { kind : InvokeKind::Static, index } =>
             make_call(sm, &make_callable_name(get_constant, index)?, &get_method_parts(get_constant, index)?.2),
         StackOp { op : StackOperation::Pop, size } => {
-            let size : u8 = size.into();
-            let v = sm.release(size.into());
+            let v = sm.release(size as u16);
             Ok((*addr, v, default_dest))
         },
         ArrayAlloc { kind } => {
