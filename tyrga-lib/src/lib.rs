@@ -232,16 +232,6 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         result
     };
 
-    let translate_way = |way|
-        match way {
-            jvmtypes::Comparison::Eq => (tenyr::Opcode::CompareEq, false, false),
-            jvmtypes::Comparison::Ne => (tenyr::Opcode::CompareEq, false, true ),
-            jvmtypes::Comparison::Lt => (tenyr::Opcode::CompareLt, false, false),
-            jvmtypes::Comparison::Ge => (tenyr::Opcode::CompareGe, false, false),
-            jvmtypes::Comparison::Gt => (tenyr::Opcode::CompareLt, true , false),
-            jvmtypes::Comparison::Le => (tenyr::Opcode::CompareGe, true , false),
-        };
-
     let make_call = |sm : &mut stack::Manager, target : &str, descriptor| {
         let mut insns = Vec::new();
         insns.extend(sm.freeze());
@@ -394,7 +384,14 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             use tenyr::*;
             use tenyr::InstructionType::*;
 
-            let (op, swap, invert) = translate_way(way);
+            let (op, swap, invert) = match way {
+                jvmtypes::Comparison::Eq => (Opcode::CompareEq, false, false),
+                jvmtypes::Comparison::Ne => (Opcode::CompareEq, false, true ),
+                jvmtypes::Comparison::Lt => (Opcode::CompareLt, false, false),
+                jvmtypes::Comparison::Ge => (Opcode::CompareGe, false, false),
+                jvmtypes::Comparison::Gt => (Opcode::CompareLt, true , false),
+                jvmtypes::Comparison::Le => (Opcode::CompareGe, true , false),
+            };
 
             let mut opper = move |sm : &mut stack::Manager| {
                 let (rhs, lhs, count) = match ops {
