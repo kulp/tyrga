@@ -382,7 +382,6 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         },
         Branch { kind : JType::Int, ops, way, target } => {
             use tenyr::*;
-            use tenyr::InstructionType::*;
 
             let (op, swap, invert) = match way {
                 jvmtypes::Comparison::Eq => (Opcode::CompareEq, false, false),
@@ -394,15 +393,15 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             };
 
             let mut opper = move |sm : &mut stack::Manager| {
-                let (rhs, lhs) = match ops {
-                    OperandCount::_1 => (Register::A        , get_reg(sm.get(0))?),
-                    OperandCount::_2 => (get_reg(sm.get(0))?, get_reg(sm.get(1))?),
-                };
-                let mut v = sm.release(ops as u16);
+                let count = ops as u16;
+                let lhs = get_reg(sm.get(count - 1))?;
+                let rhs = if ops == OperandCount::_2 { get_reg(sm.get(0))? } else { Register::A };
                 let temp_reg = lhs;
                 let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
+
+                let mut v = sm.release(count);
                 v.push(Instruction {
-                    kind : Type0(
+                    kind : InstructionType::Type0(
                         InsnGeneral {
                            y : rhs,
                            op,
