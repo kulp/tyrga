@@ -337,13 +337,9 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         Arithmetic { kind : JType::Int, op : ArithmeticOperation::Neg }
             => {
                 use tenyr::*;
+                use Register::A;
                 let y = get_reg(sm.get(0))?;
-                let x = Register::A;
-                let z = y; // update same location on stack
-                let op = Opcode::Subtract;
-                let dd = MemoryOpType::NoLoad;
-                let imm = 0_u8.into();
-                let v = vec![ Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd } ];
+                let v = vec![ tenyr_insn!( y <- A - y )? ];
                 Ok((*addr, v, default_dest))
             },
         Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some()
