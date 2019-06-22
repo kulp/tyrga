@@ -54,7 +54,7 @@ macro_rules! tenyr_imm {
 macro_rules! tenyr_type013 {
     ( $opname:ident ( $imm:expr ) $( + $y:ident )? ) => {
         Ok($crate::tenyr::Instruction {
-            kind : Type1(InsnGeneral {
+            kind : $crate::tenyr::InstructionType::Type1(InsnGeneral {
                 $( y : $y, )?
                 op : $opname,
                 imm : tenyr_imm!($imm),
@@ -65,7 +65,7 @@ macro_rules! tenyr_type013 {
     };
     ( $opname:ident $imm:literal $( + $y:ident )? ) => {
         Ok($crate::tenyr::Instruction {
-            kind : Type1(InsnGeneral {
+            kind : $crate::tenyr::InstructionType::Type1(InsnGeneral {
                 $( y : $y, )?
                 op : $opname,
                 imm : tenyr_imm!($imm),
@@ -76,7 +76,7 @@ macro_rules! tenyr_type013 {
     };
     ( $opname:ident $( $y:ident $( + ( $imm:expr ) )? )? ) => {
         Ok($crate::tenyr::Instruction {
-            kind : Type0(InsnGeneral {
+            kind : $crate::tenyr::InstructionType::Type0(InsnGeneral {
                 $( y : $y, $( imm : tenyr_imm!($imm), )? )?
                 op : $opname,
                 ..$crate::tenyr::NOOP_TYPE0_GEN
@@ -86,7 +86,7 @@ macro_rules! tenyr_type013 {
     };
     ( $opname:ident $( $y:ident $( + $imm:literal )? )? ) => {
         Ok($crate::tenyr::Instruction {
-            kind : Type0(InsnGeneral {
+            kind : $crate::tenyr::InstructionType::Type0(InsnGeneral {
                 $( y : $y, $( imm : tenyr_imm!($imm), )? )?
                 op : $opname,
                 ..$crate::tenyr::NOOP_TYPE0_GEN
@@ -96,7 +96,7 @@ macro_rules! tenyr_type013 {
     };
     ( $opname:ident $( $y:ident $( - ( $imm:expr ) )? )? ) => {
         Ok($crate::tenyr::Instruction {
-            kind : Type0(InsnGeneral {
+            kind : $crate::tenyr::InstructionType::Type0(InsnGeneral {
                 $( y : $y, $( imm : tenyr_imm!(-($imm)), )? )?
                 op : $opname,
                 ..$crate::tenyr::NOOP_TYPE0_GEN
@@ -106,7 +106,7 @@ macro_rules! tenyr_type013 {
     };
     ( $opname:ident $( $y:ident $( - $imm:literal )? )? ) => {
         Ok($crate::tenyr::Instruction {
-            kind : Type0(InsnGeneral {
+            kind : $crate::tenyr::InstructionType::Type0(InsnGeneral {
                 $( y : $y, $( imm : tenyr_imm!(-($imm)), )? )?
                 op : $opname,
                 ..$crate::tenyr::NOOP_TYPE0_GEN
@@ -120,7 +120,7 @@ macro_rules! tenyr_type2 {
     ( $opname:ident $x:ident $( + $y:ident )? ) => {
         Ok($crate::tenyr::Instruction {
             x : $x,
-            kind : Type2(InsnGeneral {
+            kind : $crate::tenyr::InstructionType::Type2(InsnGeneral {
                 $( y : $y, )?
                 op : $opname,
                 ..$crate::tenyr::NOOP_TYPE0_GEN
@@ -134,7 +134,7 @@ macro_rules! tenyr_rhs {
     ( $( $x:ident + )? ( $imm:expr ) ) => {
         {
             use $crate::tenyr::*;
-            let kind = Type3(tenyr_imm!($imm));
+            let kind = $crate::tenyr::InstructionType::Type3(tenyr_imm!($imm));
             let base = Instruction { kind, ..$crate::tenyr::NOOP_TYPE0 };
             Ok(Instruction { $( x : $x, )? ..base }) as $crate::tenyr::InsnResult
         }
@@ -142,7 +142,7 @@ macro_rules! tenyr_rhs {
     ( $( $x:ident + )? $imm:literal ) => {
         {
             use $crate::tenyr::*;
-            let kind = Type3(tenyr_imm!($imm));
+            let kind = $crate::tenyr::InstructionType::Type3(tenyr_imm!($imm));
             let base = Instruction { kind, ..$crate::tenyr::NOOP_TYPE0 };
             Ok(Instruction { $( x : $x, )? ..base }) as $crate::tenyr::InsnResult
         }
@@ -150,7 +150,7 @@ macro_rules! tenyr_rhs {
     ( $( $x:ident - )? ( $imm:expr ) ) => {
         {
             use $crate::tenyr::*;
-            let kind = Type3(tenyr_imm!(-($imm)));
+            let kind = $crate::tenyr::InstructionType::Type3(tenyr_imm!(-($imm)));
             let base = Instruction { kind, ..$crate::tenyr::NOOP_TYPE0 };
             Ok(Instruction { $( x : $x, )? ..base }) as $crate::tenyr::InsnResult
         }
@@ -158,7 +158,7 @@ macro_rules! tenyr_rhs {
     ( $( $x:ident - )? $imm:literal ) => {
         {
             use $crate::tenyr::*;
-            let kind = Type3(tenyr_imm!(-($imm)));
+            let kind = $crate::tenyr::InstructionType::Type3(tenyr_imm!(-($imm)));
             let base = Instruction { kind, ..$crate::tenyr::NOOP_TYPE0 };
             Ok(Instruction { $( x : $x, )? ..base }) as $crate::tenyr::InsnResult
         }
@@ -175,8 +175,8 @@ macro_rules! tenyr_rhs {
         {
             use $crate::tenyr::*;
             let base = tenyr_get_op!(tenyr_type2 $( $rest )*)?;
-            if let Type2(gen) = base.kind {
-                let kind = Type2(InsnGeneral { imm : tenyr_imm!($imm), ..gen });
+            if let $crate::tenyr::InstructionType::Type2(gen) = base.kind {
+                let kind = $crate::tenyr::InstructionType::Type2(InsnGeneral { imm : tenyr_imm!($imm), ..gen });
                 Ok(Instruction { kind, ..base }) as $crate::tenyr::InsnResult
             } else {
                 Err("internal error - did not get expected Type2".into())
@@ -187,8 +187,8 @@ macro_rules! tenyr_rhs {
         {
             use $crate::tenyr::*;
             let base = tenyr_get_op!(tenyr_type2 $( $rest )*)?;
-            if let Type2(gen) = base.kind {
-                let kind = Type2(InsnGeneral { imm : tenyr_imm!($imm), ..gen });
+            if let $crate::tenyr::InstructionType::Type2(gen) = base.kind {
+                let kind = $crate::tenyr::InstructionType::Type2(InsnGeneral { imm : tenyr_imm!($imm), ..gen });
                 Ok(Instruction { kind, ..base }) as $crate::tenyr::InsnResult
             } else {
                 Err("internal error - did not get expected Type2".into())

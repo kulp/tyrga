@@ -169,7 +169,6 @@ type BranchComp = dyn FnMut(&mut stack::Manager) -> GeneralResult<(tenyr::Regist
 
 fn make_int_branch(sm : &mut stack::Manager, addr : usize, invert : bool, target : u16, target_namer : &Namer, comp : &mut BranchComp) -> MakeInsnResult {
     use tenyr::*;
-    use tenyr::InstructionType::*;
     use tenyr::Register::*;
 
     let o = make_target(target, target_namer)?;
@@ -451,7 +450,6 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         },
         Switch(Lookup { default, pairs }) => {
             use tenyr::*;
-            use tenyr::InstructionType::*;
 
             let here = *addr as i32;
             let far = (default + here) as u16;
