@@ -415,14 +415,15 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             use tenyr::*;
             use tenyr::InstructionType::*;
 
-            let (op, _, _) = translate_way(way);
+            let (op, swap, invert) = translate_way(way);
 
             let mut op1 = move |sm : &mut stack::Manager| {
                 let top = get_reg(sm.get(0))?;
                 let temp_reg = top;
                 let mut v = sm.release(1);
+                let maker = if swap { Type2 } else { Type1 };
                 v.push(Instruction {
-                    kind : Type1(
+                    kind : maker(
                         InsnGeneral {
                            y : Register::A,
                            op,
@@ -435,7 +436,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
                 Ok((temp_reg, v))
             };
 
-            make_int_branch(sm, *addr, false, target, target_namer, &mut op1)
+            make_int_branch(sm, *addr, invert, target, target_namer, &mut op1)
         },
         Branch { kind : JType::Int, ops : OperandCount::_2, way, target } => {
             use tenyr::*;
