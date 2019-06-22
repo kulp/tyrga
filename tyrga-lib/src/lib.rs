@@ -324,25 +324,12 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         Constant { kind : JType::Int, value } =>
             make_int_constant(sm, value),
         Yield { kind } => {
+            let mut v = Vec::new();
+            for i in 0 .. kind.size() {
+                v.push(store_local(sm, get_reg(sm.get(i.into()))?, i.into()));
+            }
             let ret = Instruction { kind : Type3(1_u8.into()), ..make_load(Register::P, sm.get_stack_ptr()) };
-            let mut v = {
-                use JType::*;
-                match kind {
-                    Void =>
-                        vec![ ret ],
-                    Int | Float | Object | Short | Char | Byte =>
-                        vec![
-                            store_local(sm, get_reg(sm.get(0))?, 0),
-                            ret,
-                        ],
-                    Double | Long =>
-                        vec![
-                            store_local(sm, get_reg(sm.get(1))?, 0),
-                            store_local(sm, get_reg(sm.get(0))?, 1),
-                            ret
-                        ],
-                }
-            };
+            v.push(ret);
             v.extend(sm.empty());
             Ok((*addr, v, vec![])) // leaving the method is not a Destination we care about
         },
