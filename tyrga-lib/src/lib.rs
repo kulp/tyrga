@@ -390,17 +390,19 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
 
             Ok((*addr, v, default_dest))
         },
-        Branch { kind : JType::Int, ops : OperandCount::_1, way, target } => {
+        Branch { kind : JType::Int, ops, way, target } => {
             use tenyr::*;
             use tenyr::InstructionType::*;
 
             let (op, swap, invert) = translate_way(way);
 
-            let mut op1 = move |sm : &mut stack::Manager| {
-                let rhs = Register::A;
-                let lhs = get_reg(sm.get(0))?;
+            let mut opper = move |sm : &mut stack::Manager| {
+                let (rhs, lhs, count) = match ops {
+                    OperandCount::_1 => (Register::A        , get_reg(sm.get(0))?, 1),
+                    OperandCount::_2 => (get_reg(sm.get(0))?, get_reg(sm.get(1))?, 2),
+                };
+                let mut v = sm.release(count);
                 let temp_reg = lhs;
-                let mut v = sm.release(1);
                 let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
                 v.push(Instruction {
                     kind : Type0(
@@ -416,35 +418,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
                 Ok((temp_reg, v))
             };
 
-            make_int_branch(sm, *addr, invert, target, target_namer, &mut op1)
-        },
-        Branch { kind : JType::Int, ops : OperandCount::_2, way, target } => {
-            use tenyr::*;
-            use tenyr::InstructionType::*;
-
-            let (op, swap, invert) = translate_way(way);
-
-            let mut op2 = move |sm : &mut stack::Manager| {
-                let rhs = get_reg(sm.get(0))?;
-                let lhs = get_reg(sm.get(1))?;
-                let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
-                let temp_reg = lhs;
-                let mut v = sm.release(2);
-                v.push(Instruction {
-                    kind : Type0(
-                        InsnGeneral {
-                           y : rhs,
-                           op,
-                           imm : 0_u8.into(),
-                        }),
-                    z : temp_reg,
-                    x : lhs,
-                    dd : MemoryOpType::NoLoad,
-                });
-                Ok((temp_reg, v))
-            };
-
-            make_int_branch(sm, *addr, invert, target, target_namer, &mut op2)
+            make_int_branch(sm, *addr, invert, target, target_namer, &mut opper)
         },
         Switch(Lookup { default, pairs }) => {
             use tenyr::*;

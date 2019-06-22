@@ -32,8 +32,8 @@ _4Tiny01_3a6primes03_3a285b1I01_291V:
 .L_4Tiny01_3a6primes03_3a285b1I01_291V_01_3a4__11:
      B  <- [O + 6]
      C  <-  1
-     C  <-  C >=  B
-     P  <-  (.L_4Tiny01_3a6primes03_3a285b1I01_291V_01_3a4__20 - (. + 1))  &  C + P
+     B  <-  C >=  B
+     P  <-  (.L_4Tiny01_3a6primes03_3a285b1I01_291V_01_3a4__20 - (. + 1))  &  B + P
      B  <- [O + 7]
      C  <-  1
      D  <-  3
@@ -75,8 +75,8 @@ _4Tiny01_3a6primes03_3a285b1I01_291V:
      C  <- [D  |  0 + C]
      B  <-  B  *  C
      C  <- [O + 4]
-     C  <-  C  <  B
-     P  <-  (.L_4Tiny01_3a6primes03_3a285b1I01_291V_01_3a4__86 - (. + 1))  &  C + P
+     B  <-  C  <  B
+     P  <-  (.L_4Tiny01_3a6primes03_3a285b1I01_291V_01_3a4__86 - (. + 1))  &  B + P
      B  <- [O + 4]
      C  <- [O + 7]
      D  <- [O + 2]
