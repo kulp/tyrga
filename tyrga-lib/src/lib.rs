@@ -378,18 +378,18 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         },
         Increment { index, value } => {
             use tenyr::*;
-            let index = index.into();
-            let imm = value.into();
             // This reserving of a stack slot may exceed the "maximum depth" statistic on the
             // method, but we should try to avoid dedicated temporary registers.
             let mut v = Vec::new();
             v.extend(sm.reserve(1));
             let temp_reg = get_reg(sm.get(0))?;
-            v.extend(vec![
-                load_local(sm, temp_reg, index),
-                Instruction { kind : Type3(imm), ..make_mov(temp_reg, temp_reg) },
-                store_local(sm, temp_reg, index),
-            ]);
+            let stack_ptr = sm.get_stack_ptr();
+            let offset = sm.get_frame_offset(index.into());
+            v.extend(tenyr_insn_list!(
+                temp_reg <- [stack_ptr + (offset.clone())] ;
+                temp_reg <- temp_reg + (value)             ;
+                temp_reg -> [stack_ptr + (offset.clone())] ;
+            ));
             v.extend(sm.release(1));
 
             Ok((*addr, v, default_dest))
