@@ -380,7 +380,8 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
 
             Ok((*addr, v, default_dest))
         },
-        Branch { kind : JType::Int, ops, way, target } => {
+        Branch { kind : JType::Object, ops, way, target } |
+        Branch { kind : JType::Int   , ops, way, target } => {
             use tenyr::*;
 
             let (op, swap, invert) = match way {
