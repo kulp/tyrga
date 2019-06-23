@@ -67,6 +67,33 @@ _7Compare01_3a2le02_3a282FF01_291Z:
      C  -> [O + 3]
      P  <- [O + 1]
 
+.global _7Compare01_3a2eq02_3a282FF01_291Z
+_7Compare01_3a2eq02_3a282FF01_291Z:
+.L_7Compare01_3a2eq02_3a282FF01_291Z_01_3a10__preamble:
+     O  <-  O - 1
+     B  -> [O + 1]
+.L_7Compare01_3a2eq02_3a282FF01_291Z_01_3a3__0:
+     B  <- [O + 3]
+     C  <- [O + 2]
+     D  <-  -1
+     O  <-  O - 3
+     D  -> [O + 1]
+     C  -> [O + 2]
+     B  -> [O + 3]
+     B  <-  P + 1
+     P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283FFI01_291I
+     O  <-  O + 1
+     B  <- [O]
+     B  <-  B ==  A
+     P  <-  (.L_7Compare01_3a2eq02_3a282FF01_291Z_01_3a4__10 - (. + 1)) &~  B + P
+     B  <-  1
+     P  <-  P + (.L_7Compare01_3a2eq02_3a282FF01_291Z_01_3a4__11 - (. + 1))
+.L_7Compare01_3a2eq02_3a282FF01_291Z_01_3a4__10:
+     C  <-  0
+.L_7Compare01_3a2eq02_3a282FF01_291Z_01_3a4__11:
+     C  -> [O + 3]
+     P  <- [O + 1]
+
 .global _7Compare01_3a2gt02_3a282FF01_291Z
 _7Compare01_3a2gt02_3a282FF01_291Z:
 .L_7Compare01_3a2gt02_3a282FF01_291Z_01_3a10__preamble:
@@ -118,6 +145,33 @@ _7Compare01_3a2ge02_3a282FF01_291Z:
 .L_7Compare01_3a2ge02_3a282FF01_291Z_01_3a4__10:
      C  <-  0
 .L_7Compare01_3a2ge02_3a282FF01_291Z_01_3a4__11:
+     C  -> [O + 3]
+     P  <- [O + 1]
+
+.global _7Compare01_3a2ne02_3a282FF01_291Z
+_7Compare01_3a2ne02_3a282FF01_291Z:
+.L_7Compare01_3a2ne02_3a282FF01_291Z_01_3a10__preamble:
+     O  <-  O - 1
+     B  -> [O + 1]
+.L_7Compare01_3a2ne02_3a282FF01_291Z_01_3a3__0:
+     B  <- [O + 3]
+     C  <- [O + 2]
+     D  <-  -1
+     O  <-  O - 3
+     D  -> [O + 1]
+     C  -> [O + 2]
+     B  -> [O + 3]
+     B  <-  P + 1
+     P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283FFI01_291I
+     O  <-  O + 1
+     B  <- [O]
+     B  <-  B ==  A
+     P  <-  (.L_7Compare01_3a2ne02_3a282FF01_291Z_01_3a4__10 - (. + 1))  &  B + P
+     B  <-  1
+     P  <-  P + (.L_7Compare01_3a2ne02_3a282FF01_291Z_01_3a4__11 - (. + 1))
+.L_7Compare01_3a2ne02_3a282FF01_291Z_01_3a4__10:
+     C  <-  0
+.L_7Compare01_3a2ne02_3a282FF01_291Z_01_3a4__11:
      C  -> [O + 3]
      P  <- [O + 1]
 
@@ -183,6 +237,37 @@ _7Compare01_3a2le02_3a282DD01_291Z:
      C  -> [O + 5]
      P  <- [O + 1]
 
+.global _7Compare01_3a2eq02_3a282DD01_291Z
+_7Compare01_3a2eq02_3a282DD01_291Z:
+.L_7Compare01_3a2eq02_3a282DD01_291Z_01_3a10__preamble:
+     O  <-  O - 1
+     B  -> [O + 1]
+.L_7Compare01_3a2eq02_3a282DD01_291Z_01_3a3__0:
+     C  <- [O + 5]
+     B  <- [O + 4]
+     E  <- [O + 3]
+     D  <- [O + 2]
+     F  <-  -1
+     O  <-  O - 5
+     F  -> [O + 1]
+     E  -> [O + 2]
+     D  -> [O + 3]
+     C  -> [O + 4]
+     B  -> [O + 5]
+     B  <-  P + 1
+     P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283DDI01_291I
+     O  <-  O + 1
+     B  <- [O]
+     B  <-  B ==  A
+     P  <-  (.L_7Compare01_3a2eq02_3a282DD01_291Z_01_3a4__10 - (. + 1)) &~  B + P
+     B  <-  1
+     P  <-  P + (.L_7Compare01_3a2eq02_3a282DD01_291Z_01_3a4__11 - (. + 1))
+.L_7Compare01_3a2eq02_3a282DD01_291Z_01_3a4__10:
+     C  <-  0
+.L_7Compare01_3a2eq02_3a282DD01_291Z_01_3a4__11:
+     C  -> [O + 5]
+     P  <- [O + 1]
+
 .global _7Compare01_3a2gt02_3a282DD01_291Z
 _7Compare01_3a2gt02_3a282DD01_291Z:
 .L_7Compare01_3a2gt02_3a282DD01_291Z_01_3a10__preamble:
@@ -242,6 +327,37 @@ _7Compare01_3a2ge02_3a282DD01_291Z:
 .L_7Compare01_3a2ge02_3a282DD01_291Z_01_3a4__10:
      C  <-  0
 .L_7Compare01_3a2ge02_3a282DD01_291Z_01_3a4__11:
+     C  -> [O + 5]
+     P  <- [O + 1]
+
+.global _7Compare01_3a2ne02_3a282DD01_291Z
+_7Compare01_3a2ne02_3a282DD01_291Z:
+.L_7Compare01_3a2ne02_3a282DD01_291Z_01_3a10__preamble:
+     O  <-  O - 1
+     B  -> [O + 1]
+.L_7Compare01_3a2ne02_3a282DD01_291Z_01_3a3__0:
+     C  <- [O + 5]
+     B  <- [O + 4]
+     E  <- [O + 3]
+     D  <- [O + 2]
+     F  <-  -1
+     O  <-  O - 5
+     F  -> [O + 1]
+     E  -> [O + 2]
+     D  -> [O + 3]
+     C  -> [O + 4]
+     B  -> [O + 5]
+     B  <-  P + 1
+     P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283DDI01_291I
+     O  <-  O + 1
+     B  <- [O]
+     B  <-  B ==  A
+     P  <-  (.L_7Compare01_3a2ne02_3a282DD01_291Z_01_3a4__10 - (. + 1))  &  B + P
+     B  <-  1
+     P  <-  P + (.L_7Compare01_3a2ne02_3a282DD01_291Z_01_3a4__11 - (. + 1))
+.L_7Compare01_3a2ne02_3a282DD01_291Z_01_3a4__10:
+     C  <-  0
+.L_7Compare01_3a2ne02_3a282DD01_291Z_01_3a4__11:
      C  -> [O + 5]
      P  <- [O + 1]
 
@@ -307,6 +423,37 @@ _7Compare01_3a2le02_3a282JJ01_291Z:
      C  -> [O + 5]
      P  <- [O + 1]
 
+.global _7Compare01_3a2eq02_3a282JJ01_291Z
+_7Compare01_3a2eq02_3a282JJ01_291Z:
+.L_7Compare01_3a2eq02_3a282JJ01_291Z_01_3a10__preamble:
+     O  <-  O - 1
+     B  -> [O + 1]
+.L_7Compare01_3a2eq02_3a282JJ01_291Z_01_3a3__0:
+     C  <- [O + 5]
+     B  <- [O + 4]
+     E  <- [O + 3]
+     D  <- [O + 2]
+     F  <-  0
+     O  <-  O - 5
+     F  -> [O + 1]
+     E  -> [O + 2]
+     D  -> [O + 3]
+     C  -> [O + 4]
+     B  -> [O + 5]
+     B  <-  P + 1
+     P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283JJI01_291I
+     O  <-  O + 1
+     B  <- [O]
+     B  <-  B ==  A
+     P  <-  (.L_7Compare01_3a2eq02_3a282JJ01_291Z_01_3a4__10 - (. + 1)) &~  B + P
+     B  <-  1
+     P  <-  P + (.L_7Compare01_3a2eq02_3a282JJ01_291Z_01_3a4__11 - (. + 1))
+.L_7Compare01_3a2eq02_3a282JJ01_291Z_01_3a4__10:
+     C  <-  0
+.L_7Compare01_3a2eq02_3a282JJ01_291Z_01_3a4__11:
+     C  -> [O + 5]
+     P  <- [O + 1]
+
 .global _7Compare01_3a2gt02_3a282JJ01_291Z
 _7Compare01_3a2gt02_3a282JJ01_291Z:
 .L_7Compare01_3a2gt02_3a282JJ01_291Z_01_3a10__preamble:
@@ -366,6 +513,37 @@ _7Compare01_3a2ge02_3a282JJ01_291Z:
 .L_7Compare01_3a2ge02_3a282JJ01_291Z_01_3a4__10:
      C  <-  0
 .L_7Compare01_3a2ge02_3a282JJ01_291Z_01_3a4__11:
+     C  -> [O + 5]
+     P  <- [O + 1]
+
+.global _7Compare01_3a2ne02_3a282JJ01_291Z
+_7Compare01_3a2ne02_3a282JJ01_291Z:
+.L_7Compare01_3a2ne02_3a282JJ01_291Z_01_3a10__preamble:
+     O  <-  O - 1
+     B  -> [O + 1]
+.L_7Compare01_3a2ne02_3a282JJ01_291Z_01_3a3__0:
+     C  <- [O + 5]
+     B  <- [O + 4]
+     E  <- [O + 3]
+     D  <- [O + 2]
+     F  <-  0
+     O  <-  O - 5
+     F  -> [O + 1]
+     E  -> [O + 2]
+     D  -> [O + 3]
+     C  -> [O + 4]
+     B  -> [O + 5]
+     B  <-  P + 1
+     P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283JJI01_291I
+     O  <-  O + 1
+     B  <- [O]
+     B  <-  B ==  A
+     P  <-  (.L_7Compare01_3a2ne02_3a282JJ01_291Z_01_3a4__10 - (. + 1))  &  B + P
+     B  <-  1
+     P  <-  P + (.L_7Compare01_3a2ne02_3a282JJ01_291Z_01_3a4__11 - (. + 1))
+.L_7Compare01_3a2ne02_3a282JJ01_291Z_01_3a4__10:
+     C  <-  0
+.L_7Compare01_3a2ne02_3a282JJ01_291Z_01_3a4__11:
      C  -> [O + 5]
      P  <- [O + 1]
 
