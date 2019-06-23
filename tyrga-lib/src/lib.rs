@@ -417,6 +417,8 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
 
             make_int_branch(sm, *addr, invert, target, target_namer, &mut opper)
         },
+        Branch { .. } =>
+            Err("encountered impossible Branch configuration".into()),
         Switch(Lookup { default, pairs }) => {
             use tenyr::*;
 
@@ -628,7 +630,6 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         },
 
         Allocation { .. } |
-        Branch     { .. } |
         Constant   { .. } |
         Conversion { .. } |
         Invocation { .. } |
