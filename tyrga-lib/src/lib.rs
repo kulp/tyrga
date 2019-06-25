@@ -628,6 +628,12 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             v.extend(insns);
             Ok((addr, v, dests))
         },
+        Conversion { from : JType::Int, to : JType::Byte } => {
+            let top = get_reg(sm.get(0))?;
+            let left  = tenyr_insn!( top <- top << 24 )?;
+            let right = tenyr_insn!( top <- top >> 24 )?; // arithmetic shift, result is signed
+            Ok((*addr, vec![ left, right ], default_dest ))
+        },
 
         Allocation { .. } |
         Constant   { .. } |
