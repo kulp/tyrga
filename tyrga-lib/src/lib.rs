@@ -634,6 +634,12 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             let right = tenyr_insn!( top <- top >> 24 )?; // arithmetic shift, result is signed
             Ok((*addr, vec![ left, right ], default_dest ))
         },
+        Conversion { from : JType::Int, to : JType::Short } => {
+            let top = get_reg(sm.get(0))?;
+            let left  = tenyr_insn!( top <- top << 16 )?;
+            let right = tenyr_insn!( top <- top >> 16 )?; // arithmetic shift, result is signed
+            Ok((*addr, vec![ left, right ], default_dest ))
+        },
 
         Allocation { .. } |
         Constant   { .. } |
