@@ -310,6 +310,8 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
     };
 
     match op.clone() { // TODO obviate clone
+        Constant { kind : JType::Object, value } if value == 0 =>
+            make_int_constant(sm, 0),
         Constant { kind : JType::Int, value } =>
             make_int_constant(sm, value.into()),
         Constant { kind : JType::Long, value } => {
