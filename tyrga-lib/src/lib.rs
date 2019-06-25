@@ -646,10 +646,20 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             let right = tenyr_insn!( top <- top >>> 16 )?; // logical shift, result is positive
             Ok((*addr, vec![ left, right ], default_dest ))
         },
+        Conversion { from, to } => {
+            let ch_from : GeneralResult<_> =
+                from.get_char().ok_or("no char for kind").map_err(Into::into);
+            let ch_from = ch_from?;
+            let ch_to : GeneralResult<_> =
+                to.get_char().ok_or("no char for kind").map_err(Into::into);
+            let ch_to = ch_to?;
+            let name = format!("into_{}", ch_to); // TODO improve naming
+            let desc = format!("({}){}", ch_from, ch_to);
+            make_call(sm, &make_builtin_name(&name, &desc)?, &desc)
+        },
 
         Allocation { .. } |
         Constant   { .. } |
-        Conversion { .. } |
         Invocation { .. } |
         StackOp    { .. } |
         VarAction  { .. } |
