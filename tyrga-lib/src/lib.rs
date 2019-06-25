@@ -312,6 +312,8 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
     match op.clone() { // TODO obviate clone
         Constant { kind : JType::Int, value } =>
             make_int_constant(sm, value.into()),
+        Constant { kind : JType::Float, value } =>
+            make_int_constant(sm, f32::from(value).to_bits() as i32),
         Yield { kind } => {
             let mut v = Vec::new();
             for i in 0 .. kind.size() {
