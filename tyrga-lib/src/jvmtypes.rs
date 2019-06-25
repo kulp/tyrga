@@ -152,7 +152,7 @@ pub enum Operation {
     ArrayAlloc  { kind : ArrayKind },
     Branch      { kind : JType, ops : OperandCount, way : Comparison, target : u16 },
     Compare     { kind : JType, nans : Option<NanComparisons> },
-    Constant    { kind : JType, value : i32 },
+    Constant    { kind : JType, value : i16 },
     Conversion  { from : JType, to : JType },
     Increment   { index : u16, value : i16 },
     Invocation  { kind : InvokeKind, index : u16 },
@@ -199,8 +199,8 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Dconst0    => Constant { kind : Double, value :  0 },
         Dconst1    => Constant { kind : Double, value :  1 },
 
-        Bipush(v) => Constant { kind : Int, value : i32::from(v) },
-        Sipush(v) => Constant { kind : Int, value : i32::from(v) },
+        Bipush(v) => Constant { kind : Int, value : v.into() },
+        Sipush(v) => Constant { kind : Int, value : v },
 
         Iload(index) => LoadLocal { kind : Int   , index : index.into() },
         Lload(index) => LoadLocal { kind : Long  , index : index.into() },
