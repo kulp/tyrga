@@ -1,5 +1,6 @@
 #![deny(clippy::option_unwrap_used)]
 #![deny(clippy::result_unwrap_used)]
+#![deny(clippy::items_after_statements)]
 
 mod exprtree;
 mod jvmtypes;
@@ -785,8 +786,8 @@ mod util {
     use super::tenyr::Register;
 
     pub fn index_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
-        let x = sm.get_stack_ptr();
         use super::tenyr::InstructionType::Type3;
+        let x = sm.get_stack_ptr();
         Instruction { dd : MemoryOpType::NoLoad, z : reg, x, kind : Type3(sm.get_frame_offset(idx)) }
     }
     pub fn load_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
