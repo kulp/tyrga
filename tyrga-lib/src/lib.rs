@@ -153,13 +153,13 @@ type Namer = dyn Fn(&dyn fmt::Display) -> GeneralResult<String>;
 type InsnTriple = (usize, Vec<Instruction>, Vec<Destination>);
 type MakeInsnResult = GeneralResult<InsnTriple>;
 
-fn make_target(target : u16, target_namer : &Namer) -> GeneralResult<exprtree::Atom> {
+fn make_target(target : &dyn fmt::Display, target_namer : &Namer) -> GeneralResult<exprtree::Atom> {
     use exprtree::Atom::*;
     use exprtree::Expr;
     use exprtree::Operation::*;
     use std::rc::Rc;
 
-    let tn = target_namer(&target)?;
+    let tn = target_namer(target)?;
     let a = Variable(tn);
     let b = Expression(Rc::new(Expr { a : Variable(".".to_owned()), op : Add, b : Immediate(1) }));
     Ok(Expression(Rc::new(Expr { a, op : Sub, b })))
@@ -171,7 +171,7 @@ fn make_int_branch(sm : &mut stack::Manager, addr : usize, invert : bool, target
     use tenyr::*;
     use tenyr::Register::*;
 
-    let o = make_target(target, target_namer)?;
+    let o = make_target(&target, target_namer)?;
 
     let (temp_reg, sequence) = comp(sm)?;
     let imm = tenyr::Immediate::Expr(o);
@@ -226,7 +226,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
 
     let make_jump = |target| {
         let result : GeneralResult<Instruction> = Ok(Instruction {
-            kind : Type3(tenyr::Immediate::Expr(make_target(target, target_namer)?)),
+            kind : Type3(tenyr::Immediate::Expr(make_target(&target, target_namer)?)),
             ..make_mov(tenyr::Register::P, tenyr::Register::P)
         });
         result
