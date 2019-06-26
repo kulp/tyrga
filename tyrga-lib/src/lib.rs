@@ -1137,10 +1137,13 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
         let insns = {
             use Register::P;
 
+            let off = i32::from(stack::SAVE_SLOTS) + i32::from(total_locals) - i32::from(num_returns);
+            let down = i32::from(num_returns) - i32::from(max_locals);
             let sp = sm.get_stack_ptr();
-            let num_params = count_params(&descriptor)?;
-            let off = i32::from(stack::SAVE_SLOTS) + i32::from(total_locals) - i32::from(num_params);
-            vec![ tenyr_insn!( P <- [sp + (off)] )? ]
+            tenyr_insn_list!(
+                sp <-  sp + (off)   ;
+                P  <- [sp + (down)] ;
+            ).collect()
         };
         let label = make_label(class, method, "epilogue")?;
         tenyr::BasicBlock { label, insns }

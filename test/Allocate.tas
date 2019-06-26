@@ -13,7 +13,8 @@ _8Allocate02_3a3c4init04_3e3a28291V:
      B  <- [O]
      P  <- [O + 1]
 .L_8Allocate02_3a3c4init04_3e3a28291V_01_3a10__epilogue:
-     P  <- [O + 2]
+     O  <-  O + 2
+     P  <- [O - 1]
 
 .global _8Allocate01_3a22array_allocate_boolean04_3a28295b1Z
 _8Allocate01_3a22array_allocate_boolean04_3a28295b1Z:
@@ -31,7 +32,8 @@ _8Allocate01_3a22array_allocate_boolean04_3a28295b1Z:
      B  -> [O + 2]
      P  <- [O + 1]
 .L_8Allocate01_3a22array_allocate_boolean04_3a28295b1Z_01_3a10__epilogue:
-     P  <- [O + 1]
+     O  <-  O
+     P  <- [O]
 
 .global _8Allocate01_3a19array_allocate_char04_3a28295b1C
 _8Allocate01_3a19array_allocate_char04_3a28295b1C:
@@ -49,7 +51,8 @@ _8Allocate01_3a19array_allocate_char04_3a28295b1C:
      B  -> [O + 2]
      P  <- [O + 1]
 .L_8Allocate01_3a19array_allocate_char04_3a28295b1C_01_3a10__epilogue:
-     P  <- [O + 1]
+     O  <-  O
+     P  <- [O]
 
 .global _8Allocate01_3a20array_allocate_float04_3a28295b1F
 _8Allocate01_3a20array_allocate_float04_3a28295b1F:
@@ -67,7 +70,8 @@ _8Allocate01_3a20array_allocate_float04_3a28295b1F:
      B  -> [O + 2]
      P  <- [O + 1]
 .L_8Allocate01_3a20array_allocate_float04_3a28295b1F_01_3a10__epilogue:
-     P  <- [O + 1]
+     O  <-  O
+     P  <- [O]
 
 .global _8Allocate01_3a21array_allocate_double04_3a28295b1D
 _8Allocate01_3a21array_allocate_double04_3a28295b1D:
@@ -86,7 +90,8 @@ _8Allocate01_3a21array_allocate_double04_3a28295b1D:
      B  -> [O + 2]
      P  <- [O + 1]
 .L_8Allocate01_3a21array_allocate_double04_3a28295b1D_01_3a10__epilogue:
-     P  <- [O + 1]
+     O  <-  O
+     P  <- [O]
 
 .global _8Allocate01_3a19array_allocate_byte04_3a28295b1B
 _8Allocate01_3a19array_allocate_byte04_3a28295b1B:
@@ -104,7 +109,8 @@ _8Allocate01_3a19array_allocate_byte04_3a28295b1B:
      B  -> [O + 2]
      P  <- [O + 1]
 .L_8Allocate01_3a19array_allocate_byte04_3a28295b1B_01_3a10__epilogue:
-     P  <- [O + 1]
+     O  <-  O
+     P  <- [O]
 
 .global _8Allocate01_3a20array_allocate_short04_3a28295b1S
 _8Allocate01_3a20array_allocate_short04_3a28295b1S:
@@ -122,7 +128,8 @@ _8Allocate01_3a20array_allocate_short04_3a28295b1S:
      B  -> [O + 2]
      P  <- [O + 1]
 .L_8Allocate01_3a20array_allocate_short04_3a28295b1S_01_3a10__epilogue:
-     P  <- [O + 1]
+     O  <-  O
+     P  <- [O]
 
 .global _8Allocate01_3a18array_allocate_int04_3a28295b1I
 _8Allocate01_3a18array_allocate_int04_3a28295b1I:
@@ -140,7 +147,8 @@ _8Allocate01_3a18array_allocate_int04_3a28295b1I:
      B  -> [O + 2]
      P  <- [O + 1]
 .L_8Allocate01_3a18array_allocate_int04_3a28295b1I_01_3a10__epilogue:
-     P  <- [O + 1]
+     O  <-  O
+     P  <- [O]
 
 .global _8Allocate01_3a19array_allocate_long04_3a28295b1J
 _8Allocate01_3a19array_allocate_long04_3a28295b1J:
@@ -159,5 +167,6 @@ _8Allocate01_3a19array_allocate_long04_3a28295b1J:
      B  -> [O + 2]
      P  <- [O + 1]
 .L_8Allocate01_3a19array_allocate_long04_3a28295b1J_01_3a10__epilogue:
-     P  <- [O + 1]
+     O  <-  O
+     P  <- [O]
 

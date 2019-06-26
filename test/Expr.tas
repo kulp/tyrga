@@ -13,7 +13,8 @@ _4Expr02_3a3c4init04_3e3a28291V:
      B  <- [O]
      P  <- [O + 1]
 .L_4Expr02_3a3c4init04_3e3a28291V_01_3a10__epilogue:
-     P  <- [O + 2]
+     O  <-  O + 2
+     P  <- [O - 1]
 
 .global _4Expr01_3a4expr02_3a282II01_291I
 _4Expr01_3a4expr02_3a282II01_291I:
@@ -39,5 +40,6 @@ _4Expr01_3a4expr02_3a282II01_291I:
      B  -> [O + 3]
      P  <- [O + 1]
 .L_4Expr01_3a4expr02_3a282II01_291I_01_3a10__epilogue:
-     P  <- [O + 1]
+     O  <-  O + 2
+     P  <- [O - 1]
 
