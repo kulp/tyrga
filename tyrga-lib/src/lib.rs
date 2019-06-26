@@ -1101,11 +1101,16 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
     use tenyr::InstructionType::*;
 
     let max_locals = get_method_code(method)?.max_locals;
+    let descriptor = get_string(&get_constant_getter(class), method.descriptor_index).ok_or("method descriptor missing")?;
+    let num_returns = count_returns(&descriptor)?.into();
+    // Pretend we have at least as many locals as we have return-slots, so we have somewhere to
+    // store our results when we Yield.
+    let max_locals = max_locals.max(num_returns);
+
     let sm = stack::Manager::new(max_locals, STACK_PTR, STACK_REGS.to_owned());
     let sm = &sm;
 
     let insns = {
-        let descriptor = get_string(&get_constant_getter(class), method.descriptor_index).ok_or("method descriptor missing")?;
 
         let max_locals = i32::from(max_locals);
         let net = max_locals - i32::from(count_params(&descriptor)?);
