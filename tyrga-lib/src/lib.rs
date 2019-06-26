@@ -149,7 +149,7 @@ fn test_expand() -> GeneralResult<()> {
     Ok(())
 }
 
-type Namer = dyn Fn(usize) -> GeneralResult<String>;
+type Namer = dyn Fn(&dyn fmt::Display) -> GeneralResult<String>;
 type InsnTriple = (usize, Vec<Instruction>, Vec<Destination>);
 type MakeInsnResult = GeneralResult<InsnTriple>;
 
@@ -159,7 +159,7 @@ fn make_target(target : u16, target_namer : &Namer) -> GeneralResult<exprtree::A
     use exprtree::Operation::*;
     use std::rc::Rc;
 
-    let tn = target_namer(target.into())?;
+    let tn = target_namer(&target)?;
     let a = Variable(tn);
     let b = Expression(Rc::new(Expr { a : Variable(".".to_owned()), op : Add, b : Immediate(1) }));
     Ok(Expression(Rc::new(Expr { a, op : Sub, b })))
@@ -698,7 +698,7 @@ fn test_make_instruction() -> GeneralResult<()> {
 
     let mut sm = stack::Manager::new(5, STACK_PTR, STACK_REGS.to_owned());
     let op = Operation::Constant { kind : JType::Int, value : 5 };
-    let namer = |x| Ok(format!("{}:{}", "test", x));
+    let namer = |x : &dyn fmt::Display| Ok(format!("{}:{}", "test", x.to_string()));
     let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| &Unusable)?;
     let imm = 5_u8.into();
     assert_eq!(insn.1, vec![ Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad } ]);
@@ -956,7 +956,7 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &stack:
             // TODO obviate clones
             let class = class.clone();
             let method = method.clone();
-            move |x : usize| make_label(&class, &method, &x.to_string())
+            move |x : &dyn fmt::Display| make_label(&class, &method, &x.to_string())
         };
 
         let get_constant = get_constant_getter(&class);
