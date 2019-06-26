@@ -11,7 +11,7 @@ _8Allocate02_3a3c4init04_3e3a28291V:
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3a3c4init04_3e3a28291V
      O  <-  O + 1
      B  <- [O]
-     P  <- [O + 1]
+     P  <-  (.L_8Allocate02_3a3c4init04_3e3a28291V_01_3a10__epilogue - (. + 1))  +  P
 .L_8Allocate02_3a3c4init04_3e3a28291V_01_3a10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -30,7 +30,7 @@ _8Allocate01_3a22array_allocate_boolean04_3a28295b1Z:
      O  <-  O + 1
      B  <- [O]
      B  -> [O + 2]
-     P  <- [O + 1]
+     P  <-  (.L_8Allocate01_3a22array_allocate_boolean04_3a28295b1Z_01_3a10__epilogue - (. + 1))  +  P
 .L_8Allocate01_3a22array_allocate_boolean04_3a28295b1Z_01_3a10__epilogue:
      O  <-  O
      P  <- [O]
@@ -49,7 +49,7 @@ _8Allocate01_3a19array_allocate_char04_3a28295b1C:
      O  <-  O + 1
      B  <- [O]
      B  -> [O + 2]
-     P  <- [O + 1]
+     P  <-  (.L_8Allocate01_3a19array_allocate_char04_3a28295b1C_01_3a10__epilogue - (. + 1))  +  P
 .L_8Allocate01_3a19array_allocate_char04_3a28295b1C_01_3a10__epilogue:
      O  <-  O
      P  <- [O]
@@ -68,7 +68,7 @@ _8Allocate01_3a20array_allocate_float04_3a28295b1F:
      O  <-  O + 1
      B  <- [O]
      B  -> [O + 2]
-     P  <- [O + 1]
+     P  <-  (.L_8Allocate01_3a20array_allocate_float04_3a28295b1F_01_3a10__epilogue - (. + 1))  +  P
 .L_8Allocate01_3a20array_allocate_float04_3a28295b1F_01_3a10__epilogue:
      O  <-  O
      P  <- [O]
@@ -88,7 +88,7 @@ _8Allocate01_3a21array_allocate_double04_3a28295b1D:
      O  <-  O + 1
      B  <- [O]
      B  -> [O + 2]
-     P  <- [O + 1]
+     P  <-  (.L_8Allocate01_3a21array_allocate_double04_3a28295b1D_01_3a10__epilogue - (. + 1))  +  P
 .L_8Allocate01_3a21array_allocate_double04_3a28295b1D_01_3a10__epilogue:
      O  <-  O
      P  <- [O]
@@ -107,7 +107,7 @@ _8Allocate01_3a19array_allocate_byte04_3a28295b1B:
      O  <-  O + 1
      B  <- [O]
      B  -> [O + 2]
-     P  <- [O + 1]
+     P  <-  (.L_8Allocate01_3a19array_allocate_byte04_3a28295b1B_01_3a10__epilogue - (. + 1))  +  P
 .L_8Allocate01_3a19array_allocate_byte04_3a28295b1B_01_3a10__epilogue:
      O  <-  O
      P  <- [O]
@@ -126,7 +126,7 @@ _8Allocate01_3a20array_allocate_short04_3a28295b1S:
      O  <-  O + 1
      B  <- [O]
      B  -> [O + 2]
-     P  <- [O + 1]
+     P  <-  (.L_8Allocate01_3a20array_allocate_short04_3a28295b1S_01_3a10__epilogue - (. + 1))  +  P
 .L_8Allocate01_3a20array_allocate_short04_3a28295b1S_01_3a10__epilogue:
      O  <-  O
      P  <- [O]
@@ -145,7 +145,7 @@ _8Allocate01_3a18array_allocate_int04_3a28295b1I:
      O  <-  O + 1
      B  <- [O]
      B  -> [O + 2]
-     P  <- [O + 1]
+     P  <-  (.L_8Allocate01_3a18array_allocate_int04_3a28295b1I_01_3a10__epilogue - (. + 1))  +  P
 .L_8Allocate01_3a18array_allocate_int04_3a28295b1I_01_3a10__epilogue:
      O  <-  O
      P  <- [O]
@@ -165,7 +165,7 @@ _8Allocate01_3a19array_allocate_long04_3a28295b1J:
      O  <-  O + 1
      B  <- [O]
      B  -> [O + 2]
-     P  <- [O + 1]
+     P  <-  (.L_8Allocate01_3a19array_allocate_long04_3a28295b1J_01_3a10__epilogue - (. + 1))  +  P
 .L_8Allocate01_3a19array_allocate_long04_3a28295b1J_01_3a10__epilogue:
      O  <-  O
      P  <- [O]

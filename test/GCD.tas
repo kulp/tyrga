@@ -11,7 +11,7 @@ _3GCD02_3a3c4init04_3e3a28291V:
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3a3c4init04_3e3a28291V
      O  <-  O + 1
      B  <- [O]
-     P  <- [O + 1]
+     P  <-  (.L_3GCD02_3a3c4init04_3e3a28291V_01_3a10__epilogue - (. + 1))  +  P
 .L_3GCD02_3a3c4init04_3e3a28291V_01_3a10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -44,7 +44,7 @@ _3GCD01_3a3gcd02_3a282II01_291I:
 .L_3GCD01_3a3gcd02_3a282II01_291I_01_3a4__24:
      B  <- [O + 3]
      B  -> [O + 3]
-     P  <- [O + 1]
+     P  <-  (.L_3GCD01_3a3gcd02_3a282II01_291I_01_3a10__epilogue - (. + 1))  +  P
 .L_3GCD01_3a3gcd02_3a282II01_291I_01_3a10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]

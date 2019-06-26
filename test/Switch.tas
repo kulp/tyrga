@@ -11,7 +11,7 @@ _6Switch02_3a3c4init04_3e3a28291V:
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3a3c4init04_3e3a28291V
      O  <-  O + 1
      B  <- [O]
-     P  <- [O + 1]
+     P  <-  (.L_6Switch02_3a3c4init04_3e3a28291V_01_3a10__epilogue - (. + 1))  +  P
 .L_6Switch02_3a3c4init04_3e3a28291V_01_3a10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -34,21 +34,21 @@ _6Switch01_3a5table02_3a282II01_291I:
 .L_6Switch01_3a5table02_3a282II01_291I_01_3a4__28:
      C  <- [O + 2]
      C  -> [O + 3]
-     P  <- [O + 1]
+     P  <-  (.L_6Switch01_3a5table02_3a282II01_291I_01_3a10__epilogue - (. + 1))  +  P
 .L_6Switch01_3a5table02_3a282II01_291I_01_3a4__30:
      C  <- [O + 3]
      D  <- [O + 2]
      C  <-  C  *  D
      C  -> [O + 3]
-     P  <- [O + 1]
+     P  <-  (.L_6Switch01_3a5table02_3a282II01_291I_01_3a10__epilogue - (. + 1))  +  P
 .L_6Switch01_3a5table02_3a282II01_291I_01_3a4__34:
      C  <- [O + 3]
      C  -> [O + 3]
-     P  <- [O + 1]
+     P  <-  (.L_6Switch01_3a5table02_3a282II01_291I_01_3a10__epilogue - (. + 1))  +  P
 .L_6Switch01_3a5table02_3a282II01_291I_01_3a4__36:
      C  <-  0
      C  -> [O + 3]
-     P  <- [O + 1]
+     P  <-  (.L_6Switch01_3a5table02_3a282II01_291I_01_3a10__epilogue - (. + 1))  +  P
 .L_6Switch01_3a5table02_3a282II01_291I_01_3a10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -75,21 +75,21 @@ _6Switch01_3a6lookup02_3a282II01_291I:
 .L_6Switch01_3a6lookup02_3a282II01_291I_01_3a4__36:
      D  <- [O + 2]
      D  -> [O + 3]
-     P  <- [O + 1]
+     P  <-  (.L_6Switch01_3a6lookup02_3a282II01_291I_01_3a10__epilogue - (. + 1))  +  P
 .L_6Switch01_3a6lookup02_3a282II01_291I_01_3a4__38:
      D  <- [O + 3]
      E  <- [O + 2]
      D  <-  D  *  E
      D  -> [O + 3]
-     P  <- [O + 1]
+     P  <-  (.L_6Switch01_3a6lookup02_3a282II01_291I_01_3a10__epilogue - (. + 1))  +  P
 .L_6Switch01_3a6lookup02_3a282II01_291I_01_3a4__42:
      D  <- [O + 3]
      D  -> [O + 3]
-     P  <- [O + 1]
+     P  <-  (.L_6Switch01_3a6lookup02_3a282II01_291I_01_3a10__epilogue - (. + 1))  +  P
 .L_6Switch01_3a6lookup02_3a282II01_291I_01_3a4__44:
      D  <-  0
      D  -> [O + 3]
-     P  <- [O + 1]
+     P  <-  (.L_6Switch01_3a6lookup02_3a282II01_291I_01_3a10__epilogue - (. + 1))  +  P
 .L_6Switch01_3a6lookup02_3a282II01_291I_01_3a10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]

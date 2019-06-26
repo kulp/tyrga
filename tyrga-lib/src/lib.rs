@@ -334,13 +334,15 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         Constant { .. } =>
             Err("encountered impossible Constant configuration".into()),
         Yield { kind } => {
+            use Register::P;
             let mut v = Vec::new();
             for i in 0 .. kind.size() {
                 v.push(store_local(sm, get_reg(sm.get(i.into()))?, i.into()));
             }
-            let ret = Instruction { kind : Type3(1_u8.into()), ..make_load(Register::P, sm.get_stack_ptr()) };
-            v.push(ret);
             v.extend(sm.empty());
+            let ex = tenyr::Immediate::Expr(make_target(&"epilogue", target_namer)?);
+            v.push(tenyr_insn!( P <- (ex) + P )?);
+
             Ok((*addr, v, vec![])) // leaving the method is not a Destination we care about
         },
         Arithmetic { kind : JType::Int, op : ArithmeticOperation::Neg } => {
