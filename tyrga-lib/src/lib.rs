@@ -301,18 +301,12 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         make_builtin_name(&proc, &descriptor)
     };
 
-    let mut make_int_constant = |value : i32| {
-        let mut v = Vec::new();
-        v.extend(sm.reserve(1));
-        let insn = make_mov(get_reg(sm.get(0))?, Register::A);
-        v.extend(expand_immediate_load(sm, insn, value)?);
-        Ok((*addr, v, default_dest.clone()))
-    };
-
     let mut make_constant = |slice : &[i32]| {
-        let f = |v : GeneralResult<Vec<_>>, &n : &i32| {
+        let f = |v : GeneralResult<Vec<_>>, &value| {
             let mut v = v?;
-            v.append(&mut make_int_constant(n)?.1);
+            v.extend(sm.reserve(1));
+            let insn = make_mov(get_reg(sm.get(0))?, Register::A);
+            v.extend(expand_immediate_load(sm, insn, value)?);
             Ok(v)
         };
         let v = slice.iter().fold(Ok(vec![]), f)?;
@@ -320,14 +314,10 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
     };
 
     match op.clone() { // TODO obviate clone
-        Constant { kind : JType::Object, value } if value == 0 =>
-            make_int_constant(0),
-        Constant { kind : JType::Int, value } =>
-            make_int_constant(value.into()),
-        Constant { kind : JType::Long, value } =>
-            make_constant(&[0, value.into()]),
-        Constant { kind : JType::Float, value } =>
-            make_int_constant(f32::from(value).to_bits() as i32),
+        Constant { kind : JType::Object, value } |
+        Constant { kind : JType::Int   , value } => make_constant(&[ value.into() ]),
+        Constant { kind : JType::Long  , value } => make_constant(&[ 0, value.into() ]),
+        Constant { kind : JType::Float , value } => make_constant(&[ f32::from(value).to_bits() as i32 ]),
         Constant { kind : JType::Double, value } => {
             let bits = f64::from(value).to_bits() as i64;
             make_constant(&[ (bits >> 32) as u32 as i32, bits as u32 as i32 ])
