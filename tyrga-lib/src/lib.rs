@@ -301,7 +301,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         make_builtin_name(&proc, &descriptor)
     };
 
-    let make_int_constant = |sm : &mut stack::Manager, value : i32| {
+    let mut make_int_constant = |value : i32| {
         let mut v = Vec::new();
         v.extend(sm.reserve(1));
         let insn = make_mov(get_reg(sm.get(0))?, Register::A);
@@ -311,22 +311,22 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
 
     match op.clone() { // TODO obviate clone
         Constant { kind : JType::Object, value } if value == 0 =>
-            make_int_constant(sm, 0),
+            make_int_constant(0),
         Constant { kind : JType::Int, value } =>
-            make_int_constant(sm, value.into()),
+            make_int_constant(value.into()),
         Constant { kind : JType::Long, value } => {
-            let (_   , insn_0, _   ) = make_int_constant(sm, 0)?;
-            let (addr, insn_1, dest) = make_int_constant(sm, value.into())?;
+            let (_   , insn_0, _   ) = make_int_constant(0)?;
+            let (addr, insn_1, dest) = make_int_constant(value.into())?;
             let mut v = insn_0;
             v.extend(insn_1);
             Ok((addr, v, dest))
         }
         Constant { kind : JType::Float, value } =>
-            make_int_constant(sm, f32::from(value).to_bits() as i32),
+            make_int_constant(f32::from(value).to_bits() as i32),
         Constant { kind : JType::Double, value } => {
             let bits = f64::from(value).to_bits() as i64;
-            let (_   , insn_0, _   ) = make_int_constant(sm, (bits >> 32) as u32 as i32)?;
-            let (addr, insn_1, dest) = make_int_constant(sm, bits as u32 as i32)?;
+            let (_   , insn_0, _   ) = make_int_constant((bits >> 32) as u32 as i32)?;
+            let (addr, insn_1, dest) = make_int_constant(bits as u32 as i32)?;
             let mut v = insn_0;
             v.extend(insn_1);
             Ok((addr, v, dest))
