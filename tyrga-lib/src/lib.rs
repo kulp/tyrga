@@ -309,27 +309,28 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         Ok((*addr, v, default_dest.clone()))
     };
 
+    let mut make_constant = |slice : &[i32]| {
+        let f = |v : GeneralResult<Vec<_>>, &n : &i32| {
+            let mut v = v?;
+            v.append(&mut make_int_constant(n)?.1);
+            Ok(v)
+        };
+        let v = slice.iter().fold(Ok(vec![]), f)?;
+        Ok((*addr, v, default_dest.clone()))
+    };
+
     match op.clone() { // TODO obviate clone
         Constant { kind : JType::Object, value } if value == 0 =>
             make_int_constant(0),
         Constant { kind : JType::Int, value } =>
             make_int_constant(value.into()),
-        Constant { kind : JType::Long, value } => {
-            let (_   , insn_0, _   ) = make_int_constant(0)?;
-            let (addr, insn_1, dest) = make_int_constant(value.into())?;
-            let mut v = insn_0;
-            v.extend(insn_1);
-            Ok((addr, v, dest))
-        }
+        Constant { kind : JType::Long, value } =>
+            make_constant(&[0, value.into()]),
         Constant { kind : JType::Float, value } =>
             make_int_constant(f32::from(value).to_bits() as i32),
         Constant { kind : JType::Double, value } => {
             let bits = f64::from(value).to_bits() as i64;
-            let (_   , insn_0, _   ) = make_int_constant((bits >> 32) as u32 as i32)?;
-            let (addr, insn_1, dest) = make_int_constant(bits as u32 as i32)?;
-            let mut v = insn_0;
-            v.extend(insn_1);
-            Ok((addr, v, dest))
+            make_constant(&[ (bits >> 32) as u32 as i32, bits as u32 as i32 ])
         },
         Constant { .. } =>
             Err("encountered impossible Constant configuration".into()),
