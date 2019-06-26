@@ -319,8 +319,8 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         Constant { kind : JType::Long  , value } => make_constant(&[ 0, value.into() ]),
         Constant { kind : JType::Float , value } => make_constant(&[ f32::from(value).to_bits() as i32 ]),
         Constant { kind : JType::Double, value } => {
-            let bits = f64::from(value).to_bits() as i64;
-            make_constant(&[ (bits >> 32) as u32 as i32, bits as u32 as i32 ])
+            let bits = f64::from(value).to_bits();
+            make_constant(&[ (bits >> 32) as i32, bits as i32 ])
         },
         Constant { .. } =>
             Err("encountered impossible Constant configuration".into()),
