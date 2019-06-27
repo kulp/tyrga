@@ -1092,10 +1092,6 @@ fn test_count_returns() -> GeneralResult<()> {
 }
 
 pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResult<Method> {
-    use tenyr::*;
-    use tenyr::MemoryOpType::*;
-    use tenyr::InstructionType::*;
-
     let total_locals = get_method_code(method)?.max_locals;
     let descriptor = get_string(&get_constant_getter(class), method.descriptor_index).ok_or("method descriptor missing")?;
     let num_returns = count_returns(&descriptor)?.into();
@@ -1103,11 +1099,13 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
     // store our results when we Yield.
     let max_locals = total_locals.max(num_returns);
 
-    let sm = stack::Manager::new(max_locals, STACK_PTR, STACK_REGS.to_owned());
-    let sm = &sm;
+    let sm = &stack::Manager::new(max_locals, STACK_PTR, STACK_REGS.to_owned());
 
     let prologue = {
         let insns = {
+            use tenyr::*;
+            use tenyr::MemoryOpType::*;
+            use tenyr::InstructionType::*;
 
             let max_locals = i32::from(max_locals);
             let net = max_locals - i32::from(count_params(&descriptor)?);
@@ -1115,12 +1113,11 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
             let z = sm.get_stack_ptr();
             let x = z;
             let kind = Type3((-(net + i32::from(SAVE_SLOTS))).try_into()?);
-            let bottom = sm.get_regs()[0];
             vec![
                 // update stack pointer
                 Instruction { dd : NoLoad, kind, z, x },
                 // save return address in save-slot, one past the maximum number of locals
-                store_local(sm, bottom, max_locals),
+                store_local(sm, sm.get_regs()[0], max_locals),
             ]
         };
         let label = make_label(class, method, "prologue")?;
