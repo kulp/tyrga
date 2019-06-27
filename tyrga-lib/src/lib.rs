@@ -9,7 +9,6 @@ mod stack;
 #[macro_use] mod tenyr;
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
-use std::convert::TryInto;
 use std::error::Error;
 use std::fmt;
 use std::ops::Range;
@@ -1103,19 +1102,12 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
 
     let prologue = {
         let insns = {
-            use tenyr::*;
-            use tenyr::MemoryOpType::*;
-            use tenyr::InstructionType::*;
-
             let max_locals = i32::from(max_locals);
-            let net = max_locals - i32::from(count_params(&descriptor)?);
-
-            let z = sm.get_stack_ptr();
-            let x = z;
-            let kind = Type3((-(net + i32::from(SAVE_SLOTS))).try_into()?);
+            let sp = sm.get_stack_ptr();
+            let off = max_locals - i32::from(count_params(&descriptor)?) + i32::from(SAVE_SLOTS);
             vec![
                 // update stack pointer
-                Instruction { dd : NoLoad, kind, z, x },
+                tenyr_insn!( sp <- sp - (off) )?,
                 // save return address in save-slot, one past the maximum number of locals
                 store_local(sm, sm.get_regs()[0], max_locals),
             ]
