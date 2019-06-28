@@ -1099,11 +1099,11 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
     let max_locals = total_locals.max(num_returns);
 
     let sm = &stack::Manager::new(max_locals, STACK_PTR, STACK_REGS.to_owned());
+    let sp = sm.get_stack_ptr();
+    let max_locals = i32::from(max_locals);
 
     let prologue = {
         let insns = {
-            let max_locals = i32::from(max_locals);
-            let sp = sm.get_stack_ptr();
             let off = max_locals - i32::from(count_params(&descriptor)?) + i32::from(SAVE_SLOTS);
             vec![
                 // update stack pointer
@@ -1121,8 +1121,7 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
             use Register::P;
 
             let off = i32::from(stack::SAVE_SLOTS) + i32::from(total_locals) - i32::from(num_returns);
-            let down = i32::from(num_returns) - i32::from(max_locals);
-            let sp = sm.get_stack_ptr();
+            let down = i32::from(num_returns) - max_locals;
             tenyr_insn_list!(
                 sp <-  sp + (off)   ;
                 P  <- [sp + (down)] ;
