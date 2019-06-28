@@ -1103,31 +1103,33 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
     let max_locals = i32::from(max_locals);
 
     let prologue = {
+        let name = "prologue";
+        let off = -(max_locals - i32::from(count_params(&descriptor)?) + i32::from(SAVE_SLOTS));
+        let down = sm.get_frame_offset(max_locals);
+        let rp = sm.get_regs()[0];
         let insns = {
-            let off = max_locals - i32::from(count_params(&descriptor)?) + i32::from(SAVE_SLOTS);
-            vec![
-                // update stack pointer
-                tenyr_insn!( sp <- sp - (off) )?,
-                // save return address in save-slot, one past the maximum number of locals
-                store_local(sm, sm.get_regs()[0], max_locals),
-            ]
+            // save return address in save-slot, one past the maximum number of locals
+            tenyr_insn_list!(
+                sp <-  sp + (off)   ;
+                rp -> [sp + (down)] ;
+            ).collect()
         };
-        let label = make_label(class, method, "prologue")?;
+        let label = make_label(class, method, name)?;
         tenyr::BasicBlock { label, insns }
     };
 
     let epilogue = {
+        let name = "epilogue";
+        let off = i32::from(stack::SAVE_SLOTS) + i32::from(total_locals) - i32::from(num_returns);
+        let down = i32::from(num_returns) - max_locals;
+        let rp = Register::P;
         let insns = {
-            use Register::P;
-
-            let off = i32::from(stack::SAVE_SLOTS) + i32::from(total_locals) - i32::from(num_returns);
-            let down = i32::from(num_returns) - max_locals;
             tenyr_insn_list!(
                 sp <-  sp + (off)   ;
-                P  <- [sp + (down)] ;
+                rp <- [sp + (down)] ;
             ).collect()
         };
-        let label = make_label(class, method, "epilogue")?;
+        let label = make_label(class, method, name)?;
         tenyr::BasicBlock { label, insns }
     };
 
