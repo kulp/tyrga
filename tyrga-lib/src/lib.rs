@@ -293,7 +293,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         Ok(result) as GeneralResult<String>
     };
     let make_builtin_name = move |proc : &str, descriptor : &str| {
-        mangling::mangle(join_name_parts("tyrga/Builtin", proc, descriptor).bytes())
+        mangling::mangle([ "tyrga/Builtin", proc, descriptor ].join(":").bytes())
     };
     let make_arithmetic_name = |kind, op| {
         let descriptor = make_arithmetic_descriptor(kind, op)?;
@@ -830,10 +830,6 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
     Ok((ranges, ops))
 }
 
-fn join_name_parts(class : &str, name : &str, desc : &str) -> String {
-    [ class, name, desc ].join(":")
-}
-
 type MethodNameParts = (String, String, String);
 
 fn get_method_parts(get_constant : &ConstantGetter, pool_index : u16) -> GeneralResult<MethodNameParts> {
@@ -858,7 +854,7 @@ fn get_method_parts(get_constant : &ConstantGetter, pool_index : u16) -> General
 
 fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> GeneralResult<String> {
     let parts = get_method_parts(get_constant, pool_index)?;
-    let joined = join_name_parts(&parts.0, &parts.1, &parts.2);
+    let joined = [ parts.0, parts.1, parts.2 ].join(":");
     mangling::mangle(joined.bytes())
 }
 
@@ -869,11 +865,11 @@ fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> GeneralR
     let get_string = |n| get_string(&get_constant, n);
 
     let cl = match get_constant(class.this_class) { Class(c) => Ok(c), _ => Err("not a class") }?;
-    let name = join_name_parts(
+    let name = [
         get_string(cl.name_index).ok_or("bad class name")?.as_ref(),
         get_string(method.name_index).ok_or("bad method name")?.as_ref(),
         get_string(method.descriptor_index).ok_or("bad method descriptor")?.as_ref()
-    );
+    ].join(":");
     Ok(name)
 }
 
