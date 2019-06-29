@@ -597,7 +597,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         // TODO fully handle Special (this is dumb partial handling)
         Invocation { kind : InvokeKind::Special, index } |
             Invocation { kind : InvokeKind::Static, index } =>
-            make_call(sm, &make_callable_name(get_constant, index)?, &get_method_parts(get_constant, index)?.2),
+            make_call(sm, &make_callable_name(get_constant, index)?, &get_method_parts(get_constant, index)?[2]),
         StackOp { op : StackOperation::Pop, size } => {
             let v = sm.release(size as u16);
             Ok((*addr, v, default_dest))
@@ -830,7 +830,7 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
     Ok((ranges, ops))
 }
 
-type MethodNameParts = (String, String, String);
+type MethodNameParts = [String ; 3];
 
 fn get_method_parts(get_constant : &ConstantGetter, pool_index : u16) -> GeneralResult<MethodNameParts> {
     use classfile_parser::constant_info::ConstantInfo::*;
@@ -840,11 +840,11 @@ fn get_method_parts(get_constant : &ConstantGetter, pool_index : u16) -> General
     if let MethodRef(mr) = get_constant(pool_index) {
         if let Class(cl) = get_constant(mr.class_index) {
             if let NameAndType(nt) = get_constant(mr.name_and_type_index) {
-                return Ok((
+                return Ok([
                         get_string(cl.name_index).ok_or("bad class name")?,
                         get_string(nt.name_index).ok_or("bad method name")?,
                         get_string(nt.descriptor_index).ok_or("bad method descriptor")?,
-                    ));
+                    ]);
             }
         }
     }
@@ -854,7 +854,7 @@ fn get_method_parts(get_constant : &ConstantGetter, pool_index : u16) -> General
 
 fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> GeneralResult<String> {
     let parts = get_method_parts(get_constant, pool_index)?;
-    let joined = [ parts.0, parts.1, parts.2 ].join(":");
+    let joined = parts.join(":");
     mangling::mangle(joined.bytes())
 }
 
