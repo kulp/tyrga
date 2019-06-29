@@ -831,7 +831,7 @@ fn get_ranges_for_method(class : &ClassFile, method : &MethodInfo)
 }
 
 fn join_name_parts(class : &str, name : &str, desc : &str) -> String {
-    vec![ class, name, desc ].join(":")
+    [ class, name, desc ].join(":")
 }
 
 type MethodNameParts = (String, String, String);
