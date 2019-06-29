@@ -866,9 +866,9 @@ fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> GeneralR
 
     let cl = match get_constant(class.this_class) { Class(c) => Ok(c), _ => Err("not a class") }?;
     let name = [
-        get_string(cl.name_index).ok_or("bad class name")?.as_ref(),
-        get_string(method.name_index).ok_or("bad method name")?.as_ref(),
-        get_string(method.descriptor_index).ok_or("bad method descriptor")?.as_ref()
+        get_string(cl.name_index).ok_or("bad class name")?,
+        get_string(method.name_index).ok_or("bad method name")?,
+        get_string(method.descriptor_index).ok_or("bad method descriptor")?,
     ].join(":");
     Ok(name)
 }
