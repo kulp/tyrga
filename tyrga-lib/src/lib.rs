@@ -858,24 +858,20 @@ fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> Gener
     mangling::mangle(joined.bytes())
 }
 
-fn make_unique_method_name(class : &ClassFile, method : &MethodInfo) -> GeneralResult<String> {
-    use classfile_parser::constant_info::ConstantInfo::*;
-
-    let get_constant = get_constant_getter(class);
-    let get_string = |n| get_string(&get_constant, n);
-
-    let cl = match get_constant(class.this_class) { Class(c) => Ok(c), _ => Err("not a class") }?;
-    let name = [
-        get_string(cl.name_index).ok_or("bad class name")?,
-        get_string(method.name_index).ok_or("bad method name")?,
-        get_string(method.descriptor_index).ok_or("bad method descriptor")?,
-    ].join(":");
-    Ok(name)
-}
-
 fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> GeneralResult<String> {
-    let name = make_unique_method_name(class, method)?;
-    mangling::mangle(name.bytes())
+    let get_constant = get_constant_getter(class);
+
+    match get_constant(class.this_class) {
+        classfile_parser::constant_info::ConstantInfo::Class(cl) => {
+            let get_string = |&n|
+                Ok(get_string(&get_constant, n).ok_or("no such string in constant pool")?);
+
+            let arr = [ cl.name_index, method.name_index, method.descriptor_index ];
+            let got : GeneralResult<Vec<_>> = arr.iter().map(get_string).collect();
+            mangling::mangle(got?.join(":").bytes())
+        },
+        _ => Err("not a class".into()),
+    }
 }
 
 fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> GeneralResult<String> {
