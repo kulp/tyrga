@@ -971,8 +971,9 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &stack:
 
 #[cfg(test)]
 fn test_stack_map_table(stem : &str) -> GeneralResult<()> {
+    use classfile_parser::method_info::MethodAccessFlags;
     let class = parse_class(stem)?;
-    for method in &class.methods {
+    for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let sm = stack::Manager::new(5, STACK_PTR, STACK_REGS.to_owned());
         let bbs = make_blocks_for_method(&class, method, &sm)?;
         for bb in &bbs {

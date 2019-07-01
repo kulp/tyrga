@@ -4,6 +4,7 @@ use std::path::Path;
 type TerminatingResult = std::result::Result<(), Box<dyn std::error::Error>>;
 
 fn translate_file(input_filename : &Path, output_filename : &Path) -> TerminatingResult {
+    use classfile_parser::method_info::MethodAccessFlags;
     use std::io::Write;
 
     let stem = Path::new(input_filename).with_extension("");
@@ -11,7 +12,7 @@ fn translate_file(input_filename : &Path, output_filename : &Path) -> Terminatin
     let class = classfile_parser::parse_class(&stem)?;
 
     let mut outfile = File::create(output_filename)?;
-    for method in &class.methods {
+    for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let mm = tyrga::translate_method(&class, method)?;
         writeln!(outfile, "{}", mm)?;
     }
