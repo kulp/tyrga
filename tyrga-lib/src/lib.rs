@@ -521,11 +521,8 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             };
             insns.extend(expand_immediate_load(sm, insn?, low)?);
 
-            let make_pairs = |n| {
-                let result : GeneralResult<(_,_)> =
-                    Ok((make_jump((n + here) as u16)?, Destination::Address((n + here) as usize)));
-                result
-            };
+            let make_pairs = |n|
+                Ok((make_jump((n + here) as u16)?, Destination::Address((n + here) as usize))) as GeneralResult<_>;
             let (i, d) : (Vec<_>, Vec<_>) =
                 offsets
                     .into_iter()
