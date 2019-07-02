@@ -250,10 +250,8 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         });
 
         // adjust stack for returned values
-        let takes = count_params(descriptor)?;
-        let rets = count_returns(descriptor)?;
-        sm.release_frozen(takes.into());
-        sm.reserve_frozen(rets.into());
+        sm.release_frozen(count_params(descriptor)?.into());
+        sm.reserve_frozen(count_returns(descriptor)?.into());
         insns.extend(sm.thaw());
         Ok((*addr, insns, default_dest.clone()))
     };
