@@ -30,6 +30,12 @@ pub const NOOP_TYPE0 : Instruction = Instruction {
     x : Register::A,
     dd : MemoryOpType::NoLoad,
 };
+pub const NOOP_TYPE3 : Instruction = Instruction {
+    kind : InstructionType::Type3(Immediate20::ZERO),
+    z : Register::A,
+    x : Register::A,
+    dd : MemoryOpType::NoLoad,
+};
 
 // Some tenyr ops are more than one token, so require special treatment
 macro_rules! tenyr_get_op {
