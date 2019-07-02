@@ -580,7 +580,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             v.push(insn);
             Ok((*addr, v, default_dest))
         },
-        Noop => Ok((*addr, vec![ make_mov(Register::A, Register::A) ], default_dest)),
+        Noop => Ok((*addr, vec![ tenyr::NOOP_TYPE0 ], default_dest)),
         Length => {
             // TODO document layout of arrays
             // This implementation assumes a reference to an array points to its first element, and
