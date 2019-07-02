@@ -221,7 +221,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             }
         };
 
-    let make_mov  = |to, from| Instruction { dd : NoLoad, kind : Type3(0_u8.into()), z : to, x : from };
+    let make_mov  = |to, from| Instruction { z : to, x : from, ..tenyr::NOOP_TYPE3 };
     let make_load = |to, from| Instruction { dd : LoadRight , ..make_mov(to, from) };
 
     let make_jump = |target| {
