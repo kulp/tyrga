@@ -233,6 +233,8 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
     };
 
     let make_call = |sm : &mut stack::Manager, target : &str, descriptor| {
+        use Register::P;
+
         let mut insns = Vec::new();
         insns.extend(sm.freeze());
 
@@ -244,10 +246,8 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         });
 
         let far = format!("@+{}", target);
-        insns.push(Instruction {
-            kind : Type3(tenyr::Immediate::Expr(exprtree::Atom::Variable(far))),
-            ..make_mov(tenyr::Register::P, tenyr::Register::P)
-        });
+        let off : tenyr::Immediate20 = tenyr::Immediate::Expr(exprtree::Atom::Variable(far));
+        insns.push( tenyr_insn!( P <- P + (off) )? );
 
         // adjust stack for returned values
         sm.release_frozen(count_params(descriptor)?.into());
