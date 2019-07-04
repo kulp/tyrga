@@ -507,7 +507,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
 
             let (lo_addr, lo_insns, lo_dests) =
                 make_int_branch(sm, *addr, false, far, target_namer, &mut maker(&Type1, low))?;
-            let (_hi_addr, hi_insns, hi_dests) =
+            let (      _, hi_insns, hi_dests) =
                 make_int_branch(sm, *addr, false, far, target_namer, &mut maker(&Type2, high))?;
 
             let addr = lo_addr;
