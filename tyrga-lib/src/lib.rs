@@ -42,7 +42,7 @@ fn expand_immediate_load(sm : &mut stack::Manager, insn : Instruction, imm : i32
     use SmallestImmediate::*;
 
     fn make_imm(temp_reg : Register, imm : SmallestImmediate) -> GeneralResult<Vec<Instruction>> {
-        use tenyr::Register::*;
+        use tenyr::Register::A;
 
         let result = match imm {
             Imm12(imm) => // This path is fairly useless, but it completes generality
@@ -169,7 +169,7 @@ type BranchComp = dyn FnMut(&mut stack::Manager) -> GeneralResult<(tenyr::Regist
 
 fn make_int_branch(sm : &mut stack::Manager, addr : usize, invert : bool, target : u16, target_namer : &Namer, comp : &mut BranchComp) -> MakeInsnResult {
     use tenyr::*;
-    use tenyr::Register::*;
+    use tenyr::Register::P;
 
     let o = make_target(&target, target_namer)?;
 
@@ -516,7 +516,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             insns.extend(hi_insns);
 
             let insn = {
-                use tenyr::Register::*;
+                use tenyr::Register::P;
                 tenyr_insn!( P <- top - 0 + P )
             };
             insns.extend(expand_immediate_load(sm, insn?, low)?);
@@ -679,10 +679,10 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
 #[test]
 fn test_make_instruction() -> GeneralResult<()> {
     use Instruction;
-    use Register::*;
+    use Register::A;
     use classfile_parser::constant_info::ConstantInfo::Unusable;
-    use tenyr::InstructionType::*;
-    use tenyr::MemoryOpType::*;
+    use tenyr::InstructionType::Type3;
+    use tenyr::MemoryOpType::NoLoad;
 
     let mut sm = stack::Manager::new(5, STACK_PTR, STACK_REGS.to_owned());
     let op = Operation::Constant { kind : JType::Int, value : 5 };
