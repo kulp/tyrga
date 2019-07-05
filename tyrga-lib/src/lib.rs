@@ -1126,3 +1126,14 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
     Ok(Method { name, prologue, blocks, epilogue })
 }
 
+pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
+    use classfile_parser::method_info::MethodAccessFlags;
+
+    for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
+        let mm = translate_method(&class, method)?;
+        writeln!(outfile, "{}", mm)?;
+    }
+
+    Ok(())
+}
+
