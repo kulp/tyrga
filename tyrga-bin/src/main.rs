@@ -1,21 +1,29 @@
+use classfile_parser::ClassFile;
+
 use std::fs::File;
+use std::io::Write;
 use std::path::Path;
 
 type TerminatingResult = std::result::Result<(), Box<dyn std::error::Error>>;
 
-fn translate_file(input_filename : &Path, output_filename : &Path) -> TerminatingResult {
+fn translate_class(class : ClassFile, outfile : &mut dyn Write) -> TerminatingResult {
     use classfile_parser::method_info::MethodAccessFlags;
-    use std::io::Write;
 
+    for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
+        let mm = tyrga::translate_method(&class, method)?;
+        writeln!(outfile, "{}", mm)?;
+    }
+
+    Ok(())
+}
+
+fn translate_file(input_filename : &Path, output_filename : &Path) -> TerminatingResult {
     let stem = Path::new(input_filename).with_extension("");
     let stem = stem.to_str().ok_or("expected Unicode filename")?;
     let class = classfile_parser::parse_class(&stem)?;
 
     let mut outfile = File::create(output_filename)?;
-    for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
-        let mm = tyrga::translate_method(&class, method)?;
-        writeln!(outfile, "{}", mm)?;
-    }
+    translate_class(class, &mut outfile)?;
 
     Ok(())
 }
