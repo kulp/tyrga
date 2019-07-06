@@ -1,3 +1,9 @@
+.Lmethod_table:
+    .word (@_4Tiny02_3a3c4init04_3e3a28291V - (. - 0)), 0x1
+    .word (@_4Tiny01_3a6primes03_3a285b1I01_291V - (. - 2)), 0x1
+.Lmethod_table_end:
+    .zero 0
+
 .global _4Tiny02_3a3c4init04_3e3a28291V
 _4Tiny02_3a3c4init04_3e3a28291V:
 .L_4Tiny02_3a3c4init04_3e3a28291V_01_3a10__prologue:

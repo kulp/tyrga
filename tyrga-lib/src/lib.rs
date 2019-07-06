@@ -1129,6 +1129,17 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
 pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
     use classfile_parser::method_info::MethodAccessFlags;
 
+    writeln!(outfile, ".Lmethod_table:")?;
+    for (count, method) in class.methods.iter().enumerate() {
+        let flags = u32::from(method.access_flags.bits());
+        let mangled_name = make_mangled_method_name(&class, method)?;
+
+        writeln!(outfile, "    .word (@{} - (. - {})), {:#x}", mangled_name, count * 2, flags)?;
+    }
+    writeln!(outfile, ".Lmethod_table_end:")?;
+    writeln!(outfile, "    .zero 0")?;
+    writeln!(outfile)?;
+
     for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let mm = translate_method(&class, method)?;
         writeln!(outfile, "{}", mm)?;

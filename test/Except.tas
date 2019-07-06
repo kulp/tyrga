@@ -1,3 +1,10 @@
+.Lmethod_table:
+    .word (@_6Except02_3a3c4init04_3e3a28291V - (. - 0)), 0x1
+    .word (@_6Except01_3a3sub02_3a281I01_291I - (. - 2)), 0x9
+    .word (@_6Except01_3a6except02_3a281I01_291I - (. - 4)), 0x9
+.Lmethod_table_end:
+    .zero 0
+
 .global _6Except02_3a3c4init04_3e3a28291V
 _6Except02_3a3c4init04_3e3a28291V:
 .L_6Except02_3a3c4init04_3e3a28291V_01_3a10__prologue:

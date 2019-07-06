@@ -1,3 +1,26 @@
+.Lmethod_table:
+    .word (@_7Compare02_3a3c4init04_3e3a28291V - (. - 0)), 0x1
+    .word (@_7Compare01_3a2lt02_3a282FF01_291Z - (. - 2)), 0x9
+    .word (@_7Compare01_3a2le02_3a282FF01_291Z - (. - 4)), 0x9
+    .word (@_7Compare01_3a2eq02_3a282FF01_291Z - (. - 6)), 0x9
+    .word (@_7Compare01_3a2gt02_3a282FF01_291Z - (. - 8)), 0x9
+    .word (@_7Compare01_3a2ge02_3a282FF01_291Z - (. - 10)), 0x9
+    .word (@_7Compare01_3a2ne02_3a282FF01_291Z - (. - 12)), 0x9
+    .word (@_7Compare01_3a2lt02_3a282DD01_291Z - (. - 14)), 0x9
+    .word (@_7Compare01_3a2le02_3a282DD01_291Z - (. - 16)), 0x9
+    .word (@_7Compare01_3a2eq02_3a282DD01_291Z - (. - 18)), 0x9
+    .word (@_7Compare01_3a2gt02_3a282DD01_291Z - (. - 20)), 0x9
+    .word (@_7Compare01_3a2ge02_3a282DD01_291Z - (. - 22)), 0x9
+    .word (@_7Compare01_3a2ne02_3a282DD01_291Z - (. - 24)), 0x9
+    .word (@_7Compare01_3a2lt02_3a282JJ01_291Z - (. - 26)), 0x9
+    .word (@_7Compare01_3a2le02_3a282JJ01_291Z - (. - 28)), 0x9
+    .word (@_7Compare01_3a2eq02_3a282JJ01_291Z - (. - 30)), 0x9
+    .word (@_7Compare01_3a2gt02_3a282JJ01_291Z - (. - 32)), 0x9
+    .word (@_7Compare01_3a2ge02_3a282JJ01_291Z - (. - 34)), 0x9
+    .word (@_7Compare01_3a2ne02_3a282JJ01_291Z - (. - 36)), 0x9
+.Lmethod_table_end:
+    .zero 0
+
 .global _7Compare02_3a3c4init04_3e3a28291V
 _7Compare02_3a3c4init04_3e3a28291V:
 .L_7Compare02_3a3c4init04_3e3a28291V_01_3a10__prologue:
