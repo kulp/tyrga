@@ -1129,14 +1129,15 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
 pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
     use classfile_parser::method_info::MethodAccessFlags;
 
-    writeln!(outfile, ".Lmethod_table:")?;
+    let label = ".Lmethod_table";
+    writeln!(outfile, "{}:", label)?;
     for method in &class.methods {
         let flags = u32::from(method.access_flags.bits());
         let mangled_name = make_mangled_method_name(&class, method)?;
 
-        writeln!(outfile, "    .word (@{} - .Lmethod_table), {:#x}", mangled_name, flags)?;
+        writeln!(outfile, "    .word (@{} - {}), {:#x}", mangled_name, label, flags)?;
     }
-    writeln!(outfile, ".Lmethod_table_end:")?;
+    writeln!(outfile, "{}_end:", label)?;
     writeln!(outfile, "    .zero 0")?;
     writeln!(outfile)?;
 
