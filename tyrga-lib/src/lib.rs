@@ -1131,11 +1131,13 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> 
 
     let label = ".Lmethod_table";
     writeln!(outfile, "{}:", label)?;
+    let get_len = |m| make_mangled_method_name(&class, m).unwrap_or_default().len();
+    let width = class.methods.iter().fold(0, |c, m| c.max(get_len(m)));
     for method in &class.methods {
         let flags = u32::from(method.access_flags.bits());
         let mangled_name = make_mangled_method_name(&class, method)?;
 
-        writeln!(outfile, "    .word (@{} - {}), {:#x}", mangled_name, label, flags)?;
+        writeln!(outfile, "    .word (@{:width$} - {}), {:#x}", mangled_name, label, flags, width=width)?;
     }
     writeln!(outfile, "{}_end:", label)?;
     writeln!(outfile, "    .zero 0")?;

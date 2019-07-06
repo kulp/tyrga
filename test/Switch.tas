@@ -1,6 +1,6 @@
 .Lmethod_table:
-    .word (@_6Switch02_3a3c4init04_3e3a28291V - .Lmethod_table), 0x1
-    .word (@_6Switch01_3a5table02_3a282II01_291I - .Lmethod_table), 0x9
+    .word (@_6Switch02_3a3c4init04_3e3a28291V     - .Lmethod_table), 0x1
+    .word (@_6Switch01_3a5table02_3a282II01_291I  - .Lmethod_table), 0x9
     .word (@_6Switch01_3a6lookup02_3a282II01_291I - .Lmethod_table), 0x9
 .Lmethod_table_end:
     .zero 0

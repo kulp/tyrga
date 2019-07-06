@@ -1,6 +1,6 @@
 .Lmethod_table:
-    .word (@_6Except02_3a3c4init04_3e3a28291V - .Lmethod_table), 0x1
-    .word (@_6Except01_3a3sub02_3a281I01_291I - .Lmethod_table), 0x9
+    .word (@_6Except02_3a3c4init04_3e3a28291V    - .Lmethod_table), 0x1
+    .word (@_6Except01_3a3sub02_3a281I01_291I    - .Lmethod_table), 0x9
     .word (@_6Except01_3a6except02_3a281I01_291I - .Lmethod_table), 0x9
 .Lmethod_table_end:
     .zero 0

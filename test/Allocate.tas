@@ -1,13 +1,13 @@
 .Lmethod_table:
-    .word (@_8Allocate02_3a3c4init04_3e3a28291V - .Lmethod_table), 0x1
+    .word (@_8Allocate02_3a3c4init04_3e3a28291V                  - .Lmethod_table), 0x1
     .word (@_8Allocate01_3a22array_allocate_boolean04_3a28295b1Z - .Lmethod_table), 0x9
-    .word (@_8Allocate01_3a19array_allocate_char04_3a28295b1C - .Lmethod_table), 0x9
-    .word (@_8Allocate01_3a20array_allocate_float04_3a28295b1F - .Lmethod_table), 0x9
-    .word (@_8Allocate01_3a21array_allocate_double04_3a28295b1D - .Lmethod_table), 0x9
-    .word (@_8Allocate01_3a19array_allocate_byte04_3a28295b1B - .Lmethod_table), 0x9
-    .word (@_8Allocate01_3a20array_allocate_short04_3a28295b1S - .Lmethod_table), 0x9
-    .word (@_8Allocate01_3a18array_allocate_int04_3a28295b1I - .Lmethod_table), 0x9
-    .word (@_8Allocate01_3a19array_allocate_long04_3a28295b1J - .Lmethod_table), 0x9
+    .word (@_8Allocate01_3a19array_allocate_char04_3a28295b1C    - .Lmethod_table), 0x9
+    .word (@_8Allocate01_3a20array_allocate_float04_3a28295b1F   - .Lmethod_table), 0x9
+    .word (@_8Allocate01_3a21array_allocate_double04_3a28295b1D  - .Lmethod_table), 0x9
+    .word (@_8Allocate01_3a19array_allocate_byte04_3a28295b1B    - .Lmethod_table), 0x9
+    .word (@_8Allocate01_3a20array_allocate_short04_3a28295b1S   - .Lmethod_table), 0x9
+    .word (@_8Allocate01_3a18array_allocate_int04_3a28295b1I     - .Lmethod_table), 0x9
+    .word (@_8Allocate01_3a19array_allocate_long04_3a28295b1J    - .Lmethod_table), 0x9
 .Lmethod_table_end:
     .zero 0
 
