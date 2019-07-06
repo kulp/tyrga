@@ -1137,7 +1137,7 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> 
         let flags = u32::from(method.access_flags.bits());
         let mangled_name = make_mangled_method_name(&class, method)?;
 
-        writeln!(outfile, "    .word (@{:width$} - {}), {:#06x}", mangled_name, label, flags, width=width)?;
+        writeln!(outfile, "    .word @{:width$} - {}, {:#06x}", mangled_name, label, flags, width=width)?;
     }
     writeln!(outfile, "{}_end:", label)?;
     writeln!(outfile, "    .zero 0")?;

@@ -1,7 +1,7 @@
 .Lmethod_table:
-    .word (@_8Infinite02_3a3c4init04_3e3a28291V  - .Lmethod_table), 0x0001
-    .word (@_8Infinite01_3a9tiny_loop03_3a28291V - .Lmethod_table), 0x0009
-    .word (@_8Infinite01_3a4loop03_3a28291V      - .Lmethod_table), 0x0009
+    .word @_8Infinite02_3a3c4init04_3e3a28291V  - .Lmethod_table, 0x0001
+    .word @_8Infinite01_3a9tiny_loop03_3a28291V - .Lmethod_table, 0x0009
+    .word @_8Infinite01_3a4loop03_3a28291V      - .Lmethod_table, 0x0009
 .Lmethod_table_end:
     .zero 0
 

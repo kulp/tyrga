@@ -1,23 +1,23 @@
 .Lmethod_table:
-    .word (@_7Compare02_3a3c4init04_3e3a28291V - .Lmethod_table), 0x0001
-    .word (@_7Compare01_3a2lt02_3a282FF01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2le02_3a282FF01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2eq02_3a282FF01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2gt02_3a282FF01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2ge02_3a282FF01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2ne02_3a282FF01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2lt02_3a282DD01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2le02_3a282DD01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2eq02_3a282DD01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2gt02_3a282DD01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2ge02_3a282DD01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2ne02_3a282DD01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2lt02_3a282JJ01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2le02_3a282JJ01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2eq02_3a282JJ01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2gt02_3a282JJ01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2ge02_3a282JJ01_291Z - .Lmethod_table), 0x0009
-    .word (@_7Compare01_3a2ne02_3a282JJ01_291Z - .Lmethod_table), 0x0009
+    .word @_7Compare02_3a3c4init04_3e3a28291V - .Lmethod_table, 0x0001
+    .word @_7Compare01_3a2lt02_3a282FF01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2le02_3a282FF01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2eq02_3a282FF01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2gt02_3a282FF01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2ge02_3a282FF01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2ne02_3a282FF01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2lt02_3a282DD01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2le02_3a282DD01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2eq02_3a282DD01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2gt02_3a282DD01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2ge02_3a282DD01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2ne02_3a282DD01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2lt02_3a282JJ01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2le02_3a282JJ01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2eq02_3a282JJ01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2gt02_3a282JJ01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2ge02_3a282JJ01_291Z - .Lmethod_table, 0x0009
+    .word @_7Compare01_3a2ne02_3a282JJ01_291Z - .Lmethod_table, 0x0009
 .Lmethod_table_end:
     .zero 0
 

@@ -1,6 +1,6 @@
 .Lmethod_table:
-    .word (@_4Tiny02_3a3c4init04_3e3a28291V      - .Lmethod_table), 0x0001
-    .word (@_4Tiny01_3a6primes03_3a285b1I01_291V - .Lmethod_table), 0x0001
+    .word @_4Tiny02_3a3c4init04_3e3a28291V      - .Lmethod_table, 0x0001
+    .word @_4Tiny01_3a6primes03_3a285b1I01_291V - .Lmethod_table, 0x0001
 .Lmethod_table_end:
     .zero 0
 

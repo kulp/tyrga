@@ -1,10 +1,10 @@
 .Lmethod_table:
-    .word (@_8Constant02_3a3c4init04_3e3a28291V                                        - .Lmethod_table), 0x0001
-    .word (@_8Constant01_3a12constant_int03_3a28291I                                   - .Lmethod_table), 0x0009
-    .word (@_8Constant01_3a13constant_long03_3a28291J                                  - .Lmethod_table), 0x0009
-    .word (@_8Constant01_3a14constant_float03_3a28291F                                 - .Lmethod_table), 0x0009
-    .word (@_8Constant01_3a15constant_double03_3a28291D                                - .Lmethod_table), 0x0009
-    .word (@_8Constant01_3a15constant_Object03_3a28295Ljava01_2f4lang01_2f6Object01_3b - .Lmethod_table), 0x0009
+    .word @_8Constant02_3a3c4init04_3e3a28291V                                        - .Lmethod_table, 0x0001
+    .word @_8Constant01_3a12constant_int03_3a28291I                                   - .Lmethod_table, 0x0009
+    .word @_8Constant01_3a13constant_long03_3a28291J                                  - .Lmethod_table, 0x0009
+    .word @_8Constant01_3a14constant_float03_3a28291F                                 - .Lmethod_table, 0x0009
+    .word @_8Constant01_3a15constant_double03_3a28291D                                - .Lmethod_table, 0x0009
+    .word @_8Constant01_3a15constant_Object03_3a28295Ljava01_2f4lang01_2f6Object01_3b - .Lmethod_table, 0x0009
 .Lmethod_table_end:
     .zero 0
 
