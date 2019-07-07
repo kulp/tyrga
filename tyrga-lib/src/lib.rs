@@ -1129,18 +1129,28 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
 pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
     use classfile_parser::method_info::MethodAccessFlags;
 
+    fn get_width<'a, T>(class : &ClassFile, list : T) -> usize
+        where T : IntoIterator<Item=&'a MethodInfo>
+    {
+        let get_len = |m| make_mangled_method_name(class, m).unwrap_or_default().len();
+        list.into_iter().fold(0, |c, m| c.max(get_len(m)))
+    }
+
     let label = ".Lmethod_table";
     writeln!(outfile, "{}:", label)?;
-    let get_len = |m| make_mangled_method_name(&class, m).unwrap_or_default().len();
-    let width = class.methods.iter().fold(0, |c, m| c.max(get_len(m)));
-    for method in &class.methods {
-        let flags = u32::from(method.access_flags.bits());
-        let mangled_name = make_mangled_method_name(&class, method)?;
+    {
+        let width = get_width(&class, &class.methods);
+        for method in &class.methods {
+            let flags = method.access_flags;
+            let mangled_name = make_mangled_method_name(&class, method)?;
 
-        writeln!(outfile, "    .word @{:width$} - {}, {:#06x}", mangled_name, label, flags, width=width)?;
+            writeln!(outfile, "    .word @{:width$} - {}, {:#06x}", mangled_name, label, flags.bits(), width=width)?;
+        }
+
+        writeln!(outfile, "{}_end:", label)?;
+        writeln!(outfile, "    .zero 0")?;
     }
-    writeln!(outfile, "{}_end:", label)?;
-    writeln!(outfile, "    .zero 0")?;
+
     writeln!(outfile)?;
 
     for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
