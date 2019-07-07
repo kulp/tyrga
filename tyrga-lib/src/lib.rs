@@ -1153,6 +1153,23 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> 
 
     writeln!(outfile)?;
 
+    {
+        let non_virtual = MethodAccessFlags::STATIC | MethodAccessFlags::PRIVATE;
+        let slot_suffix = mangling::mangle(":vslot".bytes())?;
+
+        let virtuals : Vec<_> = class.methods.iter().filter(|m| (m.access_flags & non_virtual).is_empty()).collect();
+        let width = get_width(&class, virtuals.clone().into_iter()); // TODO obviate clone
+
+        for (index, method) in virtuals.iter().enumerate() {
+            let mangled_name = make_mangled_method_name(&class, method)?;
+            let slot_name = format!("{}{}", mangled_name, slot_suffix);
+            writeln!(outfile, "    .global {}", slot_name)?;
+            writeln!(outfile, "    .set    {:width$}, {}", slot_name, index, width=width + slot_suffix.len())?;
+        }
+    }
+
+    writeln!(outfile)?;
+
     for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let mm = translate_method(&class, method)?;
         writeln!(outfile, "{}", mm)?;
