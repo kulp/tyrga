@@ -1162,7 +1162,7 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> 
 
         for (index, method) in virtuals.iter().enumerate() {
             let mangled_name = make_mangled_method_name(&class, method)?;
-            let slot_name = format!("{}{}", mangled_name, slot_suffix);
+            let slot_name = [ mangled_name, slot_suffix.clone() ].concat();
             writeln!(outfile, "    .global {}", slot_name)?;
             writeln!(outfile, "    .set    {:width$}, {}", slot_name, index, width=width + slot_suffix.len())?;
         }
