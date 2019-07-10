@@ -1136,9 +1136,9 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> 
         list.into_iter().fold(0, |c, m| c.max(get_len(m)))
     }
 
-    let label = ".Lmethod_table";
-    writeln!(outfile, "{}:", label)?;
-    {
+    fn write_method_table(class : &ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
+        let label = ".Lmethod_table";
+        writeln!(outfile, "{}:", label)?;
         let width = get_width(&class, &class.methods);
         for method in &class.methods {
             let flags = method.access_flags;
@@ -1149,8 +1149,10 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> 
 
         writeln!(outfile, "{}_end:", label)?;
         writeln!(outfile, "    .zero 0")?;
+        Ok(())
     }
 
+    write_method_table(&class, outfile)?;
     writeln!(outfile)?;
 
     {
