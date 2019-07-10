@@ -1152,10 +1152,7 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> 
         Ok(())
     }
 
-    write_method_table(&class, outfile)?;
-    writeln!(outfile)?;
-
-    {
+    fn write_vslot_list(class : &ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
         let non_virtual = MethodAccessFlags::STATIC | MethodAccessFlags::PRIVATE;
         let slot_suffix = mangling::mangle(":vslot".bytes())?;
 
@@ -1168,8 +1165,14 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> 
             writeln!(outfile, "    .global {}", slot_name)?;
             writeln!(outfile, "    .set    {:width$}, {}", slot_name, index, width=width + slot_suffix.len())?;
         }
+
+        Ok(())
     }
 
+    write_method_table(&class, outfile)?;
+    writeln!(outfile)?;
+
+    write_vslot_list(&class, outfile)?;
     writeln!(outfile)?;
 
     for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
