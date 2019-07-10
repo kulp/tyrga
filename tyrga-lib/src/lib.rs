@@ -16,6 +16,7 @@ use std::ops::Range;
 use classfile_parser::ClassFile;
 use classfile_parser::attribute_info::CodeAttribute;
 use classfile_parser::attribute_info::StackMapFrame;
+use classfile_parser::method_info::MethodAccessFlags;
 use classfile_parser::method_info::MethodInfo;
 
 use args::*;
@@ -966,7 +967,6 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &stack:
 
 #[cfg(test)]
 fn test_stack_map_table(stem : &str) -> GeneralResult<()> {
-    use classfile_parser::method_info::MethodAccessFlags;
     let class = parse_class(stem)?;
     for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let sm = stack::Manager::new(5, STACK_PTR, STACK_REGS.to_owned());
@@ -1126,49 +1126,47 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
     Ok(Method { name, prologue, blocks, epilogue })
 }
 
+fn get_width<'a, T>(class : &ClassFile, list : T) -> usize
+    where T : IntoIterator<Item=&'a MethodInfo>
+{
+    let get_len = |m| make_mangled_method_name(class, m).unwrap_or_default().len();
+    list.into_iter().fold(0, |c, m| c.max(get_len(m)))
+}
+
+fn write_method_table(class : &ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
+    let label = ".Lmethod_table";
+    writeln!(outfile, "{}:", label)?;
+    let width = get_width(&class, &class.methods);
+    for method in &class.methods {
+        let flags = method.access_flags;
+        let mangled_name = make_mangled_method_name(&class, method)?;
+
+        writeln!(outfile, "    .word @{:width$} - {}, {:#06x}", mangled_name, label, flags.bits(), width=width)?;
+    }
+
+    writeln!(outfile, "{}_end:", label)?;
+    writeln!(outfile, "    .zero 0")?;
+    Ok(())
+}
+
+fn write_vslot_list(class : &ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
+    let non_virtual = MethodAccessFlags::STATIC | MethodAccessFlags::PRIVATE;
+    let slot_suffix = mangling::mangle(":vslot".bytes())?;
+
+    let virtuals : Vec<_> = class.methods.iter().filter(|m| (m.access_flags & non_virtual).is_empty()).collect();
+    let width = get_width(&class, virtuals.clone().into_iter()); // TODO obviate clone
+
+    for (index, method) in virtuals.iter().enumerate() {
+        let mangled_name = make_mangled_method_name(&class, method)?;
+        let slot_name = [ mangled_name, slot_suffix.clone() ].concat();
+        writeln!(outfile, "    .global {}", slot_name)?;
+        writeln!(outfile, "    .set    {:width$}, {}", slot_name, index, width=width + slot_suffix.len())?;
+    }
+
+    Ok(())
+}
+
 pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
-    use classfile_parser::method_info::MethodAccessFlags;
-
-    fn get_width<'a, T>(class : &ClassFile, list : T) -> usize
-        where T : IntoIterator<Item=&'a MethodInfo>
-    {
-        let get_len = |m| make_mangled_method_name(class, m).unwrap_or_default().len();
-        list.into_iter().fold(0, |c, m| c.max(get_len(m)))
-    }
-
-    fn write_method_table(class : &ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
-        let label = ".Lmethod_table";
-        writeln!(outfile, "{}:", label)?;
-        let width = get_width(&class, &class.methods);
-        for method in &class.methods {
-            let flags = method.access_flags;
-            let mangled_name = make_mangled_method_name(&class, method)?;
-
-            writeln!(outfile, "    .word @{:width$} - {}, {:#06x}", mangled_name, label, flags.bits(), width=width)?;
-        }
-
-        writeln!(outfile, "{}_end:", label)?;
-        writeln!(outfile, "    .zero 0")?;
-        Ok(())
-    }
-
-    fn write_vslot_list(class : &ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
-        let non_virtual = MethodAccessFlags::STATIC | MethodAccessFlags::PRIVATE;
-        let slot_suffix = mangling::mangle(":vslot".bytes())?;
-
-        let virtuals : Vec<_> = class.methods.iter().filter(|m| (m.access_flags & non_virtual).is_empty()).collect();
-        let width = get_width(&class, virtuals.clone().into_iter()); // TODO obviate clone
-
-        for (index, method) in virtuals.iter().enumerate() {
-            let mangled_name = make_mangled_method_name(&class, method)?;
-            let slot_name = [ mangled_name, slot_suffix.clone() ].concat();
-            writeln!(outfile, "    .global {}", slot_name)?;
-            writeln!(outfile, "    .set    {:width$}, {}", slot_name, index, width=width + slot_suffix.len())?;
-        }
-
-        Ok(())
-    }
-
     write_method_table(&class, outfile)?;
     writeln!(outfile)?;
 
