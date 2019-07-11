@@ -864,7 +864,9 @@ fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> Gener
     mangling::mangle(joined.bytes())
 }
 
-fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> GeneralResult<String> {
+fn make_mangled_name<T>(class : &ClassFile, item : &T) -> GeneralResult<String>
+    where T : Named + Described
+{
     let get_constant = get_constant_getter(class);
 
     match get_constant(class.this_class) {
@@ -872,7 +874,7 @@ fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> General
             let get_string = |&n|
                 Ok(get_string(&get_constant, n).ok_or("no such string in constant pool")?);
 
-            let arr = [ cl.name_index, method.name_index, method.descriptor_index ];
+            let arr = [ cl.name_index, item.name_index(), item.descriptor_index() ];
             let got : GeneralResult<Vec<_>> = arr.iter().map(get_string).collect();
             mangling::mangle(got?.join(":").bytes())
         },
@@ -882,7 +884,7 @@ fn make_mangled_method_name(class : &ClassFile, method : &MethodInfo) -> General
 
 fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> GeneralResult<String> {
     Ok(format!(".L{}{}",
-        make_mangled_method_name(class, method)?,
+        make_mangled_name(class, method)?,
         mangling::mangle(format!(":__{}", suffix).bytes())?))
 }
 
@@ -1132,14 +1134,14 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
     };
 
     let blocks = make_blocks_for_method(class, method, sm)?;
-    let name = make_mangled_method_name(class, method)?;
+    let name = make_mangled_name(class, method)?;
     Ok(Method { name, prologue, blocks, epilogue })
 }
 
 fn get_width<'a, T>(class : &ClassFile, list : T) -> usize
     where T : IntoIterator<Item=&'a MethodInfo>
 {
-    let get_len = |m| make_mangled_method_name(class, m).unwrap_or_default().len();
+    let get_len = |m| make_mangled_name(class, m).unwrap_or_default().len();
     list.into_iter().fold(0, |c, m| c.max(get_len(m)))
 }
 
@@ -1149,7 +1151,7 @@ fn write_method_table(class : &ClassFile, outfile : &mut dyn std::io::Write) -> 
     let width = get_width(&class, &class.methods);
     for method in &class.methods {
         let flags = method.access_flags;
-        let mangled_name = make_mangled_method_name(&class, method)?;
+        let mangled_name = make_mangled_name(&class, method)?;
 
         writeln!(outfile, "    .word @{:width$} - {}, {:#06x}", mangled_name, label, flags.bits(), width=width)?;
     }
@@ -1166,8 +1168,8 @@ fn write_vslot_list(class : &ClassFile, outfile : &mut dyn std::io::Write) -> Ge
     let virtuals : Vec<_> = class.methods.iter().filter(|m| (m.access_flags & non_virtual).is_empty()).collect();
     let width = get_width(&class, virtuals.clone().into_iter()); // TODO obviate clone
 
-    for (index, method) in virtuals.iter().enumerate() {
-        let mangled_name = make_mangled_method_name(&class, method)?;
+    for (index, &method) in virtuals.iter().enumerate() {
+        let mangled_name = make_mangled_name(&class, method)?;
         let slot_name = [ mangled_name, slot_suffix.clone() ].concat();
         writeln!(outfile, "    .global {}", slot_name)?;
         writeln!(outfile, "    .set    {:width$}, {}", slot_name, index, width=width + slot_suffix.len())?;
