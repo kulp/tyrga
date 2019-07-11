@@ -1138,8 +1138,9 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
     Ok(Method { name, prologue, blocks, epilogue })
 }
 
-fn get_width<'a, T>(class : &ClassFile, list : T) -> usize
-    where T : IntoIterator<Item=&'a MethodInfo>
+fn get_width<'a, T, U>(class : &ClassFile, list : T) -> usize
+    where T : IntoIterator<Item=&'a U>,
+          U : Named + Described + 'a
 {
     let get_len = |m| make_mangled_name(class, m).unwrap_or_default().len();
     list.into_iter().fold(0, |c, m| c.max(get_len(m)))
