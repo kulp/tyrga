@@ -16,6 +16,7 @@ use std::ops::Range;
 use classfile_parser::ClassFile;
 use classfile_parser::attribute_info::CodeAttribute;
 use classfile_parser::attribute_info::StackMapFrame;
+use classfile_parser::field_info::FieldInfo;
 use classfile_parser::method_info::MethodAccessFlags;
 use classfile_parser::method_info::MethodInfo;
 
@@ -33,6 +34,15 @@ enum Destination {
     Successor,
     Address(usize),
 }
+
+trait Named     { fn name_index(&self)       -> u16; }
+trait Described { fn descriptor_index(&self) -> u16; }
+
+impl Named     for MethodInfo { fn name_index(&self)       -> u16 { self.name_index } }
+impl Described for MethodInfo { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
+
+impl Named     for FieldInfo  { fn name_index(&self)       -> u16 { self.name_index } }
+impl Described for FieldInfo  { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
 
 fn expand_immediate_load(sm : &mut stack::Manager, insn : Instruction, imm : i32)
     -> GeneralResult<Vec<Instruction>>
