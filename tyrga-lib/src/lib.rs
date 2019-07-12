@@ -1187,10 +1187,39 @@ fn write_vslot_list(class : &ClassFile, outfile : &mut dyn std::io::Write) -> Ge
     Ok(())
 }
 
+fn write_field_list(class : &ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
+    let suffix = mangling::mangle(":field_offset".bytes())?;
+
+    let fields = &class.fields;
+    let width = get_width(&class, fields);
+    let get_constant = get_constant_getter(class);
+    let offsets = fields.iter().scan(0, |off, f| {
+        let old = *off;
+        let s = get_string(&get_constant, f.descriptor_index).expect("missing descriptor");
+        let desc = s.chars().nth(0).expect("empty descriptor");
+        *off += args::field_size(desc).expect("getting field size failed");
+        Some(old)
+    });
+
+    for (field, offset) in fields.iter().zip(offsets) {
+        let mangled_name = make_mangled_name(&class, field)?;
+        let slot_name = [ mangled_name, suffix.clone() ].concat();
+        writeln!(outfile, "    .global {}", slot_name)?;
+        writeln!(outfile, "    .set    {:width$}, {}", slot_name, offset, width=width + suffix.len())?;
+    }
+    if ! fields.is_empty() {
+        writeln!(outfile)?;
+    }
+
+    Ok(())
+}
+
 pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
     write_method_table(&class, outfile)?;
 
     write_vslot_list(&class, outfile)?;
+
+    write_field_list(&class, outfile)?;
 
     for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let mm = translate_method(&class, method)?;
