@@ -1163,6 +1163,7 @@ fn write_method_table(class : &ClassFile, outfile : &mut dyn std::io::Write) -> 
 
     writeln!(outfile, "{}_end:", label)?;
     writeln!(outfile, "    .zero 0")?;
+    writeln!(outfile)?;
     Ok(())
 }
 
@@ -1179,16 +1180,17 @@ fn write_vslot_list(class : &ClassFile, outfile : &mut dyn std::io::Write) -> Ge
         writeln!(outfile, "    .global {}", slot_name)?;
         writeln!(outfile, "    .set    {:width$}, {}", slot_name, index, width=width + slot_suffix.len())?;
     }
+    if ! virtuals.is_empty() {
+        writeln!(outfile)?;
+    }
 
     Ok(())
 }
 
 pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
     write_method_table(&class, outfile)?;
-    writeln!(outfile)?;
 
     write_vslot_list(&class, outfile)?;
-    writeln!(outfile)?;
 
     for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let mm = translate_method(&class, method)?;
