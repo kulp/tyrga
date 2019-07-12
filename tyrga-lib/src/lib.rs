@@ -1032,6 +1032,15 @@ impl fmt::Display for Method {
 mod args {
     use super::GeneralResult;
 
+    pub fn field_size(ch : char) -> GeneralResult<u8> {
+        match ch {
+            'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'L' | '[' => Ok(1),
+            'D' | 'J' => Ok(2),
+            'V' => Ok(0),
+            _ => Err(format!("unexpected character {}", ch).into()),
+        }
+    }
+
     fn count_internal(s : &str) -> GeneralResult<u8> {
         fn eat(s : &str) -> GeneralResult<usize> {
             let ch = s.chars().nth(0).ok_or("string ended too soon")?;
@@ -1045,12 +1054,7 @@ mod args {
 
         if s.is_empty() { return Ok(0); }
         let ch = s.chars().nth(0).ok_or("impossible empty string")?; // cannot fail since s is not empty
-        let mine = match ch {
-            'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'L' | '[' => Ok(1),
-            'D' | 'J' => Ok(2),
-            'V' => Ok(0),
-            _ => Err(format!("unexpected character {}", ch)),
-        };
+        let mine = field_size(ch);
         Ok(mine? + count_internal(&s[eat(s)?..])?)
     }
 
