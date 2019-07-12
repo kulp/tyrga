@@ -1226,7 +1226,9 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> 
 
     write_vslot_list(&class, outfile)?;
 
-    write_field_list(&class, outfile, "field_offset", &|f| ! f.access_flags.contains(FieldAccessFlags::STATIC))?;
+    let is_static = |f : &&FieldInfo| f.access_flags.contains(FieldAccessFlags::STATIC);
+    write_field_list(&class, outfile, "field_offset",  &|f| ! is_static(f))?;
+    write_field_list(&class, outfile, "static_offset", &is_static)?;
 
     for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let mm = translate_method(&class, method)?;
