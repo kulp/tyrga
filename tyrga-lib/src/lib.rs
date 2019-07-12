@@ -16,6 +16,7 @@ use std::ops::Range;
 use classfile_parser::ClassFile;
 use classfile_parser::attribute_info::CodeAttribute;
 use classfile_parser::attribute_info::StackMapFrame;
+use classfile_parser::field_info::FieldAccessFlags;
 use classfile_parser::field_info::FieldInfo;
 use classfile_parser::method_info::MethodAccessFlags;
 use classfile_parser::method_info::MethodInfo;
@@ -1187,13 +1188,19 @@ fn write_vslot_list(class : &ClassFile, outfile : &mut dyn std::io::Write) -> Ge
     Ok(())
 }
 
-fn write_field_list(class : &ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
-    let suffix = mangling::mangle(":field_offset".bytes())?;
+fn write_field_list(
+        class : &ClassFile,
+        outfile : &mut dyn std::io::Write,
+        suff : &str,
+        selector : &dyn Fn(&&FieldInfo) -> bool,
+    ) -> GeneralResult<()>
+{
+    let suffix = mangling::mangle(format!(":{}", suff).bytes())?;
 
-    let fields = &class.fields;
-    let width = get_width(&class, fields);
+    let fields : Vec<_> = class.fields.iter().filter(selector).collect();
+    let width = get_width(&class, fields.clone().into_iter());
     let get_constant = get_constant_getter(class);
-    let offsets = fields.iter().scan(0, |off, f| {
+    let offsets = fields.iter().scan(0, |off, &f| {
         let old = *off;
         let s = get_string(&get_constant, f.descriptor_index).expect("missing descriptor");
         let desc = s.chars().nth(0).expect("empty descriptor");
@@ -1201,7 +1208,7 @@ fn write_field_list(class : &ClassFile, outfile : &mut dyn std::io::Write) -> Ge
         Some(old)
     });
 
-    for (field, offset) in fields.iter().zip(offsets) {
+    for (&field, offset) in fields.iter().zip(offsets) {
         let mangled_name = make_mangled_name(&class, field)?;
         let slot_name = [ mangled_name, suffix.clone() ].concat();
         writeln!(outfile, "    .global {}", slot_name)?;
@@ -1219,7 +1226,7 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> 
 
     write_vslot_list(&class, outfile)?;
 
-    write_field_list(&class, outfile)?;
+    write_field_list(&class, outfile, "field_offset", &|f| ! f.access_flags.contains(FieldAccessFlags::STATIC))?;
 
     for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let mm = translate_method(&class, method)?;
