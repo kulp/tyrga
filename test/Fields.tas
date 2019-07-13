@@ -15,14 +15,14 @@
     .global _6Fields01_3a14diminutiveness01_3a1S_01_3a12field_offset
     .set    _6Fields01_3a14diminutiveness01_3a1S_01_3a12field_offset, 4
 
-    .global _6Fields01_3a17static_numerosity01_3a1I_01_3a13static_offset
-    .set    _6Fields01_3a17static_numerosity01_3a1I_01_3a13static_offset    , 0
-    .global _6Fields01_3a13static_length01_3a1J_01_3a13static_offset
-    .set    _6Fields01_3a13static_length01_3a1J_01_3a13static_offset        , 1
-    .global _6Fields01_3a17static_truthiness01_3a1Z_01_3a13static_offset
-    .set    _6Fields01_3a17static_truthiness01_3a1Z_01_3a13static_offset    , 3
-    .global _6Fields01_3a21static_diminutiveness01_3a1S_01_3a13static_offset
-    .set    _6Fields01_3a21static_diminutiveness01_3a1S_01_3a13static_offset, 4
+    .global _6Fields01_3a17static_numerosity01_3a1I_01_3a6static
+    _6Fields01_3a17static_numerosity01_3a1I_01_3a6static    : .zero 1
+    .global _6Fields01_3a13static_length01_3a1J_01_3a6static
+    _6Fields01_3a13static_length01_3a1J_01_3a6static        : .zero 2
+    .global _6Fields01_3a17static_truthiness01_3a1Z_01_3a6static
+    _6Fields01_3a17static_truthiness01_3a1Z_01_3a6static    : .zero 1
+    .global _6Fields01_3a21static_diminutiveness01_3a1S_01_3a6static
+    _6Fields01_3a21static_diminutiveness01_3a1S_01_3a6static: .zero 1
 
 .global _6Fields02_3a3c4init04_3e3a28291V
 _6Fields02_3a3c4init04_3e3a28291V:

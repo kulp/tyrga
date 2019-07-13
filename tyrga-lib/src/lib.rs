@@ -1194,7 +1194,7 @@ fn write_field_list(
         outfile : &mut dyn Write,
         suff : &str,
         selector : &dyn Fn(&&FieldInfo) -> bool,
-        generator : &dyn Fn(&mut dyn Write, &str, usize, usize) -> GeneralResult<()>,
+        generator : &dyn Fn(&mut dyn Write, &str, usize, usize, usize) -> GeneralResult<()>,
     ) -> GeneralResult<()>
 {
     let suffix = mangling::mangle(format!(":{}", suff).bytes())?;
@@ -1216,7 +1216,8 @@ fn write_field_list(
     for (&field, offset) in fields.iter().zip(offsets) {
         let mangled_name = make_mangled_name(&class, field)?;
         let slot_name = [ mangled_name, suffix.clone() ].concat();
-        generator(outfile, &slot_name, offset.into(), width + suffix.len())?;
+        let size = get_size(field.descriptor_index);
+        generator(outfile, &slot_name, offset.into(), size.into(), width + suffix.len())?;
     }
     if ! fields.is_empty() {
         writeln!(outfile)?;
@@ -1231,16 +1232,18 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn Write) -> GeneralRe
     write_vslot_list(&class, outfile)?;
 
     let is_static = |f : &&FieldInfo| f.access_flags.contains(FieldAccessFlags::STATIC);
-    let print_field = |outfile : &mut dyn Write, slot_name : &str, offset, width| {
+    let print_field = |outfile : &mut dyn Write, slot_name : &str, offset, _size, width| {
         writeln!(outfile, "    .global {}", slot_name)?;
-        writeln!(outfile, "    .set    {:width$}, {}", slot_name, offset, width=width).map_err(Into::into)
+        writeln!(outfile, "    .set    {:width$}, {}", slot_name, offset, width=width)?;
+        Ok(())
     };
-    write_field_list(&class, outfile, "field_offset",  &|f| ! is_static(f), &print_field)?;
-    let print_static = |outfile : &mut dyn Write, slot_name : &str, offset, width| {
+    write_field_list(&class, outfile, "field_offset", &|f| ! is_static(f), &print_field)?;
+    let print_static = |outfile : &mut dyn Write, slot_name : &str, _offset, size, width| {
         writeln!(outfile, "    .global {}", slot_name)?;
-        writeln!(outfile, "    .set    {:width$}, {}", slot_name, offset, width=width).map_err(Into::into)
+        writeln!(outfile, "    {:width$}: .zero {}", slot_name, size, width=width)?;
+        Ok(())
     };
-    write_field_list(&class, outfile, "static_offset", &is_static, &print_static)?;
+    write_field_list(&class, outfile, "static", &is_static, &print_static)?;
 
     for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let mm = translate_method(&class, method)?;
