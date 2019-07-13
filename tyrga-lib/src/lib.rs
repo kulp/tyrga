@@ -11,6 +11,7 @@ mod stack;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::error::Error;
 use std::fmt;
+use std::io::Write;
 use std::ops::Range;
 
 use classfile_parser::ClassFile;
@@ -1151,7 +1152,7 @@ fn get_width<'a, T, U>(class : &ClassFile, list : T) -> usize
     list.into_iter().fold(0, |c, m| c.max(get_len(m)))
 }
 
-fn write_method_table(class : &ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
+fn write_method_table(class : &ClassFile, outfile : &mut dyn Write) -> GeneralResult<()> {
     let label = ".Lmethod_table";
     writeln!(outfile, "{}:", label)?;
     let width = get_width(&class, &class.methods);
@@ -1168,7 +1169,7 @@ fn write_method_table(class : &ClassFile, outfile : &mut dyn std::io::Write) -> 
     Ok(())
 }
 
-fn write_vslot_list(class : &ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
+fn write_vslot_list(class : &ClassFile, outfile : &mut dyn Write) -> GeneralResult<()> {
     let non_virtual = MethodAccessFlags::STATIC | MethodAccessFlags::PRIVATE;
     let slot_suffix = mangling::mangle(":vslot".bytes())?;
 
@@ -1190,7 +1191,7 @@ fn write_vslot_list(class : &ClassFile, outfile : &mut dyn std::io::Write) -> Ge
 
 fn write_field_list(
         class : &ClassFile,
-        outfile : &mut dyn std::io::Write,
+        outfile : &mut dyn Write,
         suff : &str,
         selector : &dyn Fn(&&FieldInfo) -> bool,
     ) -> GeneralResult<()>
