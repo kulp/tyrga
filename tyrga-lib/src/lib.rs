@@ -1202,11 +1202,14 @@ fn write_field_list(
     let fields : Vec<_> = class.fields.iter().filter(selector).collect();
     let width = get_width(&class, fields.clone().into_iter());
     let get_constant = get_constant_getter(class);
+    let get_size = |i| {
+        let s = get_string(&get_constant, i).expect("missing descriptor");
+        let desc = s.chars().nth(0).expect("empty descriptor");
+        args::field_size(desc).expect("getting field size failed")
+    };
     let offsets = fields.iter().scan(0, |off, &f| {
         let old = *off;
-        let s = get_string(&get_constant, f.descriptor_index).expect("missing descriptor");
-        let desc = s.chars().nth(0).expect("empty descriptor");
-        *off += args::field_size(desc).expect("getting field size failed");
+        *off += get_size(f.descriptor_index);
         Some(old)
     });
 
