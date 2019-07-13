@@ -11,6 +11,7 @@ mod stack;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::error::Error;
 use std::fmt;
+use std::fmt::Display;
 use std::io::Write;
 use std::ops::Range;
 
@@ -866,13 +867,13 @@ fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> Gener
     mangling::mangle(joined.bytes())
 }
 
-fn make_name_in_class(class : &ClassFile, pieces : &[&dyn std::fmt::Display]) -> GeneralResult<String> {
+fn make_name_in_class(class : &ClassFile, pieces : &[&dyn Display]) -> GeneralResult<String> {
     let get_constant = get_constant_getter(class);
 
     match get_constant(class.this_class) {
         classfile_parser::constant_info::ConstantInfo::Class(cl) => {
             let s = get_string(&get_constant, cl.name_index).ok_or("no such string in constant pool")?;
-            let got : Vec<_> = [&s as &dyn std::fmt::Display].iter().chain(pieces).map(ToString::to_string).collect();
+            let got : Vec<_> = [&s as &dyn Display].iter().chain(pieces).map(ToString::to_string).collect();
             mangling::mangle(got.join(":").bytes())
         },
         _ => Err("not a class".into()),
@@ -884,7 +885,7 @@ fn make_mangled_name<T>(class : &ClassFile, item : &T) -> GeneralResult<String>
 {
     let get_constant = get_constant_getter(class);
     let get_string = |n| get_string(&get_constant, n);
-    let arr : &[&dyn std::fmt::Display] = &[
+    let arr : &[&dyn Display] = &[
             &get_string(item.name_index()).ok_or("missing name")?,
             &get_string(item.descriptor_index()).ok_or("missing descriptor")?,
         ];
