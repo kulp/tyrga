@@ -1194,6 +1194,7 @@ fn write_field_list(
         outfile : &mut dyn Write,
         suff : &str,
         selector : &dyn Fn(&&FieldInfo) -> bool,
+        generator : &dyn Fn(&mut dyn Write, &str, usize, usize) -> GeneralResult<()>,
     ) -> GeneralResult<()>
 {
     let suffix = mangling::mangle(format!(":{}", suff).bytes())?;
@@ -1212,8 +1213,7 @@ fn write_field_list(
     for (&field, offset) in fields.iter().zip(offsets) {
         let mangled_name = make_mangled_name(&class, field)?;
         let slot_name = [ mangled_name, suffix.clone() ].concat();
-        writeln!(outfile, "    .global {}", slot_name)?;
-        writeln!(outfile, "    .set    {:width$}, {}", slot_name, offset, width=width + suffix.len())?;
+        generator(outfile, &slot_name, offset.into(), width + suffix.len())?;
     }
     if ! fields.is_empty() {
         writeln!(outfile)?;
@@ -1222,14 +1222,22 @@ fn write_field_list(
     Ok(())
 }
 
-pub fn translate_class(class : ClassFile, outfile : &mut dyn std::io::Write) -> GeneralResult<()> {
+pub fn translate_class(class : ClassFile, outfile : &mut dyn Write) -> GeneralResult<()> {
     write_method_table(&class, outfile)?;
 
     write_vslot_list(&class, outfile)?;
 
     let is_static = |f : &&FieldInfo| f.access_flags.contains(FieldAccessFlags::STATIC);
-    write_field_list(&class, outfile, "field_offset",  &|f| ! is_static(f))?;
-    write_field_list(&class, outfile, "static_offset", &is_static)?;
+    let print_field = |outfile : &mut dyn Write, slot_name : &str, offset, width| {
+        writeln!(outfile, "    .global {}", slot_name)?;
+        writeln!(outfile, "    .set    {:width$}, {}", slot_name, offset, width=width).map_err(Into::into)
+    };
+    write_field_list(&class, outfile, "field_offset",  &|f| ! is_static(f), &print_field)?;
+    let print_static = |outfile : &mut dyn Write, slot_name : &str, offset, width| {
+        writeln!(outfile, "    .global {}", slot_name)?;
+        writeln!(outfile, "    .set    {:width$}, {}", slot_name, offset, width=width).map_err(Into::into)
+    };
+    write_field_list(&class, outfile, "static_offset", &is_static, &print_static)?;
 
     for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let mm = translate_method(&class, method)?;
