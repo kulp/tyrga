@@ -892,7 +892,7 @@ fn make_mangled_name<T>(class : &ClassFile, item : &T) -> GeneralResult<String>
     make_name_in_class(class, &arr)
 }
 
-fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &str) -> GeneralResult<String> {
+fn make_label(class : &ClassFile, method : &MethodInfo, suffix : &dyn Display) -> GeneralResult<String> {
     Ok(format!(".L{}{}",
         make_mangled_name(class, method)?,
         mangling::mangle(format!(":__{}", suffix).bytes())?))
@@ -923,7 +923,7 @@ fn make_basic_block<T>(class : &ClassFile, method : &MethodInfo, list : T, range
         exits.extend(exs.iter().filter_map(does_branch).filter(|&e| !inside(e)));
         insns.extend(ins);
     }
-    let label = make_label(class, method, &range.start.to_string())?;
+    let label = make_label(class, method, &range.start)?;
 
     if includes_successor {
         exits.insert(range.end);
@@ -959,7 +959,7 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &stack:
             // TODO obviate clones
             let class = class.clone();
             let method = method.clone();
-            move |x : &dyn fmt::Display| make_label(&class, &method, &x.to_string())
+            move |x : &dyn fmt::Display| make_label(&class, &method, &x)
         };
 
         let get_constant = get_constant_getter(&class);
@@ -1128,7 +1128,7 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
                 rp -> [sp + (down)] ;
             ).collect()
         };
-        let label = make_label(class, method, name)?;
+        let label = make_label(class, method, &name)?;
         tenyr::BasicBlock { label, insns }
     };
 
@@ -1143,7 +1143,7 @@ pub fn translate_method(class : &ClassFile, method : &MethodInfo) -> GeneralResu
                 rp <- [sp + (down)] ;
             ).collect()
         };
-        let label = make_label(class, method, name)?;
+        let label = make_label(class, method, &name)?;
         tenyr::BasicBlock { label, insns }
     };
 
