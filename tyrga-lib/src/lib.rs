@@ -877,14 +877,18 @@ fn make_mangled_name<T>(class : &ClassFile, item : &T) -> GeneralResult<String>
     where T : Named + Described
 {
     let get_constant = get_constant_getter(class);
+    let class = get_class(&get_constant, class.this_class)?;
     let get_string = |n| get_string(&get_constant, n);
     let arr : &[&dyn Display] = &[
             &get_string(item.name_index()).ok_or("missing name")?,
             &get_string(item.descriptor_index()).ok_or("missing descriptor")?,
         ];
-    match get_constant(class.this_class) {
-        classfile_parser::constant_info::ConstantInfo::Class(cl) =>
-            make_name_in_class(&get_constant, cl, &arr),
+    make_name_in_class(&get_constant, class, &arr)
+}
+
+fn get_class<'a>(get_constant : &'a ConstantGetter, index : u16) -> GeneralResult<&'a ClassConstant> {
+    match get_constant(index) {
+        classfile_parser::constant_info::ConstantInfo::Class(cl) => Ok(cl),
         _ => Err("not a class".into()),
     }
 }
