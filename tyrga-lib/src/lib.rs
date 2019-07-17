@@ -1203,8 +1203,8 @@ fn write_field_list(
         fields : &[FieldInfo],
         outfile : &mut dyn Write,
         suff : &str,
-        selector : &dyn Fn(&&FieldInfo) -> bool,
-        generator : &dyn Fn(&mut dyn Write, &str, usize, usize, usize) -> GeneralResult<()>,
+        selector : impl Fn(&&FieldInfo) -> bool,
+        generator : impl Fn(&mut dyn Write, &str, usize, usize, usize) -> GeneralResult<()>,
     ) -> GeneralResult<()>
 {
     let suffix = mangling::mangle(format!(":{}", suff).bytes())?;
@@ -1250,7 +1250,7 @@ pub fn translate_class(class : classfile_parser::ClassFile, outfile : &mut dyn W
         writeln!(outfile, "    .set    {:width$}, {}", slot_name, offset, width=width)?;
         Ok(())
     };
-    write_field_list(&get_constant, class, fields, outfile, "field_offset", &|f| ! is_static(f), &print_field)?;
+    write_field_list(&get_constant, class, fields, outfile, "field_offset", |f| ! is_static(f), print_field)?;
     let print_static = |outfile : &mut dyn Write, slot_name : &str, _offset, size, width| {
         writeln!(outfile, "    .global {}", slot_name)?;
         writeln!(outfile, "    {:width$}: .zero {}", slot_name, size, width=width)?;
