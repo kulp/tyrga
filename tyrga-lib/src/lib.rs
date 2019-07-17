@@ -955,9 +955,10 @@ fn make_blocks_for_method(get_constant : &ConstantGetter, class : &ClassConstant
         }
         seen.insert(which.start);
 
-        let namer = |x : &dyn Display| make_label(get_constant, class, &method, x);
-
-        let block : GeneralResult<Vec<_>> = ops.range(which.clone()).map(|x| make_instructions(&mut sm, x, &namer, &get_constant)).collect();
+        let block : GeneralResult<Vec<_>> =
+            ops .range(which.clone())
+                .map(|x| make_instructions(&mut sm, x, &|y| make_label(get_constant, class, method, y), get_constant))
+                .collect();
         let (bb, ee) = make_basic_block(get_constant, class, &method, block?, which)?;
         let mut out = Vec::new();
         out.push(bb);
