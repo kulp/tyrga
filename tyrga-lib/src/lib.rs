@@ -1,6 +1,7 @@
 #![deny(clippy::option_unwrap_used)]
 #![deny(clippy::result_unwrap_used)]
 #![deny(clippy::items_after_statements)]
+#![deny(clippy::needless_borrow)]
 
 mod exprtree;
 mod jvmtypes;
@@ -624,8 +625,8 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             }?;
             let descriptor = "(I)Ljava.lang.Object;";
             let proc = "alloc";
-            let name = make_builtin_name(proc, &descriptor)?;
-            let (addr, v, dest) = make_call(sm, &name, &descriptor)?;
+            let name = make_builtin_name(proc, descriptor)?;
+            let (addr, v, dest) = make_call(sm, &name, descriptor)?;
             pre.extend(v);
             Ok((addr, pre, dest))
         },
@@ -880,7 +881,7 @@ fn make_mangled_name<T>(get_constant : &ConstantGetter, class : &ClassConstant, 
             &get_string(item.name_index()).ok_or("missing name")?,
             &get_string(item.descriptor_index()).ok_or("missing descriptor")?,
         ];
-    make_name_in_class(get_constant, class, &arr)
+    make_name_in_class(get_constant, class, arr)
 }
 
 fn get_class<'a>(get_constant : &'a ConstantGetter, index : u16) -> GeneralResult<&'a ClassConstant> {
@@ -959,18 +960,18 @@ fn make_blocks_for_method(get_constant : &ConstantGetter, class : &ClassConstant
             ops .range(which.clone())
                 .map(|x| make_instructions(&mut sm, x, &|y| make_label(get_constant, class, method, y), get_constant))
                 .collect();
-        let (bb, ee) = make_basic_block(get_constant, class, &method, block?, which)?;
+        let (bb, ee) = make_basic_block(get_constant, class, method, block?, which)?;
         let mut out = Vec::new();
         out.push(bb);
 
         for exit in &ee {
-            out.extend(make_blocks(params, seen, sm.clone(), &rangemap[&exit])?); // intentional clone of stack::Manager
+            out.extend(make_blocks(params, seen, sm.clone(), &rangemap[exit])?); // intentional clone of stack::Manager
         }
 
         Ok(out)
     }
 
-    let (ranges, ops) = get_ranges_for_method(get_constant, &method)?;
+    let (ranges, ops) = get_ranges_for_method(get_constant, method)?;
     let rangemap = &BTreeMap::from_iter(ranges.into_iter().map(|r| (r.start, r)));
     let ops = &ops;
 
@@ -1219,7 +1220,7 @@ fn write_field_list(
     });
 
     for (&field, offset) in fields.iter().zip(offsets) {
-        let mangled_name = make_mangled_name(get_constant, &class, field)?;
+        let mangled_name = make_mangled_name(get_constant, class, field)?;
         let slot_name = [ mangled_name, suffix.clone() ].concat();
         let size = get_size(field.descriptor_index);
         generator(outfile, &slot_name, offset.into(), size.into(), width + suffix.len())?;

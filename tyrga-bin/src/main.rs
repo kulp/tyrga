@@ -1,3 +1,5 @@
+#![deny(clippy::needless_borrow)]
+
 use std::fs::File;
 use std::path::Path;
 
@@ -6,7 +8,7 @@ type TerminatingResult = std::result::Result<(), Box<dyn std::error::Error>>;
 fn translate_file(input_filename : &Path, output_filename : &Path) -> TerminatingResult {
     let stem = Path::new(input_filename).with_extension("");
     let stem = stem.to_str().ok_or("expected Unicode filename")?;
-    let class = classfile_parser::parse_class(&stem)?;
+    let class = classfile_parser::parse_class(stem)?;
 
     let mut outfile = File::create(output_filename)?;
     tyrga::translate_class(class, &mut outfile)?;
@@ -95,7 +97,7 @@ fn main() -> TerminatingResult {
                 Path::new(stem.file_name().ok_or("expected path to have a filename")?)
             };
             println!("Creating {} from {} ...", out.display(), file.display());
-            translate_file(file, &out)?;
+            translate_file(file, out)?;
         }
     } else if let Some(m) = m.subcommand_matches("mangle") {
         for string in m.values_of("strings").ok_or("expected at least one string to mangle")? {
@@ -103,7 +105,7 @@ fn main() -> TerminatingResult {
         }
     } else if let Some(m) = m.subcommand_matches("demangle") {
         for string in m.values_of("strings").ok_or("expected at least one string to mangle")? {
-            let de = tyrga::mangling::demangle(&string)?;
+            let de = tyrga::mangling::demangle(string)?;
             let st = String::from_utf8(de)?;
             println!("{}", st);
         }
