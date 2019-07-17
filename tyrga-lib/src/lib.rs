@@ -164,7 +164,7 @@ fn test_expand() -> GeneralResult<()> {
     Ok(())
 }
 
-type Namer = dyn Fn(&dyn fmt::Display) -> GeneralResult<String>;
+type Namer<'a> = dyn Fn(&dyn fmt::Display) -> GeneralResult<String> + 'a;
 type InsnTriple = (usize, Vec<Instruction>, Vec<Destination>);
 type MakeInsnResult = GeneralResult<InsnTriple>;
 
@@ -956,12 +956,7 @@ fn make_blocks_for_method(class : &ClassFile, method : &MethodInfo, sm : &stack:
         }
         seen.insert(which.start);
 
-        let namer = {
-            // TODO obviate clones
-            let class = class.clone();
-            let method = method.clone();
-            move |x : &dyn fmt::Display| make_label(&class, &method, &x)
-        };
+        let namer = |x : &dyn Display| make_label(&class, &method, x);
 
         let get_constant = get_constant_getter(&class);
 
