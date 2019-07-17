@@ -16,7 +16,6 @@ use std::fmt::Display;
 use std::io::Write;
 use std::ops::Range;
 
-use classfile_parser::ClassFile;
 use classfile_parser::attribute_info::CodeAttribute;
 use classfile_parser::attribute_info::StackMapFrame;
 use classfile_parser::constant_info::ClassConstant;
@@ -719,7 +718,7 @@ fn generic_error<E>(e : E) -> Box<dyn Error>
 }
 
 #[cfg(test)]
-fn parse_class(stem : &str) -> GeneralResult<ClassFile> {
+fn parse_class(stem : &str) -> GeneralResult<classfile_parser::ClassFile> {
     let mut name = String::from(concat!(env!("OUT_DIR"), "/"));
     name.push_str(stem);
     classfile_parser::parse_class(&name).map_err(Into::into)
@@ -1232,7 +1231,7 @@ fn write_field_list(
     Ok(())
 }
 
-pub fn translate_class(class : ClassFile, outfile : &mut dyn Write) -> GeneralResult<()> {
+pub fn translate_class(class : classfile_parser::ClassFile, outfile : &mut dyn Write) -> GeneralResult<()> {
     let get_constant = get_constant_getter(&class);
     let class_constant = get_class(&get_constant, class.this_class)?;
 
