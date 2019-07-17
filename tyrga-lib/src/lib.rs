@@ -711,9 +711,7 @@ fn test_make_instruction() -> GeneralResult<()> {
 
 pub type GeneralResult<T> = std::result::Result<T, Box<dyn Error>>;
 
-fn generic_error<E>(e : E) -> Box<dyn Error>
-    where E : std::error::Error
-{
+fn generic_error(e : impl Error) -> Box<dyn Error> {
     format!("unknown error: {}", e).into()
 }
 
@@ -872,8 +870,7 @@ fn make_name_in_class(get_constant : &ConstantGetter, class : &ClassConstant, pi
     mangling::mangle(got.join(":").bytes())
 }
 
-fn make_mangled_name<T>(get_constant : &ConstantGetter, class : &ClassConstant, item : &T) -> GeneralResult<String>
-    where T : Named + Described
+fn make_mangled_name(get_constant : &ConstantGetter, class : &ClassConstant, item : &(impl Named + Described)) -> GeneralResult<String>
 {
     let get_string = |n| get_string(get_constant, n);
     let arr : &[&dyn Display] = &[
@@ -896,9 +893,13 @@ fn make_label(get_constant : &ConstantGetter, class : &ClassConstant, method : &
         mangling::mangle(format!(":__{}", suffix).bytes())?))
 }
 
-fn make_basic_block<T>(get_constant : &ConstantGetter, class : &ClassConstant, method : &MethodInfo, list : T, range : &Range<usize>)
-    -> GeneralResult<(tenyr::BasicBlock, BTreeSet<usize>)>
-    where T : IntoIterator<Item=InsnTriple>
+fn make_basic_block(
+        get_constant : &ConstantGetter,
+        class : &ClassConstant,
+        method : &MethodInfo,
+        list : impl IntoIterator<Item=InsnTriple>,
+        range : &Range<usize>
+    ) -> GeneralResult<(tenyr::BasicBlock, BTreeSet<usize>)>
 {
     use Destination::*;
     use tenyr::BasicBlock;
@@ -1148,9 +1149,12 @@ pub fn translate_method(get_constant : &ConstantGetter, class : &ClassConstant, 
     Ok(Method { name, prologue, blocks, epilogue })
 }
 
-fn get_width<'a, T, U>(get_constant : &ConstantGetter, class : &ClassConstant, list : T) -> usize
-    where T : IntoIterator<Item=&'a U>,
-          U : Named + Described + 'a
+fn get_width<'a, T>(
+        get_constant : &ConstantGetter,
+        class : &ClassConstant,
+        list : impl IntoIterator<Item=&'a T>
+    ) -> usize
+    where T : Named + Described + 'a
 {
     let get_len = |m| make_mangled_name(get_constant, class, m).unwrap_or_default().len();
     list.into_iter().fold(0, |c, m| c.max(get_len(m)))

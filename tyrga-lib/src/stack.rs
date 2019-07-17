@@ -23,9 +23,7 @@ pub const SAVE_SLOTS : u8 = 1;
 // This simple Manager implementation does not do spilling to nor reloading from memory.
 // For now, it panics if we run out of free registers.
 impl Manager {
-    pub fn new<T>(max_locals : u16, sp : Register, regs : T) -> Self
-        where T : IntoIterator<Item=Register>
-    {
+    pub fn new(max_locals : u16, sp : Register, regs : impl IntoIterator<Item=Register>) -> Self {
         Self {
             max_locals,
             count : 0,
