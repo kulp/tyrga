@@ -1232,11 +1232,13 @@ fn write_field_list(
 }
 
 pub fn translate_class(class : classfile_parser::ClassFile, outfile : &mut dyn Write) -> GeneralResult<()> {
+    let fields = &class.fields;
+    let methods = &class.methods;
     let get_constant = get_constant_getter(&class);
-    let class_constant = get_class(&get_constant, class.this_class)?;
+    let class = get_class(&get_constant, class.this_class)?;
 
-    write_method_table(&get_constant, class_constant, &class.methods, outfile)?;
-    write_vslot_list(&get_constant, class_constant, &class.methods, outfile)?;
+    write_method_table(&get_constant, class, methods, outfile)?;
+    write_vslot_list(&get_constant, class, methods, outfile)?;
 
     let is_static = |f : &&FieldInfo| f.access_flags.contains(FieldAccessFlags::STATIC);
     let print_field = |outfile : &mut dyn Write, slot_name : &str, offset, _size, width| {
@@ -1244,16 +1246,16 @@ pub fn translate_class(class : classfile_parser::ClassFile, outfile : &mut dyn W
         writeln!(outfile, "    .set    {:width$}, {}", slot_name, offset, width=width)?;
         Ok(())
     };
-    write_field_list(&get_constant, class_constant, &class.fields, outfile, "field_offset", &|f| ! is_static(f), &print_field)?;
+    write_field_list(&get_constant, class, fields, outfile, "field_offset", &|f| ! is_static(f), &print_field)?;
     let print_static = |outfile : &mut dyn Write, slot_name : &str, _offset, size, width| {
         writeln!(outfile, "    .global {}", slot_name)?;
         writeln!(outfile, "    {:width$}: .zero {}", slot_name, size, width=width)?;
         Ok(())
     };
-    write_field_list(&get_constant, class_constant, &class.fields, outfile, "static", &is_static, &print_static)?;
+    write_field_list(&get_constant, class, fields, outfile, "static", &is_static, &print_static)?;
 
-    for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
-        let mm = translate_method(&get_constant, class_constant, method)?;
+    for method in methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
+        let mm = translate_method(&get_constant, class, method)?;
         writeln!(outfile, "{}", mm)?;
     }
 
