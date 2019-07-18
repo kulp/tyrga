@@ -179,9 +179,15 @@ fn make_target(target : &dyn std::string::ToString) -> GeneralResult<exprtree::A
     Ok(Expression(Rc::new(Expr { a, op : Sub, b })))
 }
 
-type BranchComp = dyn FnMut(&mut stack::Manager) -> GeneralResult<(tenyr::Register, Vec<Instruction>)>;
-
-fn make_int_branch(sm : &mut stack::Manager, addr : usize, invert : bool, target : u16, target_namer : &Namer, comp : &mut BranchComp) -> MakeInsnResult {
+fn make_int_branch(
+        sm : &mut stack::Manager,
+        addr : usize,
+        invert : bool,
+        target : u16,
+        target_namer : &Namer,
+        mut comp : impl FnMut(&mut stack::Manager) -> GeneralResult<(tenyr::Register, Vec<Instruction>)>
+    ) -> MakeInsnResult
+{
     use tenyr::*;
     use tenyr::Register::P;
 
@@ -419,7 +425,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
                 jvmtypes::Comparison::Le => (Opcode::CompareGe, true , false),
             };
 
-            let mut opper = move |sm : &mut stack::Manager| {
+            let opper = move |sm : &mut stack::Manager| {
                 let count = ops as u16;
                 let lhs = get_reg(sm.get(count - 1))?;
                 let rhs = if ops == OperandCount::_2 { get_reg(sm.get(0))? } else { Register::A };
@@ -441,7 +447,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
                 Ok((temp_reg, v))
             };
 
-            make_int_branch(sm, *addr, invert, target, target_namer, &mut opper)
+            make_int_branch(sm, *addr, invert, target, target_namer, opper)
         },
         Branch { .. } =>
             Err("encountered impossible Branch configuration".into()),
@@ -465,7 +471,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             };
 
             let brancher = |(compare, target)| {
-                let result = make_int_branch(sm, *addr, false, (target + here) as u16, target_namer, &mut maker(compare));
+                let result = make_int_branch(sm, *addr, false, (target + here) as u16, target_namer, maker(compare));
                 let (_, insns, dests) = result?;
                 Ok((insns, dests)) as GeneralResult<(_,_)>
             };
@@ -520,9 +526,9 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
             };
 
             let (lo_addr, lo_insns, lo_dests) =
-                make_int_branch(sm, *addr, false, far, target_namer, &mut maker(&Type1, low))?;
+                make_int_branch(sm, *addr, false, far, target_namer, maker(&Type1, low))?;
             let (      _, hi_insns, hi_dests) =
-                make_int_branch(sm, *addr, false, far, target_namer, &mut maker(&Type2, high))?;
+                make_int_branch(sm, *addr, false, far, target_namer, maker(&Type2, high))?;
 
             let addr = lo_addr;
 
