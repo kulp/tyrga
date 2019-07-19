@@ -776,6 +776,10 @@ fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
 mod util {
     use classfile_parser::ClassFile;
     use classfile_parser::constant_info::ConstantInfo;
+    use super::stack;
+    use super::tenyr::Instruction;
+    use super::tenyr::MemoryOpType;
+    use super::tenyr::Register;
 
     pub type ConstantGetter<'a> = dyn Fn(u16) -> &'a ConstantInfo + 'a;
 
@@ -783,19 +787,13 @@ mod util {
         move |n| &class.const_pool[usize::from(n) - 1]
     }
 
-    pub fn get_string(get_constant : &ConstantGetter, i : u16) -> Option<String>
-    {
+    pub fn get_string(get_constant : &ConstantGetter, i : u16) -> Option<String> {
         if let classfile_parser::constant_info::ConstantInfo::Utf8(u) = get_constant(i) {
             Some(u.utf8_string.to_string())
         } else {
             None
         }
     }
-
-    use super::stack;
-    use super::tenyr::Instruction;
-    use super::tenyr::MemoryOpType;
-    use super::tenyr::Register;
 
     pub fn index_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
         use super::tenyr::InstructionType::Type3;
