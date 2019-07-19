@@ -775,15 +775,37 @@ fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
     Ok(code_attribute_parser(&method.attributes[0].info).map_err(generic_error)?.1)
 }
 
+#[allow(dead_code)]
 mod util {
     use classfile_parser::ClassFile;
     use classfile_parser::constant_info::ConstantInfo;
+    use std::rc::Rc;
     use super::stack;
     use super::tenyr::Instruction;
     use super::tenyr::MemoryOpType;
     use super::tenyr::Register;
 
     pub type ConstantGetter<'a> = dyn Fn(u16) -> &'a ConstantInfo + 'a;
+
+    pub struct Context<'a, T> {
+        get_constant : Rc<ConstantGetter<'a>>,
+        nested : T,
+    }
+
+    impl<'a, T> Context<'a, T> {
+        // TODO name `extend` better
+        pub fn extend<U>(&self, nested : U) -> Context<'a, U> {
+            Context { get_constant : self.get_constant.clone(), nested }
+        }
+
+        pub fn get_constant(&self, index : u16) -> &'a ConstantInfo {
+            (self.get_constant)(index)
+        }
+    }
+
+    impl<T> AsRef<T> for Context<'_, T> {
+        fn as_ref(&self) -> &T { &self.nested }
+    }
 
     pub fn get_constant_getter<'a>(class : &'a ClassFile) -> impl Fn(u16) -> &'a ConstantInfo + 'a {
         move |n| &class.const_pool[usize::from(n) - 1]
