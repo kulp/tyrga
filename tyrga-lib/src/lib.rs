@@ -2,6 +2,7 @@
 #![deny(clippy::result_unwrap_used)]
 #![deny(clippy::items_after_statements)]
 #![deny(clippy::needless_borrow)]
+#![deny(unconditional_recursion)]
 
 mod exprtree;
 mod jvmtypes;
