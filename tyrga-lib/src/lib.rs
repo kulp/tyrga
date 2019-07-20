@@ -3,6 +3,7 @@
 #![deny(clippy::items_after_statements)]
 #![deny(clippy::needless_borrow)]
 #![deny(unconditional_recursion)]
+#![deny(clippy::redundant_field_names)]
 
 mod exprtree;
 mod jvmtypes;
