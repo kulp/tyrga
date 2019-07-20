@@ -787,6 +787,10 @@ mod util {
 
     pub type ConstantGetter<'a> = dyn Fn(u16) -> &'a ConstantInfo + 'a;
 
+    pub trait ContextConstantGetter<'a> {
+        fn get_constant(&self, index : u16) -> &'a ConstantInfo;
+    }
+
     pub struct Context<'a, T> {
         get_constant : Rc<ConstantGetter<'a>>,
         nested : T,
