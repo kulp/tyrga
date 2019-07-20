@@ -41,8 +41,8 @@ enum Destination {
     Address(usize),
 }
 
-trait Named     { fn name_index(&self)       -> u16; }
-trait Described { fn descriptor_index(&self) -> u16; }
+pub trait Named     { fn name_index(&self)       -> u16; }
+pub trait Described { fn descriptor_index(&self) -> u16; }
 
 impl Named     for MethodInfo { fn name_index(&self)       -> u16 { self.name_index } }
 impl Described for MethodInfo { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
@@ -786,6 +786,9 @@ mod util {
     use classfile_parser::ClassFile;
     use classfile_parser::constant_info::ConstantInfo;
     use std::rc::Rc;
+    use super::GeneralResult;
+    use super::{Described, Named};
+    use super::mangling;
     use super::stack;
     use super::tenyr::Instruction;
     use super::tenyr::MemoryOpType;
@@ -829,6 +832,23 @@ mod util {
             Some(u.utf8_string.to_string())
         } else {
             None
+        }
+    }
+
+    pub trait Manglable {
+        fn stringify(&self) -> GeneralResult<String>;
+        fn mangle(&self) -> GeneralResult<String> {
+            mangling::mangle(self.stringify()?.bytes())
+        }
+    }
+
+    impl<T> Manglable for Context<'_, T>
+        where T : Named + Described
+    {
+        fn stringify(&self) -> GeneralResult<String> {
+            let name = get_string(self, self.as_ref().name_index()      ).ok_or("no name")?;
+            let desc = get_string(self, self.as_ref().descriptor_index()).ok_or("no desc")?;
+            Ok([ name, desc ].join(":"))
         }
     }
 
