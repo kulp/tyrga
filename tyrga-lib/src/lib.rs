@@ -209,7 +209,7 @@ fn make_int_branch(
     Ok((addr, v, dest))
 }
 
-fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation), target_namer : &Namer, get_constant : &ConstantGetter)
+fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation), target_namer : &Namer, gc : &dyn ContextConstantGetter)
     -> MakeInsnResult
 {
     use Operation::*;
@@ -614,7 +614,7 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
         // TODO fully handle Special (this is dumb partial handling)
         Invocation { kind : InvokeKind::Special, index } |
             Invocation { kind : InvokeKind::Static, index } =>
-            make_call(sm, &make_callable_name(get_constant, index)?, &get_method_parts(get_constant, index)?[2]),
+            make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2]),
         StackOp { op : StackOperation::Pop, size } => {
             let v = sm.release(size as u16);
             Ok((*addr, v, default_dest))
@@ -646,13 +646,13 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
                     .map_err(Into::into);
             let ch = ch?;
 
-            let g = get_reg(sm.get(0))?;
+            let gc = get_reg(sm.get(0))?;
             let n = match nans {
                 Some(NanComparisons::Greater) => 1,
                 Some(NanComparisons::Less) => -1,
                 _ => 0,
             };
-            v.push(tenyr_insn!( g <- (n) )?);
+            v.push(tenyr_insn!( gc <- (n) )?);
 
             let desc = format!("({}{}I)I", ch, ch);
             let (addr, insns, dests) = make_call(sm, &make_builtin_name(name, &desc)?, &desc)?;
@@ -702,14 +702,21 @@ fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation)
 fn test_make_instruction() -> GeneralResult<()> {
     use Instruction;
     use Register::A;
+    use classfile_parser::constant_info::ConstantInfo;
     use classfile_parser::constant_info::ConstantInfo::Unusable;
     use tenyr::InstructionType::Type3;
     use tenyr::MemoryOpType::NoLoad;
+    struct Useless;
+    impl<'a> ContextConstantGetter<'a> for Useless {
+        fn get_constant(&self, _ : u16) -> &'a ConstantInfo {
+            &Unusable
+        }
+    }
 
     let mut sm = stack::Manager::new(5, STACK_PTR, STACK_REGS.to_owned());
     let op = Operation::Constant { kind : JType::Int, value : 5 };
     let namer = |x : &dyn fmt::Display| Ok(format!("{}:{}", "test", x.to_string()));
-    let insn = make_instructions(&mut sm, (&0, &op), &namer, &|_| &Unusable)?;
+    let insn = make_instructions(&mut sm, (&0, &op), &namer, &Useless)?;
     let imm = 5_u8.into();
     assert_eq!(insn.1, vec![ Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad } ]);
     assert_eq!(insn.1[0].to_string(), " B  <-  5");
@@ -775,7 +782,6 @@ fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
     Ok(code_attribute_parser(&method.attributes[0].info).map_err(generic_error)?.1)
 }
 
-#[allow(dead_code)]
 mod util {
     use classfile_parser::ClassFile;
     use classfile_parser::constant_info::ConstantInfo;
@@ -813,12 +819,13 @@ mod util {
         fn as_ref(&self) -> &T { &self.nested }
     }
 
-    pub fn get_constant_getter<'a>(class : &'a ClassFile) -> impl Fn(u16) -> &'a ConstantInfo + 'a {
-        move |n| &class.const_pool[usize::from(n) - 1]
+    pub fn get_constant_getter<'a>(nested : &'a ClassFile) -> Context<'a, &ClassFile> {
+        let gc = move |n| &nested.const_pool[usize::from(n) - 1];
+        Context { get_constant : Rc::new(gc), nested }
     }
 
-    pub fn get_string(get_constant : &ConstantGetter, i : u16) -> Option<String> {
-        if let classfile_parser::constant_info::ConstantInfo::Utf8(u) = get_constant(i) {
+    pub fn get_string(g : &dyn ContextConstantGetter, i : u16) -> Option<String> {
+        if let classfile_parser::constant_info::ConstantInfo::Utf8(u) = g.get_constant(i) {
             Some(u.utf8_string.to_string())
         } else {
             None
@@ -838,7 +845,7 @@ mod util {
     }
 }
 
-fn get_ranges_for_method(get_constant : &ConstantGetter, method : &MethodInfo)
+fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
     -> GeneralResult<RangeMap<Operation>>
 {
     use classfile_parser::attribute_info::AttributeInfo;
@@ -847,12 +854,12 @@ fn get_ranges_for_method(get_constant : &ConstantGetter, method : &MethodInfo)
     use classfile_parser::constant_info::ConstantInfo::Utf8;
 
     let attribute_namer = |a : &AttributeInfo|
-        match get_constant(a.attribute_name_index) {
+        match method.get_constant(a.attribute_name_index) {
             Utf8(u) => Ok((a.info.clone(), &u.utf8_string)),
             _ => Err("not a name"),
         };
 
-    let code = get_method_code(method)?;
+    let code = get_method_code(method.as_ref())?;
     let names : Result<Vec<_>,_> = code.attributes.iter().map(attribute_namer).collect();
     let info = names?.into_iter().find(|(_, name)| name == &"StackMapTable").map(|t| t.0);
     let keep;
@@ -872,14 +879,14 @@ fn get_ranges_for_method(get_constant : &ConstantGetter, method : &MethodInfo)
 
 type MethodNameParts = [String ; 3];
 
-fn get_method_parts(get_constant : &ConstantGetter, pool_index : u16) -> GeneralResult<MethodNameParts> {
+fn get_method_parts(g : &dyn ContextConstantGetter, pool_index : u16) -> GeneralResult<MethodNameParts> {
     use classfile_parser::constant_info::ConstantInfo::*;
 
-    let get_string = |n| get_string(get_constant, n);
+    let get_string = |n| get_string(g, n);
 
-    if let MethodRef(mr) = get_constant(pool_index) {
-        if let Class(cl) = get_constant(mr.class_index) {
-            if let NameAndType(nt) = get_constant(mr.name_and_type_index) {
+    if let MethodRef(mr) = g.get_constant(pool_index) {
+        if let Class(cl) = g.get_constant(mr.class_index) {
+            if let NameAndType(nt) = g.get_constant(mr.name_and_type_index) {
                 return Ok([
                         get_string(cl.name_index).ok_or("bad class name")?,
                         get_string(nt.name_index).ok_or("bad method name")?,
@@ -892,45 +899,44 @@ fn get_method_parts(get_constant : &ConstantGetter, pool_index : u16) -> General
     Err("error during constant pool lookup".into())
 }
 
-fn make_callable_name(get_constant : &ConstantGetter, pool_index : u16) -> GeneralResult<String> {
-    let parts = get_method_parts(get_constant, pool_index)?;
+fn make_callable_name(g : &dyn ContextConstantGetter, pool_index : u16) -> GeneralResult<String> {
+    let parts = get_method_parts(g, pool_index)?;
     let joined = parts.join(":");
     mangling::mangle(joined.bytes())
 }
 
-fn make_name_in_class(get_constant : &ConstantGetter, class : &ClassConstant, pieces : &[&dyn Display]) -> GeneralResult<String> {
-    let s = get_string(get_constant, class.name_index).ok_or("no such string in constant pool")?;
+fn make_name_in_class(class : &Context<'_, &ClassConstant>, pieces : &[&dyn Display]) -> GeneralResult<String> {
+    let s = get_string(class, class.as_ref().name_index).ok_or("no such string in constant pool")?;
     let got : Vec<_> = [&s as &dyn Display].iter().chain(pieces).map(ToString::to_string).collect();
     mangling::mangle(got.join(":").bytes())
 }
 
-fn make_mangled_name(get_constant : &ConstantGetter, class : &ClassConstant, item : &(impl Named + Described)) -> GeneralResult<String>
+fn make_mangled_name(class : &Context<'_, &ClassConstant>, item : &(impl Named + Described)) -> GeneralResult<String>
 {
-    let get_string = |n| get_string(get_constant, n);
+    let get_string = |n| get_string(class, n);
     let arr : &[&dyn Display] = &[
             &get_string(item.name_index()).ok_or("missing name")?,
             &get_string(item.descriptor_index()).ok_or("missing descriptor")?,
         ];
-    make_name_in_class(get_constant, class, arr)
+    make_name_in_class(class, arr)
 }
 
-fn get_class<'a>(get_constant : &'a ConstantGetter, index : u16) -> GeneralResult<&'a ClassConstant> {
-    match get_constant(index) {
-        classfile_parser::constant_info::ConstantInfo::Class(cl) => Ok(cl),
+fn get_class<'a, T>(ctx : util::Context<'a, T>, index : u16) -> GeneralResult<Context<'a, &'a ClassConstant>> {
+    match ctx.get_constant(index) {
+        classfile_parser::constant_info::ConstantInfo::Class(cl) => Ok(ctx.extend(cl)),
         _ => Err("not a class".into()),
     }
 }
 
-fn make_label(get_constant : &ConstantGetter, class : &ClassConstant, method : &MethodInfo, suffix : &dyn Display) -> GeneralResult<String> {
+fn make_label(class : &Context<'_, &ClassConstant>, method : &Context<'_, &MethodInfo>, suffix : &dyn Display) -> GeneralResult<String> {
     Ok(format!(".L{}{}",
-        make_mangled_name(get_constant, class, method)?,
+        make_mangled_name(class, *method.as_ref())?,
         mangling::mangle(format!(":__{}", suffix).bytes())?))
 }
 
 fn make_basic_block(
-        get_constant : &ConstantGetter,
-        class : &ClassConstant,
-        method : &MethodInfo,
+        class : &Context<'_, &ClassConstant>,
+        method : &Context<'_, &MethodInfo>,
         list : impl IntoIterator<Item=InsnTriple>,
         range : &Range<usize>
     ) -> GeneralResult<(tenyr::BasicBlock, BTreeSet<usize>)>
@@ -956,7 +962,7 @@ fn make_basic_block(
         exits.extend(exs.iter().filter_map(does_branch).filter(|&e| !inside(e)));
         insns.extend(ins);
     }
-    let label = make_label(get_constant, class, method, &range.start)?;
+    let label = make_label(class, method, &range.start)?;
 
     if includes_successor {
         exits.insert(range.end);
@@ -969,22 +975,21 @@ fn make_basic_block(
 
 // The incoming stack::Manager represents a "prototype" stack::Manager which should be empty, and which
 // will be cloned each time a new BasicBlock is seen.
-fn make_blocks_for_method(get_constant : &ConstantGetter, class : &ClassConstant, method : &MethodInfo, sm : &stack::Manager)
+fn make_blocks_for_method<'a, 'b>(class : &'a Context<'b, &'b ClassConstant>, method : &'a Context<'b, &'b MethodInfo>, sm : &stack::Manager)
     -> GeneralResult<Vec<tenyr::BasicBlock>>
 {
     use std::iter::FromIterator;
 
-    struct Params<'a> {
-        get_constant : &'a ConstantGetter<'a>,
-        class : &'a ClassConstant,
-        method : &'a MethodInfo,
+    struct Params<'a, 'b> {
+        class : &'a Context<'b, &'b ClassConstant>,
+        method : &'a Context<'b, &'b MethodInfo>,
         rangemap : &'a BTreeMap<usize, Range<usize>>,
         ops : &'a BTreeMap<usize, Operation>,
     }
 
     fn make_blocks(params : &Params, seen : &mut HashSet<usize>, mut sm : stack::Manager, which : &Range<usize>) -> GeneralResult<Vec<tenyr::BasicBlock>> {
-        let (get_constant, class, method, rangemap, ops) =
-            (params.get_constant, params.class, params.method, params.rangemap, params.ops);
+        let (class, method, rangemap, ops) =
+            (params.class, params.method, params.rangemap, params.ops);
         if seen.contains(&which.start) {
             return Ok(vec![]);
         }
@@ -992,9 +997,9 @@ fn make_blocks_for_method(get_constant : &ConstantGetter, class : &ClassConstant
 
         let block : GeneralResult<Vec<_>> =
             ops .range(which.clone())
-                .map(|x| make_instructions(&mut sm, x, &|y| make_label(get_constant, class, method, y), get_constant))
+                .map(|x| make_instructions(&mut sm, x, &|y| make_label(class, method, y), class))
                 .collect();
-        let (bb, ee) = make_basic_block(get_constant, class, method, block?, which)?;
+        let (bb, ee) = make_basic_block(class, method, block?, which)?;
         let mut out = Vec::new();
         out.push(bb);
 
@@ -1005,11 +1010,11 @@ fn make_blocks_for_method(get_constant : &ConstantGetter, class : &ClassConstant
         Ok(out)
     }
 
-    let (ranges, ops) = get_ranges_for_method(get_constant, method)?;
+    let (ranges, ops) = get_ranges_for_method(method)?;
     let rangemap = &BTreeMap::from_iter(ranges.into_iter().map(|r| (r.start, r)));
     let ops = &ops;
 
-    let params = Params { get_constant, class, method, rangemap, ops };
+    let params = Params { class, method, rangemap, ops };
 
     let mut seen = HashSet::new();
 
@@ -1022,8 +1027,9 @@ fn test_stack_map_table(stem : &str) -> GeneralResult<()> {
     for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let sm = stack::Manager::new(5, STACK_PTR, STACK_REGS.to_owned());
         let get_constant = get_constant_getter(&class);
-        let class = get_class(&get_constant, class.this_class)?;
-        let bbs = make_blocks_for_method(&get_constant, class, method, &sm)?;
+        let class = get_class(get_constant, class.this_class)?;
+        let method = class.extend(method);
+        let bbs = make_blocks_for_method(&class, &method, &sm)?;
         for bb in &bbs {
             eprintln!("{}", bb);
         }
@@ -1135,9 +1141,9 @@ fn test_count_returns() -> GeneralResult<()> {
     Ok(())
 }
 
-pub fn translate_method(get_constant : &ConstantGetter, class : &ClassConstant, method : &MethodInfo) -> GeneralResult<Method> {
-    let total_locals = get_method_code(method)?.max_locals;
-    let descriptor = get_string(get_constant, method.descriptor_index).ok_or("method descriptor missing")?;
+pub fn translate_method<'a, 'b>(class : &'a Context<'b, &'b ClassConstant>, method : &'a Context<'b, &'b MethodInfo>) -> GeneralResult<Method> {
+    let total_locals = get_method_code(method.as_ref())?.max_locals;
+    let descriptor = get_string(class, method.as_ref().descriptor_index).ok_or("method descriptor missing")?;
     let num_returns = count_returns(&descriptor)?.into();
     // Pretend we have at least as many locals as we have return-slots, so we have somewhere to
     // store our results when we Yield.
@@ -1159,7 +1165,7 @@ pub fn translate_method(get_constant : &ConstantGetter, class : &ClassConstant, 
                 rp -> [sp + (down)] ;
             ).collect()
         };
-        let label = make_label(get_constant, class, method, &name)?;
+        let label = make_label(class, method, &name)?;
         tenyr::BasicBlock { label, insns }
     };
 
@@ -1174,33 +1180,32 @@ pub fn translate_method(get_constant : &ConstantGetter, class : &ClassConstant, 
                 rp <- [sp + (down)] ;
             ).collect()
         };
-        let label = make_label(get_constant, class, method, &name)?;
+        let label = make_label(class, method, &name)?;
         tenyr::BasicBlock { label, insns }
     };
 
-    let blocks = make_blocks_for_method(get_constant, class, method, sm)?;
-    let name = make_mangled_name(get_constant, class, method)?;
+    let blocks = make_blocks_for_method(class, method, sm)?;
+    let name = make_mangled_name(class, *method.as_ref())?;
     Ok(Method { name, prologue, blocks, epilogue })
 }
 
 fn get_width<'a, T>(
-        get_constant : &ConstantGetter,
-        class : &ClassConstant,
+        class : &Context<'_, &ClassConstant>,
         list : impl IntoIterator<Item=&'a T>
     ) -> usize
     where T : Named + Described + 'a
 {
-    let get_len = |m| make_mangled_name(get_constant, class, m).unwrap_or_default().len();
+    let get_len = |m| make_mangled_name(class, m).unwrap_or_default().len();
     list.into_iter().fold(0, |c, m| c.max(get_len(m)))
 }
 
-fn write_method_table(get_constant : &ConstantGetter, class : &ClassConstant, methods : &[MethodInfo], outfile : &mut dyn Write) -> GeneralResult<()> {
+fn write_method_table(class : &Context<'_, &ClassConstant>, methods : &[MethodInfo], outfile : &mut dyn Write) -> GeneralResult<()> {
     let label = ".Lmethod_table";
     writeln!(outfile, "{}:", label)?;
-    let width = get_width(get_constant, class, methods);
+    let width = get_width(class, methods);
     for method in methods {
         let flags = method.access_flags;
-        let mangled_name = make_mangled_name(get_constant, class, method)?;
+        let mangled_name = make_mangled_name(class, method)?;
 
         writeln!(outfile, "    .word @{:width$} - {}, {:#06x}", mangled_name, label, flags.bits(), width=width)?;
     }
@@ -1211,15 +1216,15 @@ fn write_method_table(get_constant : &ConstantGetter, class : &ClassConstant, me
     Ok(())
 }
 
-fn write_vslot_list(get_constant : &ConstantGetter, class : &ClassConstant, methods : &[MethodInfo], outfile : &mut dyn Write) -> GeneralResult<()> {
+fn write_vslot_list(class : &Context<'_, &ClassConstant>, methods : &[MethodInfo], outfile : &mut dyn Write) -> GeneralResult<()> {
     let non_virtual = MethodAccessFlags::STATIC | MethodAccessFlags::PRIVATE;
     let slot_suffix = mangling::mangle(":vslot".bytes())?;
 
     let virtuals : Vec<_> = methods.iter().filter(|m| (m.access_flags & non_virtual).is_empty()).collect();
-    let width = get_width(get_constant, class, virtuals.clone().into_iter()); // TODO obviate clone
+    let width = get_width(class, virtuals.clone().into_iter()); // TODO obviate clone
 
     for (index, &method) in virtuals.iter().enumerate() {
-        let mangled_name = make_mangled_name(get_constant, class, method)?;
+        let mangled_name = make_mangled_name(class, method)?;
         let slot_name = [ mangled_name, slot_suffix.clone() ].concat();
         writeln!(outfile, "    .global {}", slot_name)?;
         writeln!(outfile, "    .set    {:width$}, {}", slot_name, index, width=width + slot_suffix.len())?;
@@ -1232,8 +1237,7 @@ fn write_vslot_list(get_constant : &ConstantGetter, class : &ClassConstant, meth
 }
 
 fn write_field_list(
-        get_constant : &ConstantGetter,
-        class : &ClassConstant,
+        class : &Context<'_, &ClassConstant>,
         fields : &[FieldInfo],
         outfile : &mut dyn Write,
         suff : &str,
@@ -1244,9 +1248,9 @@ fn write_field_list(
     let suffix = mangling::mangle(format!(":{}", suff).bytes())?;
 
     let fields : Vec<_> = fields.iter().filter(selector).collect();
-    let width = get_width(get_constant, class, fields.clone().into_iter());
+    let width = get_width(class, fields.clone().into_iter());
     let get_size = |i| {
-        let s = get_string(get_constant, i).expect("missing descriptor");
+        let s = get_string(class, i).expect("missing descriptor");
         let desc = s.chars().nth(0).expect("empty descriptor");
         args::field_size(desc).expect("getting field size failed")
     };
@@ -1257,7 +1261,7 @@ fn write_field_list(
     });
 
     for (&field, offset) in fields.iter().zip(offsets) {
-        let mangled_name = make_mangled_name(get_constant, class, field)?;
+        let mangled_name = make_mangled_name(class, field)?;
         let slot_name = [ mangled_name, suffix.clone() ].concat();
         let size = get_size(field.descriptor_index);
         generator(outfile, &slot_name, offset.into(), size.into(), width + suffix.len())?;
@@ -1273,10 +1277,10 @@ pub fn translate_class(class : classfile_parser::ClassFile, outfile : &mut dyn W
     let fields = &class.fields;
     let methods = &class.methods;
     let get_constant = get_constant_getter(&class);
-    let class = get_class(&get_constant, class.this_class)?;
+    let class = get_class(get_constant, class.this_class)?;
 
-    write_method_table(&get_constant, class, methods, outfile)?;
-    write_vslot_list(&get_constant, class, methods, outfile)?;
+    write_method_table(&class, methods, outfile)?;
+    write_vslot_list(&class, methods, outfile)?;
 
     let is_static = |f : &&FieldInfo| f.access_flags.contains(FieldAccessFlags::STATIC);
     let print_field = |outfile : &mut dyn Write, slot_name : &str, offset, _size, width| {
@@ -1284,16 +1288,17 @@ pub fn translate_class(class : classfile_parser::ClassFile, outfile : &mut dyn W
         writeln!(outfile, "    .set    {:width$}, {}", slot_name, offset, width=width)?;
         Ok(())
     };
-    write_field_list(&get_constant, class, fields, outfile, "field_offset", |f| ! is_static(f), print_field)?;
+    write_field_list(&class, fields, outfile, "field_offset", |f| ! is_static(f), print_field)?;
     let print_static = |outfile : &mut dyn Write, slot_name : &str, _offset, size, width| {
         writeln!(outfile, "    .global {}", slot_name)?;
         writeln!(outfile, "    {:width$}: .zero {}", slot_name, size, width=width)?;
         Ok(())
     };
-    write_field_list(&get_constant, class, fields, outfile, "static", &is_static, &print_static)?;
+    write_field_list(&class, fields, outfile, "static", &is_static, &print_static)?;
 
     for method in methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
-        let mm = translate_method(&get_constant, class, method)?;
+        let method = class.extend(method);
+        let mm = translate_method(&class, &method)?;
         writeln!(outfile, "{}", mm)?;
     }
 
