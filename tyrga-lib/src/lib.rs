@@ -801,8 +801,10 @@ mod util {
         pub fn extend<U>(&self, nested : U) -> Context<'a, U> {
             Context { get_constant : self.get_constant.clone(), nested }
         }
+    }
 
-        pub fn get_constant(&self, index : u16) -> &'a ConstantInfo {
+    impl<'a, T> ContextConstantGetter<'a> for Context<'a, T> {
+        fn get_constant(&self, index : u16) -> &'a ConstantInfo {
             (self.get_constant)(index)
         }
     }
