@@ -877,9 +877,7 @@ fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
     Ok((ranges, ops))
 }
 
-type MethodNameParts = [String ; 3];
-
-fn get_method_parts(g : &dyn ContextConstantGetter, pool_index : u16) -> GeneralResult<MethodNameParts> {
+fn get_method_parts(g : &dyn ContextConstantGetter, pool_index : u16) -> GeneralResult<[String ; 3]> {
     use classfile_parser::constant_info::ConstantInfo::*;
 
     let get_string = |n| get_string(g, n);
