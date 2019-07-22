@@ -852,6 +852,15 @@ mod util {
         }
     }
 
+    impl<T> Manglable for &[T]
+        where T : Manglable
+    {
+        fn stringify(&self) -> GeneralResult<String> {
+            let arr : GeneralResult<Vec<_>> = self.iter().map(T::stringify).collect();
+            Ok(arr?.join(":"))
+        }
+    }
+
     pub fn index_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
         use super::tenyr::InstructionType::Type3;
         let x = sm.get_stack_ptr();
