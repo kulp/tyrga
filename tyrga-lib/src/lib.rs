@@ -842,7 +842,7 @@ mod util {
         }
     }
 
-    impl<T> Manglable for Context<'_, T>
+    impl<T> Manglable for Context<'_, &T>
         where T : Named + Described
     {
         fn stringify(&self) -> GeneralResult<String> {
@@ -852,11 +852,15 @@ mod util {
         }
     }
 
-    impl<T> Manglable for &[T]
-        where T : Manglable
-    {
+    impl Manglable for Context<'_, &dyn Named> {
         fn stringify(&self) -> GeneralResult<String> {
-            let arr : GeneralResult<Vec<_>> = self.iter().map(T::stringify).collect();
+            get_string(self, self.as_ref().name_index()).ok_or_else(|| "no name".into())
+        }
+    }
+
+    impl Manglable for &[&dyn Manglable] {
+        fn stringify(&self) -> GeneralResult<String> {
+            let arr : GeneralResult<Vec<_>> = self.iter().map(|x| x.stringify()).collect();
             Ok(arr?.join(":"))
         }
     }
@@ -932,20 +936,15 @@ fn make_callable_name(g : &dyn ContextConstantGetter, pool_index : u16) -> Gener
     mangling::mangle(joined.bytes())
 }
 
-fn make_name_in_class(class : &Context<'_, &ClassConstant>, pieces : &[&dyn Display]) -> GeneralResult<String> {
-    let s = get_string(class, class.as_ref().name_index).ok_or("no such string in constant pool")?;
-    let got : Vec<_> = [&s as &dyn Display].iter().chain(pieces).map(ToString::to_string).collect();
-    mangling::mangle(got.join(":").bytes())
-}
-
 fn make_mangled_name(class : &Context<'_, &ClassConstant>, item : &Context<'_, &(impl Named + Described)>) -> GeneralResult<String>
 {
-    let get_string = |n| get_string(class, n);
-    let arr : &[&dyn Display] = &[
-            &get_string(item.as_ref().name_index()).ok_or("missing name")?,
-            &get_string(item.as_ref().descriptor_index()).ok_or("missing descriptor")?,
-        ];
-    make_name_in_class(class, arr)
+    impl Manglable for Context<'_, &ClassConstant> {
+        fn stringify(&self) -> GeneralResult<String> {
+            get_string(self, self.as_ref().name_index).ok_or_else(|| "no name".into())
+        }
+    }
+
+    (&[ class as &dyn Manglable, item ][..]).mangle()
 }
 
 fn get_class<'a, T>(ctx : util::Context<'a, T>, index : u16) -> GeneralResult<Context<'a, &'a ClassConstant>> {
