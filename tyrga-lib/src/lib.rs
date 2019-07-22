@@ -938,12 +938,12 @@ fn make_name_in_class(class : &Context<'_, &ClassConstant>, pieces : &[&dyn Disp
     mangling::mangle(got.join(":").bytes())
 }
 
-fn make_mangled_name(class : &Context<'_, &ClassConstant>, item : &(impl Named + Described)) -> GeneralResult<String>
+fn make_mangled_name(class : &Context<'_, &ClassConstant>, item : &Context<'_, &(impl Named + Described)>) -> GeneralResult<String>
 {
     let get_string = |n| get_string(class, n);
     let arr : &[&dyn Display] = &[
-            &get_string(item.name_index()).ok_or("missing name")?,
-            &get_string(item.descriptor_index()).ok_or("missing descriptor")?,
+            &get_string(item.as_ref().name_index()).ok_or("missing name")?,
+            &get_string(item.as_ref().descriptor_index()).ok_or("missing descriptor")?,
         ];
     make_name_in_class(class, arr)
 }
@@ -957,7 +957,7 @@ fn get_class<'a, T>(ctx : util::Context<'a, T>, index : u16) -> GeneralResult<Co
 
 fn make_label(class : &Context<'_, &ClassConstant>, method : &Context<'_, &MethodInfo>, suffix : &dyn Display) -> GeneralResult<String> {
     Ok(format!(".L{}{}",
-        make_mangled_name(class, *method.as_ref())?,
+        make_mangled_name(class, method)?,
         mangling::mangle(format!(":__{}", suffix).bytes())?))
 }
 
@@ -1212,7 +1212,7 @@ pub fn translate_method<'a, 'b>(class : &'a Context<'b, &'b ClassConstant>, meth
     };
 
     let blocks = make_blocks_for_method(class, method, sm)?;
-    let name = make_mangled_name(class, *method.as_ref())?;
+    let name = make_mangled_name(class, method)?;
     Ok(Method { name, prologue, blocks, epilogue })
 }
 
@@ -1222,7 +1222,7 @@ fn get_width<'a, T>(
     ) -> usize
     where T : Named + Described + 'a
 {
-    let get_len = |m| make_mangled_name(class, m).unwrap_or_default().len();
+    let get_len = |m| make_mangled_name(class, &class.extend(m)).unwrap_or_default().len();
     list.into_iter().fold(0, |c, m| c.max(get_len(m)))
 }
 
@@ -1232,7 +1232,7 @@ fn write_method_table(class : &Context<'_, &ClassConstant>, methods : &[MethodIn
     let width = get_width(class, methods);
     for method in methods {
         let flags = method.access_flags;
-        let mangled_name = make_mangled_name(class, method)?;
+        let mangled_name = make_mangled_name(class, &class.extend(method))?;
 
         writeln!(outfile, "    .word @{:width$} - {}, {:#06x}", mangled_name, label, flags.bits(), width=width)?;
     }
@@ -1251,7 +1251,7 @@ fn write_vslot_list(class : &Context<'_, &ClassConstant>, methods : &[MethodInfo
     let width = get_width(class, virtuals.clone().into_iter()); // TODO obviate clone
 
     for (index, &method) in virtuals.iter().enumerate() {
-        let mangled_name = make_mangled_name(class, method)?;
+        let mangled_name = make_mangled_name(class, &class.extend(method))?;
         let slot_name = [ mangled_name, slot_suffix.clone() ].concat();
         writeln!(outfile, "    .global {}", slot_name)?;
         writeln!(outfile, "    .set    {:width$}, {}", slot_name, index, width=width + slot_suffix.len())?;
@@ -1288,7 +1288,7 @@ fn write_field_list(
     });
 
     for (&field, offset) in fields.iter().zip(offsets) {
-        let mangled_name = make_mangled_name(class, field)?;
+        let mangled_name = make_mangled_name(class, &class.extend(field))?;
         let slot_name = [ mangled_name, suffix.clone() ].concat();
         let size = get_size(field.descriptor_index);
         generator(outfile, &slot_name, offset.into(), size.into(), width + suffix.len())?;
