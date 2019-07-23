@@ -936,6 +936,10 @@ fn make_callable_name(g : &dyn ContextConstantGetter, pool_index : u16) -> Gener
     mangling::mangle(joined.bytes())
 }
 
+fn mangle(list : &[&dyn Manglable]) -> GeneralResult<String> {
+    list.mangle()
+}
+
 fn make_mangled_name(class : &Context<'_, &ClassConstant>, item : &Context<'_, &(impl Named + Described)>) -> GeneralResult<String>
 {
     impl Manglable for Context<'_, &ClassConstant> {
@@ -944,7 +948,7 @@ fn make_mangled_name(class : &Context<'_, &ClassConstant>, item : &Context<'_, &
         }
     }
 
-    (&[ class as &dyn Manglable, item ][..]).mangle()
+    mangle(&[ class, item ])
 }
 
 fn get_class<'a, T>(ctx : util::Context<'a, T>, index : u16) -> GeneralResult<Context<'a, &'a ClassConstant>> {
@@ -960,7 +964,7 @@ fn make_label(class : &Context<'_, &ClassConstant>, method : &Context<'_, &Metho
     }
 
     Ok(format!(".L{}{}",
-        (&[ class as &dyn Manglable, method ][..]).mangle()?,
+        mangle(&[ class, method ])?,
         mangling::mangle(format!(":__{}", suffix).bytes())?))
 }
 
