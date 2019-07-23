@@ -963,9 +963,7 @@ fn make_label(class : &Context<'_, &ClassConstant>, method : &Context<'_, &Metho
         fn stringify(&self) -> GeneralResult<String> { Ok(self.to_string()) }
     }
 
-    Ok(format!(".L{}{}",
-        mangle(&[ class, method ])?,
-        mangling::mangle(format!(":__{}", suffix).bytes())?))
+    Ok(format!(".L{}", mangle(&[ class, method, &&*format!("__{}", &suffix) ])?))
 }
 
 fn make_basic_block(
