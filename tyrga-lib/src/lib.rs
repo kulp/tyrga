@@ -955,8 +955,12 @@ fn get_class<'a, T>(ctx : util::Context<'a, T>, index : u16) -> GeneralResult<Co
 }
 
 fn make_label(class : &Context<'_, &ClassConstant>, method : &Context<'_, &MethodInfo>, suffix : &dyn Display) -> GeneralResult<String> {
+    impl Manglable for &str {
+        fn stringify(&self) -> GeneralResult<String> { Ok(self.to_string()) }
+    }
+
     Ok(format!(".L{}{}",
-        make_mangled_name(class, method)?,
+        (&[ class as &dyn Manglable, method ][..]).mangle()?,
         mangling::mangle(format!(":__{}", suffix).bytes())?))
 }
 
