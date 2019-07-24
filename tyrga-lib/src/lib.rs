@@ -809,6 +809,15 @@ mod util {
         nested : Rc<T>,
     }
 
+    impl<'a, T> Clone for Context<'a, T> {
+        fn clone(&self) -> Self {
+            Context {
+                get_constant : Rc::clone(&self.get_constant),
+                nested : Rc::clone(&self.nested),
+            }
+        }
+    }
+
     impl<'a, T> Contextualizer<'a> for Context<'a, T> {
         fn contextualize<U>(&self, nested : U) -> Context<'a, U> {
             Context { get_constant : self.get_constant.clone(), nested : Rc::new(nested) }
