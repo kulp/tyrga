@@ -806,8 +806,7 @@ mod util {
     }
 
     impl<'a, T> Context<'a, T> {
-        // TODO name `extend` better
-        pub fn extend<U>(&self, nested : U) -> Context<'a, U> {
+        pub fn contextualize<U>(&self, nested : U) -> Context<'a, U> {
             Context { get_constant : self.get_constant.clone(), nested }
         }
     }
@@ -953,7 +952,7 @@ fn make_mangled_name(class : &Context<'_, &ClassConstant>, item : &Context<'_, &
 
 fn get_class<'a, T>(ctx : util::Context<'a, T>, index : u16) -> GeneralResult<Context<'a, &'a ClassConstant>> {
     match ctx.get_constant(index) {
-        classfile_parser::constant_info::ConstantInfo::Class(cl) => Ok(ctx.extend(cl)),
+        classfile_parser::constant_info::ConstantInfo::Class(cl) => Ok(ctx.contextualize(cl)),
         _ => Err("not a class".into()),
     }
 }
@@ -1060,7 +1059,7 @@ fn test_stack_map_table(stem : &str) -> GeneralResult<()> {
         let sm = stack::Manager::new(5, STACK_PTR, STACK_REGS.to_owned());
         let get_constant = get_constant_getter(&class);
         let class = get_class(get_constant, class.this_class)?;
-        let method = class.extend(method);
+        let method = class.contextualize(method);
         let bbs = make_blocks_for_method(&class, &method, &sm)?;
         for bb in &bbs {
             eprintln!("{}", bb);
@@ -1227,7 +1226,7 @@ fn get_width<'a, T>(
     ) -> usize
     where T : Named + Described + 'a
 {
-    let get_len = |m| make_mangled_name(class, &class.extend(m)).unwrap_or_default().len();
+    let get_len = |m| make_mangled_name(class, &class.contextualize(m)).unwrap_or_default().len();
     list.into_iter().fold(0, |c, m| c.max(get_len(m)))
 }
 
@@ -1237,7 +1236,7 @@ fn write_method_table(class : &Context<'_, &ClassConstant>, methods : &[MethodIn
     let width = get_width(class, methods);
     for method in methods {
         let flags = method.access_flags;
-        let mangled_name = make_mangled_name(class, &class.extend(method))?;
+        let mangled_name = make_mangled_name(class, &class.contextualize(method))?;
 
         writeln!(outfile, "    .word @{:width$} - {}, {:#06x}", mangled_name, label, flags.bits(), width=width)?;
     }
@@ -1256,7 +1255,7 @@ fn write_vslot_list(class : &Context<'_, &ClassConstant>, methods : &[MethodInfo
     let width = get_width(class, virtuals.clone().into_iter()); // TODO obviate clone
 
     for (index, &method) in virtuals.iter().enumerate() {
-        let mangled_name = make_mangled_name(class, &class.extend(method))?;
+        let mangled_name = make_mangled_name(class, &class.contextualize(method))?;
         let slot_name = [ mangled_name, slot_suffix.clone() ].concat();
         writeln!(outfile, "    .global {}", slot_name)?;
         writeln!(outfile, "    .set    {:width$}, {}", slot_name, index, width=width + slot_suffix.len())?;
@@ -1293,7 +1292,7 @@ fn write_field_list(
     });
 
     for (&field, offset) in fields.iter().zip(offsets) {
-        let mangled_name = make_mangled_name(class, &class.extend(field))?;
+        let mangled_name = make_mangled_name(class, &class.contextualize(field))?;
         let slot_name = [ mangled_name, suffix.clone() ].concat();
         let size = get_size(field.descriptor_index);
         generator(outfile, &slot_name, offset.into(), size.into(), width + suffix.len())?;
@@ -1329,7 +1328,7 @@ pub fn translate_class(class : classfile_parser::ClassFile, outfile : &mut dyn W
     write_field_list(&class, fields, outfile, "static", &is_static, &print_static)?;
 
     for method in methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
-        let method = class.extend(method);
+        let method = class.contextualize(method);
         let mm = translate_method(&class, &method)?;
         writeln!(outfile, "{}", mm)?;
     }
