@@ -806,12 +806,12 @@ mod util {
 
     pub struct Context<'a, T> {
         get_constant : Rc<ConstantGetter<'a>>,
-        nested : T,
+        nested : Rc<T>,
     }
 
     impl<'a, T> Contextualizer<'a> for Context<'a, T> {
         fn contextualize<U>(&self, nested : U) -> Context<'a, U> {
-            Context { get_constant : self.get_constant.clone(), nested }
+            Context { get_constant : self.get_constant.clone(), nested : Rc::new(nested) }
         }
     }
 
@@ -827,7 +827,7 @@ mod util {
 
     pub fn get_constant_getter<'a>(nested : &'a ClassFile) -> Context<'a, &ClassFile> {
         let gc = move |n| &nested.const_pool[usize::from(n) - 1];
-        Context { get_constant : Rc::new(gc), nested }
+        Context { get_constant : Rc::new(gc), nested : Rc::new(nested) }
     }
 
     pub fn get_string(g : &dyn ContextConstantGetter, i : u16) -> Option<String> {
