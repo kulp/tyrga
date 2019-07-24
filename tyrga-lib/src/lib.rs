@@ -796,6 +796,10 @@ mod util {
 
     pub type ConstantGetter<'a> = dyn Fn(u16) -> &'a ConstantInfo + 'a;
 
+    pub trait Contextualizer<'a> {
+        fn contextualize<U>(&self, nested : U) -> Context<'a, U>;
+    }
+
     pub trait ContextConstantGetter<'a> {
         fn get_constant(&self, index : u16) -> &'a ConstantInfo;
     }
@@ -805,8 +809,8 @@ mod util {
         nested : T,
     }
 
-    impl<'a, T> Context<'a, T> {
-        pub fn contextualize<U>(&self, nested : U) -> Context<'a, U> {
+    impl<'a, T> Contextualizer<'a> for Context<'a, T> {
+        fn contextualize<U>(&self, nested : U) -> Context<'a, U> {
             Context { get_constant : self.get_constant.clone(), nested }
         }
     }
