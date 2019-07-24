@@ -209,8 +209,13 @@ fn make_int_branch(
     Ok((addr, v, dest))
 }
 
-fn make_instructions(sm : &mut stack::Manager, (addr, op) : (&usize, &Operation), target_namer : &Namer, gc : &dyn ContextConstantGetter)
-    -> MakeInsnResult
+fn make_instructions<'a, T>(
+        sm : &mut stack::Manager,
+        (addr, op) : (&usize, &Operation),
+        target_namer : &Namer,
+        gc : &T,
+    ) -> MakeInsnResult
+    where T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
     use Operation::*;
     use jvmtypes::SwitchParams::*;
@@ -710,6 +715,11 @@ fn test_make_instruction() -> GeneralResult<()> {
     impl<'a> ContextConstantGetter<'a> for Useless {
         fn get_constant(&self, _ : u16) -> &'a ConstantInfo {
             &Unusable
+        }
+    }
+    impl<'a> Contextualizer<'a> for Useless {
+        fn contextualize<U>(&self, _ : U) -> Context<'a, U> {
+            unreachable!("this code is for testing only")
         }
     }
 
