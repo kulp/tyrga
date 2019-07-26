@@ -55,6 +55,14 @@ impl Named for ClassConstant { fn name_index(&self) -> u16 { self.name_index } }
 impl Named     for NameAndTypeConstant { fn name_index(&self)       -> u16 { self.name_index } }
 impl Described for NameAndTypeConstant { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
 
+// TODO deduplicate this implementation with the one for &dyn Named
+impl Manglable for Context<'_, &ClassConstant> {
+    fn pieces(&self) -> GeneralResult<Vec<String>> {
+        let r : GeneralResult<String> = get_string(self, self.as_ref().name_index()).ok_or_else(|| "no name".into());
+        Ok(vec![ r? ])
+    }
+}
+
 impl Manglable for &str {
     fn pieces(&self) -> GeneralResult<Vec<String>> { Ok(vec![ self.to_string() ]) }
 }
@@ -995,19 +1003,6 @@ fn mangle(list : &[&dyn Manglable]) -> GeneralResult<String> {
     list.mangle()
 }
 
-fn make_mangled_name(class : &Context<'_, &ClassConstant>, item : &Context<'_, &(impl Named + Described)>) -> GeneralResult<String>
-{
-    // TODO deduplicate this implementation with the one for &dyn Named
-    impl Manglable for Context<'_, &ClassConstant> {
-        fn pieces(&self) -> GeneralResult<Vec<String>> {
-            let r : GeneralResult<String> = get_string(self, self.as_ref().name_index()).ok_or_else(|| "no name".into());
-            Ok(vec![ r? ])
-        }
-    }
-
-    mangle(&[ class, item ])
-}
-
 fn get_class<'a, T>(ctx : util::Context<'a, T>, index : u16) -> GeneralResult<Context<'a, &'a ClassConstant>> {
     match ctx.get_constant(index) {
         classfile_parser::constant_info::ConstantInfo::Class(cl) => Ok(ctx.contextualize(cl)),
@@ -1270,7 +1265,7 @@ pub fn translate_method<'a, 'b>(class : &'a Context<'b, &'b ClassConstant>, meth
     };
 
     let blocks = make_blocks_for_method(class, method, sm)?;
-    let name = make_mangled_name(class, method)?;
+    let name = mangle(&[ class, method ])?;
     Ok(Method { name, prologue, blocks, epilogue })
 }
 
@@ -1280,7 +1275,7 @@ fn get_width<'a, T>(
     ) -> usize
     where T : Named + Described + 'a
 {
-    let get_len = |m| make_mangled_name(class, &class.contextualize(m)).unwrap_or_default().len();
+    let get_len = |m| mangle(&[ class, &class.contextualize(m) ]).unwrap_or_default().len();
     list.into_iter().fold(0, |c, m| c.max(get_len(m)))
 }
 
@@ -1290,7 +1285,7 @@ fn write_method_table(class : &Context<'_, &ClassConstant>, methods : &[MethodIn
     let width = get_width(class, methods);
     for method in methods {
         let flags = method.access_flags;
-        let mangled_name = make_mangled_name(class, &class.contextualize(method))?;
+        let mangled_name = mangle(&[ class, &class.contextualize(method) ])?;
 
         writeln!(outfile, "    .word @{:width$} - {}, {:#06x}", mangled_name, label, flags.bits(), width=width)?;
     }
@@ -1309,7 +1304,7 @@ fn write_vslot_list(class : &Context<'_, &ClassConstant>, methods : &[MethodInfo
     let width = get_width(class, virtuals.clone().into_iter()); // TODO obviate clone
 
     for (index, &method) in virtuals.iter().enumerate() {
-        let mangled_name = make_mangled_name(class, &class.contextualize(method))?;
+        let mangled_name = mangle(&[ class, &class.contextualize(method) ])?;
         let slot_name = [ mangled_name, slot_suffix.clone() ].concat();
         writeln!(outfile, "    .global {}", slot_name)?;
         writeln!(outfile, "    .set    {:width$}, {}", slot_name, index, width=width + slot_suffix.len())?;
@@ -1346,7 +1341,7 @@ fn write_field_list(
     });
 
     for (&field, offset) in fields.iter().zip(offsets) {
-        let mangled_name = make_mangled_name(class, &class.contextualize(field))?;
+        let mangled_name = mangle(&[ class, &class.contextualize(field) ])?;
         let slot_name = [ mangled_name, suffix.clone() ].concat();
         let size = get_size(field.descriptor_index);
         generator(outfile, &slot_name, offset.into(), size.into(), width + suffix.len())?;
