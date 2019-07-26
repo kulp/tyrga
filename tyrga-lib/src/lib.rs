@@ -55,6 +55,10 @@ impl Named for ClassConstant { fn name_index(&self) -> u16 { self.name_index } }
 impl Named     for NameAndTypeConstant { fn name_index(&self)       -> u16 { self.name_index } }
 impl Described for NameAndTypeConstant { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
 
+impl Manglable for &str {
+    fn pieces(&self) -> GeneralResult<Vec<String>> { Ok(vec![ self.to_string() ]) }
+}
+
 impl Manglable for Context<'_, &FieldRefConstant> {
     fn pieces(&self) -> GeneralResult<Vec<std::string::String>> {
         use classfile_parser::constant_info::ConstantInfo::*;
@@ -1012,10 +1016,6 @@ fn get_class<'a, T>(ctx : util::Context<'a, T>, index : u16) -> GeneralResult<Co
 }
 
 fn make_label(class : &Context<'_, &ClassConstant>, method : &Context<'_, &MethodInfo>, suffix : &dyn Display) -> GeneralResult<String> {
-    impl Manglable for &str {
-        fn pieces(&self) -> GeneralResult<Vec<String>> { Ok(vec![ self.to_string() ]) }
-    }
-
     Ok(format!(".L{}", mangle(&[ class, method, &&*format!("__{}", &suffix) ])?))
 }
 
