@@ -1271,18 +1271,27 @@ pub fn translate_method<'a, 'b>(class : &'a Context<'b, &'b ClassConstant>, meth
 
 fn get_width<'a, T>(
         class : &Context<'_, &ClassConstant>,
-        list : impl IntoIterator<Item=&'a T>
+        list : impl IntoIterator<Item=&'a T>,
+        suff : Option<&str>,
     ) -> usize
     where T : Named + Described + 'a
 {
-    let get_len = |m| mangle(&[ class, &class.contextualize(m) ]).unwrap_or_default().len();
+    let get_len = |m| {
+        let context = class.contextualize(m);
+        let mut v : Vec<&dyn Manglable> = vec![ class, &context ];
+        {
+            #![allow(clippy::needless_borrow)]
+            if let Some(ref suff) = suff { v.push(suff) }
+        }
+        mangle(&v).unwrap_or_default().len()
+    };
     list.into_iter().fold(0, |c, m| c.max(get_len(m)))
 }
 
 fn write_method_table(class : &Context<'_, &ClassConstant>, methods : &[MethodInfo], outfile : &mut dyn Write) -> GeneralResult<()> {
     let label = ".Lmethod_table";
     writeln!(outfile, "{}:", label)?;
-    let width = get_width(class, methods);
+    let width = get_width(class, methods, None);
     for method in methods {
         let flags = method.access_flags;
         let mangled_name = mangle(&[ class, &class.contextualize(method) ])?;
@@ -1298,16 +1307,15 @@ fn write_method_table(class : &Context<'_, &ClassConstant>, methods : &[MethodIn
 
 fn write_vslot_list(class : &Context<'_, &ClassConstant>, methods : &[MethodInfo], outfile : &mut dyn Write) -> GeneralResult<()> {
     let non_virtual = MethodAccessFlags::STATIC | MethodAccessFlags::PRIVATE;
-    let slot_suffix = mangling::mangle(":vslot".bytes())?;
+    let suff = "vslot";
 
     let virtuals : Vec<_> = methods.iter().filter(|m| (m.access_flags & non_virtual).is_empty()).collect();
-    let width = get_width(class, virtuals.clone().into_iter()); // TODO obviate clone
+    let width = get_width(class, virtuals.clone().into_iter(), Some(suff)); // TODO obviate clone
 
     for (index, &method) in virtuals.iter().enumerate() {
-        let mangled_name = mangle(&[ class, &class.contextualize(method) ])?;
-        let slot_name = [ mangled_name, slot_suffix.clone() ].concat();
-        writeln!(outfile, "    .global {}", slot_name)?;
-        writeln!(outfile, "    .set    {:width$}, {}", slot_name, index, width=width + slot_suffix.len())?;
+        let mangled_name = mangle(&[ class, &class.contextualize(method), &suff ])?;
+        writeln!(outfile, "    .global {}", mangled_name)?;
+        writeln!(outfile, "    .set    {:width$}, {}", mangled_name, index, width=width)?;
     }
     if ! virtuals.is_empty() {
         writeln!(outfile)?;
@@ -1325,10 +1333,8 @@ fn write_field_list(
         generator : impl Fn(&mut dyn Write, &str, usize, usize, usize) -> GeneralResult<()>,
     ) -> GeneralResult<()>
 {
-    let suffix = mangling::mangle(format!(":{}", suff).bytes())?;
-
     let fields : Vec<_> = fields.iter().filter(selector).collect();
-    let width = get_width(class, fields.clone().into_iter());
+    let width = get_width(class, fields.clone().into_iter(), Some(suff));
     let get_size = |i| {
         let s = get_string(class, i).expect("missing descriptor");
         let desc = s.chars().nth(0).expect("empty descriptor");
@@ -1341,10 +1347,9 @@ fn write_field_list(
     });
 
     for (&field, offset) in fields.iter().zip(offsets) {
-        let mangled_name = mangle(&[ class, &class.contextualize(field) ])?;
-        let slot_name = [ mangled_name, suffix.clone() ].concat();
+        let mangled_name = mangle(&[ class, &class.contextualize(field), &suff ])?;
         let size = get_size(field.descriptor_index);
-        generator(outfile, &slot_name, offset.into(), size.into(), width + suffix.len())?;
+        generator(outfile, &mangled_name, offset.into(), size.into(), width)?;
     }
     if ! fields.is_empty() {
         writeln!(outfile)?;

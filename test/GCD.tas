@@ -4,8 +4,8 @@
 .Lmethod_table_end:
     .zero 0
 
-    .global _3GCD02_3a3c4init04_3e3a28291V_01_3a5vslot
-    .set    _3GCD02_3a3c4init04_3e3a28291V_01_3a5vslot, 0
+    .global _3GCD02_3a3c4init04_3e3a28291V01_3a5vslot
+    .set    _3GCD02_3a3c4init04_3e3a28291V01_3a5vslot, 0
 
 .global _3GCD02_3a3c4init04_3e3a28291V
 _3GCD02_3a3c4init04_3e3a28291V:
