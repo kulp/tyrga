@@ -20,7 +20,7 @@ use std::ops::Range;
 
 use classfile_parser::attribute_info::CodeAttribute;
 use classfile_parser::attribute_info::StackMapFrame;
-use classfile_parser::constant_info::ClassConstant;
+use classfile_parser::constant_info::*;
 use classfile_parser::field_info::FieldAccessFlags;
 use classfile_parser::field_info::FieldInfo;
 use classfile_parser::method_info::MethodAccessFlags;
@@ -51,6 +51,9 @@ impl Named     for FieldInfo  { fn name_index(&self)       -> u16 { self.name_in
 impl Described for FieldInfo  { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
 
 impl Named for ClassConstant { fn name_index(&self) -> u16 { self.name_index } }
+
+impl Named     for NameAndTypeConstant { fn name_index(&self)       -> u16 { self.name_index } }
+impl Described for NameAndTypeConstant { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
 
 fn expand_immediate_load(sm : &mut stack::Manager, insn : Instruction, imm : i32)
     -> GeneralResult<Vec<Instruction>>
