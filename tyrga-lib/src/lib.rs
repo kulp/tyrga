@@ -1158,14 +1158,12 @@ impl fmt::Display for Method {
 
 mod args {
     use super::GeneralResult;
+    use super::JType;
 
     pub fn field_size(ch : char) -> GeneralResult<u8> {
-        match ch {
-            'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'L' | '[' => Ok(1),
-            'D' | 'J' => Ok(2),
-            'V' => Ok(0),
-            _ => Err(format!("unexpected character {}", ch).into()),
-        }
+        JType::from_char(ch)
+            .map(JType::size)
+            .ok_or_else(|| format!("unexpected character {}", ch).into())
     }
 
     fn count_internal(s : &str) -> GeneralResult<u8> {
