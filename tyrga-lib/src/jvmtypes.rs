@@ -35,6 +35,7 @@ impl JType {
             Byte   => Some('Z'),
             Char   => Some('C'),
             Short  => Some('S'),
+            Void   => Some('V'),
             _ => None,
         }
     }
