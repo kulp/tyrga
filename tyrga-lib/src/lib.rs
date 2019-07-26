@@ -832,14 +832,16 @@ fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
 mod util {
     use classfile_parser::ClassFile;
     use classfile_parser::constant_info::ConstantInfo;
+    use classfile_parser::constant_info::FieldRefConstant;
     use std::rc::Rc;
     use super::GeneralResult;
-    use super::{Described, Named};
+    use super::jvmtypes::JType;
     use super::mangling;
     use super::stack;
     use super::tenyr::Instruction;
     use super::tenyr::MemoryOpType;
     use super::tenyr::Register;
+    use super::{Described, Named};
 
     pub type ConstantGetter<'a> = dyn Fn(u16) -> &'a ConstantInfo + 'a;
 
@@ -925,6 +927,19 @@ mod util {
     impl Manglable for &[&dyn Manglable] {
         fn pieces(&self) -> GeneralResult<Vec<String>> {
             self.iter().map(|x| x.stringify()).collect() // TODO flatten
+        }
+    }
+
+    pub fn field_type(fr : &Context<'_, &FieldRefConstant>) -> GeneralResult<JType> {
+        use classfile_parser::constant_info::ConstantInfo::NameAndType;
+        //use classfile_parser::constant_info::NameAndTypeConstant;
+        if let NameAndType(nt) = fr.get_constant(fr.as_ref().name_and_type_index) {
+            let desc = get_string(fr, nt.descriptor_index).ok_or("no description")?;
+            let ch = desc.chars().nth(0).ok_or("descriptor too short")?;
+            let kind = JType::from_char(ch).ok_or("no type")?;
+            Ok(kind)
+        } else {
+            Err("unexpected kind".into())
         }
     }
 
