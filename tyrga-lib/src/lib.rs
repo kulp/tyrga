@@ -860,7 +860,10 @@ mod util {
     }
 
     pub trait Manglable {
-        fn stringify(&self) -> GeneralResult<String>;
+        fn pieces(&self) -> GeneralResult<Vec<String>>;
+        fn stringify(&self) -> GeneralResult<String> {
+            Ok(self.pieces()?.join(":"))
+        }
         fn mangle(&self) -> GeneralResult<String> {
             mangling::mangle(self.stringify()?.bytes())
         }
@@ -869,23 +872,24 @@ mod util {
     impl<T> Manglable for Context<'_, &T>
         where T : Named + Described
     {
-        fn stringify(&self) -> GeneralResult<String> {
-            let name = get_string(self, self.as_ref().name_index()      ).ok_or("no name")?;
-            let desc = get_string(self, self.as_ref().descriptor_index()).ok_or("no desc")?;
-            Ok([ name, desc ].join(":"))
+        fn pieces(&self) -> GeneralResult<Vec<String>> {
+            Ok(vec![
+                get_string(self, self.as_ref().name_index()      ).ok_or("no name")?,
+                get_string(self, self.as_ref().descriptor_index()).ok_or("no desc")?,
+            ])
         }
     }
 
     impl Manglable for Context<'_, &dyn Named> {
-        fn stringify(&self) -> GeneralResult<String> {
-            get_string(self, self.as_ref().name_index()).ok_or_else(|| "no name".into())
+        fn pieces(&self) -> GeneralResult<Vec<String>> {
+            let r : GeneralResult<String> = get_string(self, self.as_ref().name_index()).ok_or_else(|| "no name".into());
+            Ok(vec![ r? ])
         }
     }
 
     impl Manglable for &[&dyn Manglable] {
-        fn stringify(&self) -> GeneralResult<String> {
-            let arr : GeneralResult<Vec<_>> = self.iter().map(|x| x.stringify()).collect();
-            Ok(arr?.join(":"))
+        fn pieces(&self) -> GeneralResult<Vec<String>> {
+            self.iter().map(|x| x.stringify()).collect() // TODO flatten
         }
     }
 
@@ -966,9 +970,11 @@ fn mangle(list : &[&dyn Manglable]) -> GeneralResult<String> {
 
 fn make_mangled_name(class : &Context<'_, &ClassConstant>, item : &Context<'_, &(impl Named + Described)>) -> GeneralResult<String>
 {
+    // TODO deduplicate this implementation with the one for &dyn Named
     impl Manglable for Context<'_, &ClassConstant> {
-        fn stringify(&self) -> GeneralResult<String> {
-            get_string(self, self.as_ref().name_index).ok_or_else(|| "no name".into())
+        fn pieces(&self) -> GeneralResult<Vec<String>> {
+            let r : GeneralResult<String> = get_string(self, self.as_ref().name_index()).ok_or_else(|| "no name".into());
+            Ok(vec![ r? ])
         }
     }
 
@@ -984,7 +990,7 @@ fn get_class<'a, T>(ctx : util::Context<'a, T>, index : u16) -> GeneralResult<Co
 
 fn make_label(class : &Context<'_, &ClassConstant>, method : &Context<'_, &MethodInfo>, suffix : &dyn Display) -> GeneralResult<String> {
     impl Manglable for &str {
-        fn stringify(&self) -> GeneralResult<String> { Ok(self.to_string()) }
+        fn pieces(&self) -> GeneralResult<Vec<String>> { Ok(vec![ self.to_string() ]) }
     }
 
     Ok(format!(".L{}", mangle(&[ class, method, &&*format!("__{}", &suffix) ])?))
