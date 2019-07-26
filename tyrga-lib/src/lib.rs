@@ -50,6 +50,8 @@ impl Described for MethodInfo { fn descriptor_index(&self) -> u16 { self.descrip
 impl Named     for FieldInfo  { fn name_index(&self)       -> u16 { self.name_index } }
 impl Described for FieldInfo  { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
 
+impl Named for ClassConstant { fn name_index(&self) -> u16 { self.name_index } }
+
 fn expand_immediate_load(sm : &mut stack::Manager, insn : Instruction, imm : i32)
     -> GeneralResult<Vec<Instruction>>
 {
