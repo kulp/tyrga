@@ -40,6 +40,22 @@ impl JType {
         }
     }
 
+    pub fn from_char(ch : char) -> Option<Self> {
+        use JType::*;
+        match ch {
+            'I' => Some(Int),
+            'J' => Some(Long),
+            'F' => Some(Float),
+            'D' => Some(Double),
+            'L' => Some(Object),
+            '[' => Some(Object),
+            'Z' => Some(Byte),
+            'C' => Some(Char),
+            'S' => Some(Short),
+            'V' => Some(Void),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
