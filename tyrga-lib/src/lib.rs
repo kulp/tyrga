@@ -742,47 +742,64 @@ fn make_instructions<'a, T>(
             let desc = format!("({}){}", ch_from, ch_to);
             make_call(sm, &make_builtin_name(&name, &desc)?, &desc)
         },
-        VarAction  { op, kind : VarKind::Static, index } => {
+        VarAction  { op, kind, index } => {
             use classfile_parser::constant_info::ConstantInfo::*;
 
             if let FieldRef(fr) = gc.get_constant(index) {
-                use Register::P;
+                use exprtree::Atom;
 
                 let fr = gc.contextualize(fr);
                 let mut insns = Vec::new();
 
-                let base = make_target(&format!("@{}", mangle(&[ &fr, &"static" ])?))?;
+                let len = util::field_type(&fr)?.size();
+                let range = 0i32..len.into();
+                let reversed = range.clone().rev();
 
-                let make_off = |i| {
-                    use exprtree::Atom;
+                let make_off = |base, i| {
                     use exprtree::Operation::Add;
                     use std::rc::Rc;
+                    use tenyr::Immediate;
+                    use tenyr::TwentyBit;
 
-                    let e = exprtree::Expr { a : base.clone(), b : Atom::Immediate(i), op : Add };
-                    let add = Atom::Expression(Rc::new(e));
-                    let imm : tenyr::Immediate<tenyr::TwentyBit> = tenyr::Immediate::Expr(add);
-                    imm
+                    let e = exprtree::Expr { a : base, b : Atom::Immediate(i), op : Add };
+                    Immediate::Expr(Atom::Expression(Rc::new(e))) as Immediate<TwentyBit>
                 };
 
-                let len = util::field_type(&fr)?.size().into();
-                let range = 0i32..len;
-                let reversed = range.clone().rev();
+                let op_depth = match op { VarOp::Get => 0, VarOp::Put => 1 };
+
+                let (reg, base) = match kind {
+                    VarKind::Static =>
+                        (   Register::P,
+                            make_target(&format!("@{}", mangle(&[ &fr, &"static" ])?))?
+                        ),
+                    VarKind::Field =>
+                        (   get_reg(sm.get((op_depth * len).into()))?,
+                            Atom::Variable(format!("@{}", mangle(&[ &fr, &"field_offset" ])?))
+                        ),
+                };
+
                 for (forward, backward) in range.zip(reversed) {
                     match op {
                         VarOp::Get => {
-                            let imm = make_off(forward);
+                            let imm = make_off(base.clone(), forward);
                             insns.extend(sm.reserve(1));
                             let top = get_reg(sm.get(0))?;
-                            insns.push(tenyr_insn!( top <- [P + (imm)] )?);
+                            insns.push(tenyr_insn!( top <- [reg + (imm)] )?);
                         },
                         VarOp::Put => {
-                            let imm = make_off(backward);
+                            let imm = make_off(base.clone(), backward);
                             let top = get_reg(sm.get(0))?;
-                            insns.push(tenyr_insn!( top -> [P + (imm)] )?);
+                            insns.push(tenyr_insn!( top -> [reg + (imm)] )?);
                             insns.extend(sm.release(1));
                         },
                     };
                 }
+
+                // Drop object reference
+                if kind == VarKind::Field {
+                    insns.extend(sm.release(1));
+                }
+
                 Ok((*addr, insns, default_dest))
             } else {
                 Err("invalid ConstantInfo kind".into())
@@ -792,7 +809,6 @@ fn make_instructions<'a, T>(
         Allocation { .. } |
         Invocation { .. } |
         StackOp    { .. } |
-        VarAction  { .. } |
         Unhandled  ( .. ) =>
             Err(format!("unhandled operation {:?}", op).into()),
     }
