@@ -661,6 +661,18 @@ fn make_instructions<'a, T>(
             let v = sm.release(size as u16);
             Ok((*addr, v, default_dest))
         },
+        StackOp { op : StackOperation::Dup, size } => {
+            let size = size as u16;
+            let old : Vec<_> = (0..size).map(|i| get_reg(sm.get(i))).collect();
+            let res : Vec<_> = (0..size).map(|_| sm.reserve(1)).flatten().collect();
+            let put : GeneralResult<Vec<_>> = (0..size).map(|i| {
+                let new = get_reg(sm.get(i))?;
+                let t = old[i as usize]?;
+                tenyr_insn!( new <- t )
+            }).collect();
+            let v = [ res, put? ].concat();
+            Ok((*addr, v, default_dest))
+        },
         ArrayAlloc { kind } => {
             let kind : JType = kind.into();
             let mut pre = match kind.size() {
