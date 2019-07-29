@@ -767,14 +767,18 @@ fn make_instructions<'a, T>(
 
                 let op_depth = match op { VarOp::Get => 0, VarOp::Put => 1 };
 
+                let format = |suff|
+                    Ok(format!("@{}", mangle(&[ &fr, &suff ])?))
+                        as GeneralResult<std::string::String>;
+
                 let (reg, base) = match kind {
                     VarKind::Static =>
                         (   Register::P,
-                            make_target(&format!("@{}", mangle(&[ &fr, &"static" ])?))?
+                            make_target(&format("static")?)?
                         ),
                     VarKind::Field =>
                         (   get_reg(sm.get((op_depth * len).into()))?,
-                            Atom::Variable(format!("@{}", mangle(&[ &fr, &"field_offset" ])?))
+                            Atom::Variable(format("field_offset")?)
                         ),
                 };
 
