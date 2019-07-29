@@ -355,7 +355,7 @@ fn make_instructions<'a, T>(
         Ok(result) as GeneralResult<String>
     };
     let make_builtin_name = move |proc : &str, descriptor : &str| {
-        mangling::mangle([ "tyrga/Builtin", proc, descriptor ].join(":").bytes())
+        mangle(&[ &"tyrga/Builtin", &proc, &descriptor ])
     };
     let make_arithmetic_name = |kind, op| {
         let descriptor = make_arithmetic_descriptor(kind, op)?;
