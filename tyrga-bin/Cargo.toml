@@ -18,3 +18,8 @@ clap = "~2.33.0"
 classfile-parser = "~0.3.4"
 tyrga = { path = "../tyrga-lib" }
 
+[dev-dependencies]
+walkdir = "2"
+
+[build-dependencies]
+walkdir = "2"

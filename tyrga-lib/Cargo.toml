@@ -19,3 +19,7 @@ enum_primitive = "0.1"
 
 [dev-dependencies]
 quickcheck = "0.8"
+walkdir = "2"
+
+[build-dependencies]
+walkdir = "2"

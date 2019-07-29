@@ -18,6 +18,11 @@ use std::fmt::Display;
 use std::io::Write;
 use std::ops::Range;
 
+#[cfg(test)]
+use std::path::Path;
+#[cfg(test)]
+use walkdir::WalkDir;
+
 use classfile_parser::attribute_info::CodeAttribute;
 use classfile_parser::attribute_info::StackMapFrame;
 use classfile_parser::constant_info::*;
@@ -853,10 +858,10 @@ fn generic_error(e : impl Error) -> Box<dyn Error> {
 }
 
 #[cfg(test)]
-fn parse_class(stem : &str) -> GeneralResult<classfile_parser::ClassFile> {
-    let mut name = String::from(concat!(env!("OUT_DIR"), "/"));
-    name.push_str(stem);
-    classfile_parser::parse_class(&name).map_err(Into::into)
+fn parse_class(path : &Path) -> GeneralResult<classfile_parser::ClassFile> {
+    let p = path.with_extension("");
+    let p = p.to_str().ok_or("bad path")?;
+    classfile_parser::parse_class(p).map_err(Into::into)
 }
 
 type RangeMap<T> = (Vec<Range<usize>>, BTreeMap<usize, T>);
@@ -1191,8 +1196,8 @@ fn make_blocks_for_method<'a, 'b>(class : &'a Context<'b, &'b ClassConstant>, me
 }
 
 #[cfg(test)]
-fn test_stack_map_table(stem : &str) -> GeneralResult<()> {
-    let class = parse_class(stem)?;
+fn test_stack_map_table(path : &Path) -> GeneralResult<()> {
+    let class = parse_class(path)?;
     for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let sm = stack::Manager::new(5, STACK_PTR, STACK_REGS.to_owned());
         let get_constant = get_constant_getter(&class);
@@ -1210,14 +1215,17 @@ fn test_stack_map_table(stem : &str) -> GeneralResult<()> {
 #[test]
 fn test_parse_classes() -> GeneralResult<()>
 {
-    for file in std::fs::read_dir(env!("OUT_DIR"))? {
-        if let Ok(path) = file {
-            let class = path.path();
-            if class.extension().ok_or("no extension")? == "class" {
-                let stem = class.file_stem().ok_or("no filename")?.to_str().ok_or("not a str")?;
-                eprintln!("Testing {} ({}) ...", stem, class.display());
-                test_stack_map_table(stem)?;
-            }
+    let is_dir_or_class = |e : &walkdir::DirEntry| {
+        e.metadata().map(|e| e.is_dir()).unwrap_or(false) ||
+            e.file_name().to_str().map(|s| s.ends_with(".class")).unwrap_or(false)
+    };
+    for class in WalkDir::new(env!("OUT_DIR")).into_iter().filter_entry(is_dir_or_class) {
+        let class = class?;
+        if ! class.path().metadata()?.is_dir() {
+            let path = class.path();
+            let name = class.file_name().to_str().ok_or("no name")?;
+            eprintln!("Testing {} ({}) ...", path.display(), name);
+            test_stack_map_table(path)?;
         }
     }
 

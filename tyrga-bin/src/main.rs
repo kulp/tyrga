@@ -3,6 +3,9 @@
 use std::fs::File;
 use std::path::Path;
 
+#[cfg(test)]
+use walkdir::WalkDir;
+
 type TerminatingResult = std::result::Result<(), Box<dyn std::error::Error>>;
 
 fn translate_file(input_filename : &Path, output_filename : &Path) -> TerminatingResult {
@@ -18,23 +21,26 @@ fn translate_file(input_filename : &Path, output_filename : &Path) -> Terminatin
 
 #[test]
 fn test_translate_file() -> TerminatingResult {
-    for file in std::fs::read_dir(env!("OUT_DIR"))? {
-        if let Ok(path) = file {
-            let from = path.path();
-            if from.extension().ok_or("no extension")? == "class" {
-                use std::io::Read;
+    let is_dir_or_class = |e : &walkdir::DirEntry| {
+        e.metadata().map(|e| e.is_dir()).unwrap_or(false) ||
+            e.file_name().to_str().map(|s| s.ends_with(".class")).unwrap_or(false)
+    };
+    for from in WalkDir::new(env!("OUT_DIR")).into_iter().filter_entry(is_dir_or_class) {
+        let from = from?;
+        let from = from.path();
+        if ! from.metadata()?.is_dir() {
+            use std::io::Read;
 
-                let to   = from.with_extension("tas-test");
-                let gold = from.with_extension("tas");
-                translate_file(&from, &to)?;
+            let to   = from.with_extension("tas-test");
+            let gold = from.with_extension("tas");
+            translate_file(from, &to)?;
 
-                let mut translated = Vec::new();
-                File::open(to)?.read_to_end(&mut translated)?;
-                let mut expected = Vec::new();
-                File::open(gold)?.read_to_end(&mut expected)?;
+            let mut translated = Vec::new();
+            File::open(to)?.read_to_end(&mut translated)?;
+            let mut expected = Vec::new();
+            File::open(gold)?.read_to_end(&mut expected)?;
 
-                assert_eq!(translated, expected);
-            }
+            assert_eq!(translated, expected);
         }
     }
 
