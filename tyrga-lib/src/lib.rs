@@ -747,13 +747,12 @@ fn make_instructions<'a, T>(
 
             if let FieldRef(fr) = gc.get_constant(index) {
                 use exprtree::Atom;
+                use tenyr::MemoryOpType::*;
 
                 let fr = gc.contextualize(fr);
                 let mut insns = Vec::new();
 
                 let len = util::field_type(&fr)?.size();
-                let range = 0i32..len.into();
-                let reversed = range.clone().rev();
 
                 let make_off = |base, i| {
                     use exprtree::Operation::Add;
@@ -782,21 +781,19 @@ fn make_instructions<'a, T>(
                         ),
                 };
 
-                for (forward, backward) in range.zip(reversed) {
-                    match op {
-                        VarOp::Get => {
-                            let imm = make_off(base.clone(), forward);
-                            insns.extend(sm.reserve(1));
-                            let top = get_reg(sm.get(0))?;
-                            insns.push(tenyr_insn!( top <- [reg + (imm)] )?);
-                        },
-                        VarOp::Put => {
-                            let imm = make_off(base.clone(), backward);
-                            let top = get_reg(sm.get(0))?;
-                            insns.push(tenyr_insn!( top -> [reg + (imm)] )?);
-                            insns.extend(sm.release(1));
-                        },
-                    };
+                let mut range = 0i32..len.into();
+                let mut reversed = range.clone().rev();
+                let (prior, post, memop, iter) : (_, _, _, &mut Iterator<Item=_>) = match op {
+                    VarOp::Get => (1, 0, LoadRight , &mut range   ),
+                    VarOp::Put => (0, 1, StoreRight, &mut reversed),
+                };
+
+                for it in iter {
+                    let imm = make_off(base.clone(), it);
+                    insns.extend(sm.reserve(prior));
+                    let top = get_reg(sm.get(0))?;
+                    insns.push(Instruction { dd : memop, ..tenyr_insn!( top <- [reg + (imm)] )? });
+                    insns.extend(sm.release(post));
                 }
 
                 // Drop object reference
