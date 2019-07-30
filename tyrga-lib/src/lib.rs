@@ -1014,7 +1014,7 @@ mod util {
         use classfile_parser::constant_info::ConstantInfo::NameAndType;
         if let NameAndType(nt) = fr.get_constant(fr.as_ref().name_and_type_index) {
             let desc = get_string(fr, nt.descriptor_index).ok_or("no description")?;
-            let ch = desc.chars().nth(0).ok_or("descriptor too short")?;
+            let ch = desc.chars().next().ok_or("descriptor too short")?;
             let kind = JType::from_char(ch).ok_or("no type")?;
             Ok(kind)
         } else {
@@ -1265,7 +1265,7 @@ mod args {
 
     fn count_internal(s : &str) -> GeneralResult<u8> {
         fn eat(s : &str) -> GeneralResult<usize> {
-            let ch = s.chars().nth(0).ok_or("string ended too soon")?;
+            let ch = s.chars().next().ok_or("string ended too soon")?;
             match ch {
                 'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'D' | 'J' | 'V' => Ok(1),
                 'L' => Ok(1 + s.find(';').ok_or("string ended too soon")?),
@@ -1275,7 +1275,7 @@ mod args {
         }
 
         if s.is_empty() { return Ok(0); }
-        let ch = s.chars().nth(0).ok_or("impossible empty string")?; // cannot fail since s is not empty
+        let ch = s.chars().next().ok_or("impossible empty string")?; // cannot fail since s is not empty
         let mine = field_size(ch);
         Ok(mine? + count_internal(&s[eat(s)?..])?)
     }
@@ -1432,7 +1432,7 @@ fn write_field_list(
     let width = get_width(class, fields.clone().into_iter(), Some(suff));
     let get_size = |i| {
         let s = get_string(class, i).expect("missing descriptor");
-        let desc = s.chars().nth(0).expect("empty descriptor");
+        let desc = s.chars().next().expect("empty descriptor");
         args::field_size(desc).expect("getting field size failed")
     };
     let offsets = fields.iter().scan(0, |off, &f| {

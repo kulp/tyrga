@@ -698,7 +698,7 @@ fn test_basicblock_display() -> Result<(), Box<dyn std::error::Error>> {
     let label = "testbb".to_string();
     let bb = BasicBlock { label, insns };
     let ss = bb.to_string();
-    let first_line = ss.lines().nth(0).ok_or("no lines in input")?;
+    let first_line = ss.lines().next().ok_or("no lines in input")?;
     assert_eq!(':', first_line.chars().last().ok_or("no characters in line")?);
     assert_eq!(bb.label, first_line[..first_line.len()-1]);
     assert_eq!(bb.insns.len() + 1, ss.lines().count());
