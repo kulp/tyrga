@@ -129,7 +129,7 @@ pub enum InvokeKind {
 enum_from_primitive! {
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum ArrayKind {
+enum ArrayKind {
     Boolean = 4,
     Char    = 5,
     Float   = 6,
@@ -166,7 +166,7 @@ pub enum SwitchParams {
 pub enum Operation {
     Allocation  { index : u16 },
     Arithmetic  { kind : JType, op : ArithmeticOperation },
-    ArrayAlloc  { kind : ArrayKind },
+    ArrayAlloc  { kind : JType },
     Branch      { kind : JType, ops : OperandCount, way : Comparison, target : u16 },
     Compare     { kind : JType, nans : Option<NanComparisons> },
     Constant    { kind : JType, value : i16 },
@@ -458,8 +458,9 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Invokeinterface { index, count } => Invocation { kind : InvokeKind::Interface(count), index },
 
         New(index) => Allocation { index },
-        Newarray(kind) => ArrayKind::from_u8(kind).map_or(Unhandled(insn), |kind| ArrayAlloc { kind }),
-        Multianewarray { .. } | Anewarray(_) => Unhandled(insn),
+        Newarray(kind) => ArrayKind::from_u8(kind).map_or(Unhandled(insn), |kind| ArrayAlloc { kind : kind.into() }),
+        Anewarray(_) => ArrayAlloc { kind : JType::Object },
+        Multianewarray { .. } => Unhandled(insn),
 
         Arraylength => Length,
 

@@ -684,7 +684,6 @@ fn make_instructions<'a, T>(
             Ok((*addr, v, default_dest))
         },
         ArrayAlloc { kind } => {
-            let kind : JType = kind.into();
             let mut pre = match kind.size() {
                 1 => Ok(vec![]),
                 // insert an instruction that doubles the top-of-stack count
