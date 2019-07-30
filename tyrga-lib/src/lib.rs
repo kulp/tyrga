@@ -816,8 +816,18 @@ fn make_instructions<'a, T>(
                 Err("invalid ConstantInfo kind".into())
             }
         },
+        Allocation { index } => {
+            let class = gc.get_constant(index);
+            if let ConstantInfo::Class(cc) = class {
+                let name = get_string(gc, cc.name_index).ok_or("no class name")?;
+                let desc = format!("()L{};", name);
+                let call = mangle(&[ &&*name, &"new" ])?;
+                make_call(sm, &call, &desc)
+            } else {
+                Err("invalid ConstantInfo kind".into())
+            }
+        },
 
-        Allocation { .. } |
         Invocation { .. } |
         StackOp    { .. } |
         Unhandled  ( .. ) =>

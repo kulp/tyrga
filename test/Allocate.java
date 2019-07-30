@@ -7,4 +7,5 @@ public class Allocate {
     public static short   [] array_allocate_short()   { return new short   [10]; }
     public static int     [] array_allocate_int()     { return new int     [10]; }
     public static long    [] array_allocate_long()    { return new long    [5] ; }
+    public static Object     array_allocate_object()  { return new Object  ()  ; }
 }
