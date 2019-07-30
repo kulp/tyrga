@@ -659,8 +659,13 @@ fn make_instructions<'a, T>(
             Ok((*addr, vec![ insn ], default_dest))
         },
         // TODO fully handle Special (this is dumb partial handling)
-        Invocation { kind : InvokeKind::Special, index } |
-            Invocation { kind : InvokeKind::Static, index } =>
+        Invocation { kind : InvokeKind::Special, index } => {
+            let (addr, mut insns, dest) =
+                make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2])?;
+            insns.extend(sm.release(1));
+            Ok((addr, insns, dest))
+        },
+        Invocation { kind : InvokeKind::Static, index } =>
             make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2]),
         StackOp { op : StackOperation::Pop, size } => {
             let v = sm.release(size as u16);
