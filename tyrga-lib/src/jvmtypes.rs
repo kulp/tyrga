@@ -159,7 +159,7 @@ pub enum SwitchParams {
 pub enum Operation {
     Allocation  { index : u16 },
     Arithmetic  { kind : JType, op : ArithmeticOperation },
-    ArrayAlloc  { kind : JType },
+    ArrayAlloc  { kind : JType, dims : u8 },
     Branch      { kind : JType, ops : OperandCount, way : Comparison, target : u16 },
     Compare     { kind : JType, nans : Option<NanComparisons> },
     Constant    { kind : JType, value : i16 },
@@ -451,8 +451,8 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Invokeinterface { index, count } => Invocation { kind : InvokeKind::Interface(count), index },
 
         New(index) => Allocation { index },
-        Newarray(kind) => JType::try_from(kind).map(|kind| ArrayAlloc { kind }).unwrap_or(Unhandled(insn)),
-        Anewarray(_) => ArrayAlloc { kind : JType::Object },
+        Newarray(kind) => JType::try_from(kind).map(|kind| ArrayAlloc { kind, dims : 1 }).unwrap_or(Unhandled(insn)),
+        Anewarray(_) => ArrayAlloc { kind : JType::Object, dims : 1 },
         Multianewarray { .. } => Unhandled(insn),
 
         Arraylength => Length,

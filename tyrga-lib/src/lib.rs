@@ -680,7 +680,7 @@ fn make_instructions<'a, T>(
             let v = [ res, put? ].concat();
             Ok((*addr, v, default_dest))
         },
-        ArrayAlloc { kind } => {
+        ArrayAlloc { kind, dims : 1 } => {
             let mut pre = match kind.size() {
                 1 => Ok(vec![]),
                 // insert an instruction that doubles the top-of-stack count
@@ -816,6 +816,7 @@ fn make_instructions<'a, T>(
             }
         },
 
+        ArrayAlloc { .. } |
         Invocation { .. } |
         StackOp    { .. } |
         Unhandled  ( .. ) =>
