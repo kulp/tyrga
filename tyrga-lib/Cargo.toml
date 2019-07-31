@@ -15,7 +15,6 @@ maintenance = { status = "experimental" }
 
 [dependencies]
 classfile-parser = "~0.3.4"
-enum_primitive = "0.1"
 
 [dev-dependencies]
 quickcheck = "0.8"

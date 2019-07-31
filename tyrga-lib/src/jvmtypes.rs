@@ -1,4 +1,4 @@
-use enum_primitive::*;
+use std::convert::TryFrom;
 
 use classfile_parser::code_attribute::Instruction;
 
@@ -54,6 +54,23 @@ impl JType {
             'S' => Some(Short),
             'V' => Some(Void),
             _ => None,
+        }
+    }
+}
+
+impl TryFrom<u8> for JType {
+    type Error = &'static str;
+    fn try_from(a : u8) -> Result<Self, Self::Error> {
+        match a {
+            4  /* Boolean */ => Ok(JType::Byte), // arbitrary mapping for Boolean
+            5  /* Char    */ => Ok(JType::Char),
+            6  /* Float   */ => Ok(JType::Float),
+            7  /* Double  */ => Ok(JType::Double),
+            8  /* Byte    */ => Ok(JType::Byte),
+            9  /* Short   */ => Ok(JType::Short),
+            10 /* Int     */ => Ok(JType::Int),
+            11 /* Long    */ => Ok(JType::Long),
+            _  => Err("no such mapping"),
         }
     }
 }
@@ -124,36 +141,6 @@ pub enum InvokeKind {
     Special,
     Static,
     Virtual,
-}
-
-enum_from_primitive! {
-#[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq)]
-enum ArrayKind {
-    Boolean = 4,
-    Char    = 5,
-    Float   = 6,
-    Double  = 7,
-    Byte    = 8,
-    Short   = 9,
-    Int     = 10,
-    Long    = 11,
-}
-}
-
-impl From<ArrayKind> for JType {
-    fn from(a : ArrayKind) -> Self {
-        match a {
-            ArrayKind::Boolean => JType::Byte, // arbitrary mapping
-            ArrayKind::Char    => JType::Char,
-            ArrayKind::Float   => JType::Float,
-            ArrayKind::Double  => JType::Double,
-            ArrayKind::Byte    => JType::Byte,
-            ArrayKind::Short   => JType::Short,
-            ArrayKind::Int     => JType::Int,
-            ArrayKind::Long    => JType::Long,
-        }
-    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -458,7 +445,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Invokeinterface { index, count } => Invocation { kind : InvokeKind::Interface(count), index },
 
         New(index) => Allocation { index },
-        Newarray(kind) => ArrayKind::from_u8(kind).map_or(Unhandled(insn), |kind| ArrayAlloc { kind : kind.into() }),
+        Newarray(kind) => JType::try_from(kind).map(|kind| ArrayAlloc { kind }).unwrap_or(Unhandled(insn)),
         Anewarray(_) => ArrayAlloc { kind : JType::Object },
         Multianewarray { .. } => Unhandled(insn),
 
