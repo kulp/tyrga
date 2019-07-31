@@ -24,36 +24,42 @@ impl JType {
             Void => 0,
         }
     }
+}
 
-    pub fn get_char(self) -> Option<char> {
+impl TryFrom<JType> for char {
+    type Error = &'static str;
+    fn try_from(t : JType) -> Result<Self, Self::Error> {
         use JType::*;
-        match self {
-            Int    => Some('I'),
-            Long   => Some('J'),
-            Float  => Some('F'),
-            Double => Some('D'),
-            Byte   => Some('Z'),
-            Char   => Some('C'),
-            Short  => Some('S'),
-            Void   => Some('V'),
-            _ => None,
+        match t {
+            Int    => Ok('I'),
+            Long   => Ok('J'),
+            Float  => Ok('F'),
+            Double => Ok('D'),
+            Byte   => Ok('Z'),
+            Char   => Ok('C'),
+            Short  => Ok('S'),
+            Void   => Ok('V'),
+            _  => Err("no such mapping"),
         }
     }
+}
 
-    pub fn from_char(ch : char) -> Option<Self> {
+impl TryFrom<char> for JType {
+    type Error = &'static str;
+    fn try_from(ch : char) -> Result<Self, Self::Error> {
         use JType::*;
         match ch {
-            'I' => Some(Int),
-            'J' => Some(Long),
-            'F' => Some(Float),
-            'D' => Some(Double),
-            'L' => Some(Object),
-            '[' => Some(Object),
-            'Z' => Some(Byte),
-            'C' => Some(Char),
-            'S' => Some(Short),
-            'V' => Some(Void),
-            _ => None,
+            'I' => Ok(Int),
+            'J' => Ok(Long),
+            'F' => Ok(Float),
+            'D' => Ok(Double),
+            'L' => Ok(Object),
+            '[' => Ok(Object),
+            'Z' => Ok(Byte),
+            'C' => Ok(Char),
+            'S' => Ok(Short),
+            'V' => Ok(Void),
+            _ => Err("no such mapping"),
         }
     }
 }

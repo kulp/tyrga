@@ -261,6 +261,7 @@ fn make_instructions<'a, T>(
 {
     use Operation::*;
     use jvmtypes::SwitchParams::*;
+    use std::convert::TryInto;
     use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::*;
 
@@ -343,11 +344,7 @@ fn make_instructions<'a, T>(
         }
     };
     let make_arithmetic_descriptor = |kind : JType, op| {
-        let ch : GeneralResult<_> =
-            kind.get_char()
-                .ok_or("no char for kind")
-                .map_err(Into::into);
-        let ch : char = ch?;
+        let ch : char = kind.try_into()?;
 
         let nargs = {
             use ArithmeticOperation::*;
@@ -703,11 +700,7 @@ fn make_instructions<'a, T>(
         Compare { kind, nans } => {
             let mut v = sm.reserve(1);
             let name = "cmp";
-            let ch : GeneralResult<_> =
-                kind.get_char()
-                    .ok_or("no char for kind")
-                    .map_err(Into::into);
-            let ch = ch?;
+            let ch : char = kind.try_into()?;
 
             let gc = get_reg(sm.get(0))?;
             let n = match nans {
@@ -741,12 +734,8 @@ fn make_instructions<'a, T>(
             Ok((*addr, vec![ left, right ], default_dest ))
         },
         Conversion { from, to } => {
-            let ch_from : GeneralResult<_> =
-                from.get_char().ok_or("no char for kind").map_err(Into::into);
-            let ch_from = ch_from?;
-            let ch_to : GeneralResult<_> =
-                to.get_char().ok_or("no char for kind").map_err(Into::into);
-            let ch_to = ch_to?;
+            let ch_from : char = from.try_into()?;
+            let ch_to   : char = to  .try_into()?;
             let name = format!("into_{}", ch_to); // TODO improve naming
             let desc = format!("({}){}", ch_from, ch_to);
             make_call(sm, &make_builtin_name(&name, &desc)?, &desc)
@@ -927,6 +916,7 @@ mod util {
     use classfile_parser::ClassFile;
     use classfile_parser::constant_info::ConstantInfo;
     use classfile_parser::constant_info::FieldRefConstant;
+    use std::convert::TryFrom;
     use std::rc::Rc;
     use super::GeneralResult;
     use super::jvmtypes::JType;
@@ -1029,7 +1019,7 @@ mod util {
         if let NameAndType(nt) = fr.get_constant(fr.as_ref().name_and_type_index) {
             let desc = get_string(fr, nt.descriptor_index).ok_or("no description")?;
             let ch = desc.chars().next().ok_or("descriptor too short")?;
-            let kind = JType::from_char(ch).ok_or("no type")?;
+            let kind = JType::try_from(ch)?;
             Ok(kind)
         } else {
             Err("unexpected kind".into())
@@ -1268,13 +1258,12 @@ impl fmt::Display for Method {
 }
 
 mod args {
+    use std::convert::TryFrom;
     use super::GeneralResult;
     use super::JType;
 
     pub fn field_size(ch : char) -> GeneralResult<u8> {
-        JType::from_char(ch)
-            .map(JType::size)
-            .ok_or_else(|| format!("unexpected character {}", ch).into())
+        JType::try_from(ch).map(JType::size).map_err(Into::into)
     }
 
     fn count_internal(s : &str) -> GeneralResult<u8> {
