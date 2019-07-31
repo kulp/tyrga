@@ -466,7 +466,8 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
                 .unwrap_or(Unhandled(insn)),
         Anewarray(_) =>
             ArrayAlloc { kind : Explicit(JType::Object), dims : 1 },
-        Multianewarray { .. } => Unhandled(insn),
+        Multianewarray { index, dimensions : dims } =>
+            ArrayAlloc { kind : Indirect(index), dims },
 
         Arraylength => Length,
 
