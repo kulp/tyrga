@@ -260,6 +260,7 @@ fn make_instructions<'a, T>(
     where T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
     use Operation::*;
+    use jvmtypes::Indirection::*;
     use jvmtypes::SwitchParams::*;
     use std::convert::TryInto;
     use tenyr::InstructionType::*;
@@ -680,7 +681,7 @@ fn make_instructions<'a, T>(
             let v = [ res, put? ].concat();
             Ok((*addr, v, default_dest))
         },
-        ArrayAlloc { kind, dims : 1 } => {
+        ArrayAlloc { kind : Explicit(kind), dims : 1 } => {
             let mut pre = match kind.size() {
                 1 => Ok(vec![]),
                 // insert an instruction that doubles the top-of-stack count

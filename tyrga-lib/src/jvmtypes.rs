@@ -155,11 +155,19 @@ pub enum SwitchParams {
     Table  { default : i32, low : i32, high : i32, offsets : Vec<i32> },
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Indirection<T> {
+    Explicit(T),
+    Indirect(u16),
+}
+
+pub type ArrayKind = Indirection<JType>;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Operation {
     Allocation  { index : u16 },
     Arithmetic  { kind : JType, op : ArithmeticOperation },
-    ArrayAlloc  { kind : JType, dims : u8 },
+    ArrayAlloc  { kind : ArrayKind, dims : u8 },
     Branch      { kind : JType, ops : OperandCount, way : Comparison, target : u16 },
     Compare     { kind : JType, nans : Option<NanComparisons> },
     Constant    { kind : JType, value : i16 },
@@ -184,6 +192,7 @@ pub enum Operation {
 // returns any Operation parsed and the number of bytes consumed
 pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
     use JType::*;
+    use Indirection::*;
     use Instruction::*;
     use Operation::*;
     use SwitchParams::*;
@@ -451,8 +460,12 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Invokeinterface { index, count } => Invocation { kind : InvokeKind::Interface(count), index },
 
         New(index) => Allocation { index },
-        Newarray(kind) => JType::try_from(kind).map(|kind| ArrayAlloc { kind, dims : 1 }).unwrap_or(Unhandled(insn)),
-        Anewarray(_) => ArrayAlloc { kind : JType::Object, dims : 1 },
+        Newarray(kind) =>
+            JType::try_from(kind)
+                .map(|k| ArrayAlloc { kind : Explicit(k), dims : 1 })
+                .unwrap_or(Unhandled(insn)),
+        Anewarray(_) =>
+            ArrayAlloc { kind : Explicit(JType::Object), dims : 1 },
         Multianewarray { .. } => Unhandled(insn),
 
         Arraylength => Length,
