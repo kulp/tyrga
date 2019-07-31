@@ -14,9 +14,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     for entry in WalkDir::new(test_dir) {
         let entry = entry?;
         let path = entry.path();
-        let name = &path.to_str().ok_or("path is not a UTF-8 string")?;
-        let stem = &path.file_stem().ok_or("filename is empty")?;
-        let source_meta = &path.metadata()?;
+        let name = path.to_str().ok_or("path is not a UTF-8 string")?;
+        let stem = path.file_stem().ok_or("filename is empty")?;
+        let source_meta = path.metadata()?;
 
         // Watch for new contents of found directories
         if source_meta.is_dir() {
