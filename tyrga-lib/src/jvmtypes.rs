@@ -163,6 +163,12 @@ pub enum Indirection<T> {
 
 pub type ArrayKind = Indirection<JType>;
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct ExplicitConstant {
+    pub kind : JType,
+    pub value : i16,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Operation {
     Allocation  { index : u16 },
@@ -170,7 +176,7 @@ pub enum Operation {
     ArrayAlloc  { kind : ArrayKind, dims : u8 },
     Branch      { kind : JType, ops : OperandCount, way : Comparison, target : u16 },
     Compare     { kind : JType, nans : Option<NanComparisons> },
-    Constant    { kind : JType, value : i16 },
+    Constant    (Indirection<ExplicitConstant>),
     Conversion  { from : JType, to : JType },
     Increment   { index : u16, value : i16 },
     Invocation  { kind : InvokeKind, index : u16 },
@@ -202,24 +208,24 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
     let op = match insn {
         Nop => Noop,
 
-        Aconstnull => Constant { kind : Object, value :  0 },
-        Iconstm1   => Constant { kind : Int   , value : -1 },
-        Iconst0    => Constant { kind : Int   , value :  0 },
-        Iconst1    => Constant { kind : Int   , value :  1 },
-        Iconst2    => Constant { kind : Int   , value :  2 },
-        Iconst3    => Constant { kind : Int   , value :  3 },
-        Iconst4    => Constant { kind : Int   , value :  4 },
-        Iconst5    => Constant { kind : Int   , value :  5 },
-        Lconst0    => Constant { kind : Long  , value :  0 },
-        Lconst1    => Constant { kind : Long  , value :  1 },
-        Fconst0    => Constant { kind : Float , value :  0 },
-        Fconst1    => Constant { kind : Float , value :  1 },
-        Fconst2    => Constant { kind : Float , value :  2 },
-        Dconst0    => Constant { kind : Double, value :  0 },
-        Dconst1    => Constant { kind : Double, value :  1 },
+        Aconstnull => Constant(Explicit(ExplicitConstant { kind : Object, value :  0 })),
+        Iconstm1   => Constant(Explicit(ExplicitConstant { kind : Int   , value : -1 })),
+        Iconst0    => Constant(Explicit(ExplicitConstant { kind : Int   , value :  0 })),
+        Iconst1    => Constant(Explicit(ExplicitConstant { kind : Int   , value :  1 })),
+        Iconst2    => Constant(Explicit(ExplicitConstant { kind : Int   , value :  2 })),
+        Iconst3    => Constant(Explicit(ExplicitConstant { kind : Int   , value :  3 })),
+        Iconst4    => Constant(Explicit(ExplicitConstant { kind : Int   , value :  4 })),
+        Iconst5    => Constant(Explicit(ExplicitConstant { kind : Int   , value :  5 })),
+        Lconst0    => Constant(Explicit(ExplicitConstant { kind : Long  , value :  0 })),
+        Lconst1    => Constant(Explicit(ExplicitConstant { kind : Long  , value :  1 })),
+        Fconst0    => Constant(Explicit(ExplicitConstant { kind : Float , value :  0 })),
+        Fconst1    => Constant(Explicit(ExplicitConstant { kind : Float , value :  1 })),
+        Fconst2    => Constant(Explicit(ExplicitConstant { kind : Float , value :  2 })),
+        Dconst0    => Constant(Explicit(ExplicitConstant { kind : Double, value :  0 })),
+        Dconst1    => Constant(Explicit(ExplicitConstant { kind : Double, value :  1 })),
 
-        Bipush(v) => Constant { kind : Int, value : v.into() },
-        Sipush(v) => Constant { kind : Int, value : v },
+        Bipush(v) => Constant(Explicit(ExplicitConstant { kind : Int, value : v.into() })),
+        Sipush(v) => Constant(Explicit(ExplicitConstant { kind : Int, value : v })),
 
         Iload(index) => LoadLocal { kind : Int   , index : index.into() },
         Lload(index) => LoadLocal { kind : Long  , index : index.into() },
@@ -474,13 +480,15 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Tableswitch { default, low, high, offsets } => Switch(Table { default, low, high, offsets }),
         Lookupswitch { default, pairs } => Switch(Lookup { default, pairs }),
 
+        Ldc(index) => Constant(Indirect(index.into())),
+        LdcW(index) | Ldc2W(index) => Constant(Indirect(index)),
+
         // We do not intend ever to handle Jsr and Ret
         Jsr(_) | JsrW(_) | Ret(_) | RetWide(_) => Unhandled(insn),
 
         Athrow
             | Checkcast(_) | Instanceof(_)
             | Monitorenter | Monitorexit
-            | Ldc(_) | LdcW(_) | Ldc2W(_)
             => Unhandled(insn),
     };
 

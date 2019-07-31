@@ -379,16 +379,39 @@ fn make_instructions<'a, T>(
     };
 
     match op.clone() { // TODO obviate clone
-        Constant { kind : JType::Object, value } |
-        Constant { kind : JType::Int   , value } => make_constant(&[ value.into() ]),
-        Constant { kind : JType::Long  , value } => make_constant(&[ 0, value.into() ]),
-        Constant { kind : JType::Float , value } => make_constant(&[ f32::from(value).to_bits() as i32 ]),
-        Constant { kind : JType::Double, value } => {
-            let bits = f64::from(value).to_bits();
-            make_constant(&[ (bits >> 32) as i32, bits as i32 ])
+        Constant(Explicit(ExplicitConstant { kind, value })) => {
+            match kind {
+                JType::Object |
+                JType::Int    => make_constant(&[ value.into() ]),
+                JType::Long   => make_constant(&[ 0, value.into() ]),
+                JType::Float  => make_constant(&[ f32::from(value).to_bits() as i32 ]),
+                JType::Double => {
+                    let bits = f64::from(value).to_bits();
+                    make_constant(&[ (bits >> 32) as i32, bits as i32 ])
+                },
+                _ => Err("encountered impossible Constant configuration".into()),
+            }
         },
-        Constant { .. } =>
-            Err("encountered impossible Constant configuration".into()),
+        Constant(Indirect(index)) => {
+            use ConstantInfo::*;
+            let c = gc.get_constant(index);
+            match c {
+                Integer(IntegerConstant { value }) => make_constant(&[ *value ]),
+                Long   (   LongConstant { value }) => make_constant(&[ (*value >> 32) as i32, *value as i32 ]),
+                Float  (  FloatConstant { value }) => make_constant(&[ value.to_bits() as i32 ]),
+                Double ( DoubleConstant { value }) => {
+                    let bits = value.to_bits();
+                    make_constant(&[ (bits >> 32) as i32, bits as i32 ])
+                },
+                Class       (       ClassConstant { .. }) |
+                String      (      StringConstant { .. }) |
+                MethodHandle(MethodHandleConstant { .. }) |
+                MethodType  (MethodTypeConstant   { .. }) =>
+                    Err("unhandled Constant configuration".into()),
+
+                _ => Err("encountered impossible Constant configuration".into()),
+            }
+        },
         Yield { kind } => {
             use Register::P;
             let mut v = Vec::new();
@@ -831,6 +854,7 @@ fn test_make_instruction() -> GeneralResult<()> {
     use Register::A;
     use classfile_parser::constant_info::ConstantInfo;
     use classfile_parser::constant_info::ConstantInfo::Unusable;
+    use jvmtypes::Indirection::Explicit;
     use tenyr::InstructionType::Type3;
     use tenyr::MemoryOpType::NoLoad;
     struct Useless;
@@ -846,7 +870,7 @@ fn test_make_instruction() -> GeneralResult<()> {
     }
 
     let mut sm = stack::Manager::new(5, STACK_PTR, STACK_REGS.to_owned());
-    let op = Operation::Constant { kind : JType::Int, value : 5 };
+    let op = Operation::Constant(Explicit(ExplicitConstant { kind : JType::Int, value : 5 }));
     let namer = |x : &dyn fmt::Display| Ok(format!("{}:{}", "test", x.to_string()));
     let insn = make_instructions(&mut sm, (&0, &op), &namer, &Useless)?;
     let imm = 5_u8.into();
