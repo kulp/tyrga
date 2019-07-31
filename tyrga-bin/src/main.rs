@@ -40,7 +40,7 @@ fn test_translate_file() -> TerminatingResult {
             let mut expected = Vec::new();
             File::open(gold)?.read_to_end(&mut expected)?;
 
-            assert_eq!(translated, expected);
+            assert_eq!(&std::str::from_utf8(&translated), &std::str::from_utf8(&expected));
         }
     }
 
