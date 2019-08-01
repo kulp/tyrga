@@ -253,7 +253,7 @@ fn make_int_branch(
 
 fn make_instructions<'a, T>(
         sm : &mut stack::Manager,
-        (addr, op) : (&usize, &Operation),
+        (addr, op) : (usize, Operation),
         target_namer : &Namer,
         gc : &T,
     ) -> MakeInsnResult
@@ -325,7 +325,7 @@ fn make_instructions<'a, T>(
         sm.release_frozen(count_params(descriptor)?.into());
         sm.reserve_frozen(count_returns(descriptor)?.into());
         insns.extend(sm.thaw());
-        Ok((*addr, insns, default_dest.clone()))
+        Ok((addr, insns, default_dest.clone()))
     };
 
     let name_op = |op| {
@@ -376,10 +376,10 @@ fn make_instructions<'a, T>(
             Ok(v)
         };
         let v = slice.iter().fold(Ok(vec![]), f)?;
-        Ok((*addr, v, default_dest.clone()))
+        Ok((addr, v, default_dest.clone()))
     };
 
-    match op.clone() { // TODO obviate clone
+    match op {
         Constant(Explicit(ExplicitConstant { kind, value })) => {
             match kind {
                 JType::Object |
@@ -423,14 +423,14 @@ fn make_instructions<'a, T>(
             let ex = tenyr::Immediate::Expr(make_target(&target_namer(&"epilogue")?)?);
             v.push(tenyr_insn!( P <- (ex) + P )?);
 
-            Ok((*addr, v, vec![])) // leaving the method is not a Destination we care about
+            Ok((addr, v, vec![])) // leaving the method is not a Destination we care about
         },
         Arithmetic { kind : JType::Int, op : ArithmeticOperation::Neg } => {
             use tenyr::*;
             use Register::A;
             let y = get_reg(sm.get(0))?;
             let v = vec![ tenyr_insn!( y <- A - y )? ];
-            Ok((*addr, v, default_dest))
+            Ok((addr, v, default_dest))
         },
         Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some() => {
             use tenyr::*;
@@ -443,7 +443,7 @@ fn make_instructions<'a, T>(
             let mut v = Vec::new();
             v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
             v.extend(sm.release(1));
-            Ok((*addr, v, default_dest))
+            Ok((addr, v, default_dest))
         },
         Arithmetic { kind, op } =>
             make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)?),
@@ -454,7 +454,7 @@ fn make_instructions<'a, T>(
             for i in 0 .. size {
                 v.push(load_local(sm, get_reg(sm.get(i))?, (index + i).into()));
             }
-            Ok((*addr, v, default_dest))
+            Ok((addr, v, default_dest))
         },
         StoreLocal { kind, index } => {
             let mut v = Vec::new();
@@ -463,7 +463,7 @@ fn make_instructions<'a, T>(
                 v.push(store_local(sm, get_reg(sm.get(i))?, (index + i).into()));
             }
             v.extend(sm.release(size));
-            Ok((*addr, v, default_dest))
+            Ok((addr, v, default_dest))
         },
         Increment { index, value } => {
             use tenyr::*;
@@ -481,7 +481,7 @@ fn make_instructions<'a, T>(
             ));
             v.extend(sm.release(1));
 
-            Ok((*addr, v, default_dest))
+            Ok((addr, v, default_dest))
         },
         Branch { kind : JType::Object, ops, way, target } |
         Branch { kind : JType::Int   , ops, way, target } => {
@@ -518,14 +518,14 @@ fn make_instructions<'a, T>(
                 Ok((temp_reg, v))
             };
 
-            make_int_branch(sm, *addr, invert, target, target_namer, opper)
+            make_int_branch(sm, addr, invert, target, target_namer, opper)
         },
         Branch { .. } =>
             Err("encountered impossible Branch configuration".into()),
         Switch(Lookup { default, pairs }) => {
             use tenyr::*;
 
-            let here = *addr as i32;
+            let here = addr as i32;
             let far = (default + here) as u16;
 
             let mut dests = Vec::new();
@@ -542,7 +542,7 @@ fn make_instructions<'a, T>(
             };
 
             let brancher = |(compare, target)| {
-                let result = make_int_branch(sm, *addr, false, (target + here) as u16, target_namer, maker(compare));
+                let result = make_int_branch(sm, addr, false, (target + here) as u16, target_namer, maker(compare));
                 let (_, insns, dests) = result?;
                 Ok((insns, dests)) as GeneralResult<(_,_)>
             };
@@ -563,14 +563,14 @@ fn make_instructions<'a, T>(
             insns.push(make_jump(far)?);
             dests.push(Destination::Address(far.into()));
 
-            Ok((*addr, insns, dests))
+            Ok((addr, insns, dests))
         },
         Switch(Table { default, low, high, offsets }) => {
             use tenyr::*;
             use tenyr::InstructionType::*;
             type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
 
-            let here = *addr as i32;
+            let here = addr as i32;
             let far = (default + here) as u16;
 
             let mut dests = Vec::new();
@@ -597,9 +597,9 @@ fn make_instructions<'a, T>(
             };
 
             let (lo_addr, lo_insns, lo_dests) =
-                make_int_branch(sm, *addr, false, far, target_namer, maker(&Type1, low))?;
+                make_int_branch(sm, addr, false, far, target_namer, maker(&Type1, low))?;
             let (      _, hi_insns, hi_dests) =
-                make_int_branch(sm, *addr, false, far, target_namer, maker(&Type2, high))?;
+                make_int_branch(sm, addr, false, far, target_namer, maker(&Type2, high))?;
 
             let addr = lo_addr;
 
@@ -632,7 +632,7 @@ fn make_instructions<'a, T>(
 
             Ok((addr, insns, dests))
         },
-        Jump { target } => Ok((*addr, vec![ make_jump(target)? ], vec![ Destination::Address(target as usize) ])),
+        Jump { target } => Ok((addr, vec![ make_jump(target)? ], vec![ Destination::Address(target as usize) ])),
         LoadArray(kind) | StoreArray(kind) => {
             use tenyr::*;
 
@@ -643,7 +643,7 @@ fn make_instructions<'a, T>(
                 v.extend(sm.release(2));
                 Ok((idx, arr)) as GeneralResult<(Register, Register)>
             };
-            let (x, y, z, dd) = match *op {
+            let (x, y, z, dd) = match op {
                 LoadArray(_) => {
                     let (idx, arr) = array_params(sm, &mut v)?;
                     v.extend(sm.reserve(1));
@@ -669,16 +669,16 @@ fn make_instructions<'a, T>(
             let kind = Type1(InsnGeneral { y, op, imm });
             let insn = Instruction { kind, z, x, dd };
             v.push(insn);
-            Ok((*addr, v, default_dest))
+            Ok((addr, v, default_dest))
         },
-        Noop => Ok((*addr, vec![ tenyr::NOOP_TYPE0 ], default_dest)),
+        Noop => Ok((addr, vec![ tenyr::NOOP_TYPE0 ], default_dest)),
         Length => {
             // TODO document layout of arrays
             // This implementation assumes a reference to an array points to its first element, and
             // that one word below that element is a word containing the number of elements.
             let top = get_reg(sm.get(0))?;
             let insn = Instruction { kind : Type3((-1_i8).into()), ..make_load(top, top) };
-            Ok((*addr, vec![ insn ], default_dest))
+            Ok((addr, vec![ insn ], default_dest))
         },
         // TODO fully handle Special (this is dumb partial handling)
         Invocation { kind : InvokeKind::Special, index } => {
@@ -691,7 +691,7 @@ fn make_instructions<'a, T>(
             make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2]),
         StackOp { op : StackOperation::Pop, size } => {
             let v = sm.release(size as u16);
-            Ok((*addr, v, default_dest))
+            Ok((addr, v, default_dest))
         },
         StackOp { op : StackOperation::Dup, size } => {
             let size = size as u16;
@@ -703,7 +703,7 @@ fn make_instructions<'a, T>(
                 tenyr_insn!( new <- t )
             }).collect();
             let v = [ res, put? ].concat();
-            Ok((*addr, v, default_dest))
+            Ok((addr, v, default_dest))
         },
         Allocation(Array { kind, dims }) => {
             let descriptor = "(I)Ljava.lang.Object;";
@@ -755,19 +755,19 @@ fn make_instructions<'a, T>(
             let top = get_reg(sm.get(0))?;
             let left  = tenyr_insn!( top <- top << 24 )?;
             let right = tenyr_insn!( top <- top >> 24 )?; // arithmetic shift, result is signed
-            Ok((*addr, vec![ left, right ], default_dest ))
+            Ok((addr, vec![ left, right ], default_dest ))
         },
         Conversion { from : JType::Int, to : JType::Short } => {
             let top = get_reg(sm.get(0))?;
             let left  = tenyr_insn!( top <- top << 16 )?;
             let right = tenyr_insn!( top <- top >> 16 )?; // arithmetic shift, result is signed
-            Ok((*addr, vec![ left, right ], default_dest ))
+            Ok((addr, vec![ left, right ], default_dest ))
         },
         Conversion { from : JType::Int, to : JType::Char } => {
             let top = get_reg(sm.get(0))?;
             let left  = tenyr_insn!( top <- top <<  16 )?;
             let right = tenyr_insn!( top <- top >>> 16 )?; // logical shift, result is positive
-            Ok((*addr, vec![ left, right ], default_dest ))
+            Ok((addr, vec![ left, right ], default_dest ))
         },
         Conversion { from, to } => {
             let ch_from : char = from.try_into()?;
@@ -835,7 +835,7 @@ fn make_instructions<'a, T>(
                     insns.extend(sm.release(1));
                 }
 
-                Ok((*addr, insns, default_dest))
+                Ok((addr, insns, default_dest))
             } else {
                 Err("invalid ConstantInfo kind".into())
             }
@@ -883,7 +883,7 @@ fn test_make_instruction() -> GeneralResult<()> {
     let mut sm = stack::Manager::new(5, STACK_PTR, STACK_REGS.to_owned());
     let op = Operation::Constant(Explicit(ExplicitConstant { kind : JType::Int, value : 5 }));
     let namer = |x : &dyn fmt::Display| Ok(format!("{}:{}", "test", x.to_string()));
-    let insn = make_instructions(&mut sm, (&0, &op), &namer, &Useless)?;
+    let insn = make_instructions(&mut sm, (0, op), &namer, &Useless)?;
     let imm = 5_u8.into();
     assert_eq!(insn.1, vec![ Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad } ]);
     assert_eq!(insn.1[0].to_string(), " B  <-  5");
@@ -1212,6 +1212,8 @@ fn make_blocks_for_method<'a, 'b>(class : &'a Context<'b, &'b ClassConstant>, me
 
         let block : GeneralResult<Vec<_>> =
             ops .range(which.clone())
+                // TODO obviate clone by doing .remove() (no .drain on BTreeMap ?)
+                .map(|(&u, o)| (u, o.clone()))
                 .map(|x| make_instructions(&mut sm, x, &|y| make_label(class, method, y), class))
                 .collect();
         let (bb, ee) = make_basic_block(class, method, block?, which)?;
