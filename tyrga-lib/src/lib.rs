@@ -704,22 +704,28 @@ fn make_instructions<'a, T>(
             let v = [ res, put? ].concat();
             Ok((*addr, v, default_dest))
         },
-        ArrayAlloc { kind : Explicit(kind), dims : 1 } => {
-            let mut pre = match kind.size() {
-                1 => Ok(vec![]),
-                // insert an instruction that doubles the top-of-stack count
-                2 => {
-                    let top = get_reg(sm.get(0))?;
-                    Ok(vec![ tenyr_insn!( top <- top + top )? ])
-                },
-                _ => Err("impossible size"),
-            }?;
+        ArrayAlloc { kind, dims } => {
             let descriptor = "(I)Ljava.lang.Object;";
             let proc = "alloc";
             let name = make_builtin_name(proc, descriptor)?;
-            let (addr, v, dest) = make_call(sm, &name, descriptor)?;
-            pre.extend(v);
-            Ok((addr, pre, dest))
+
+            match (kind, dims) {
+                (Explicit(kind), 1) => {
+                    let mut pre = match kind.size() {
+                        1 => Ok(vec![]),
+                        // insert an instruction that doubles the top-of-stack count
+                        2 => {
+                            let top = get_reg(sm.get(0))?;
+                            Ok(vec![ tenyr_insn!( top <- top + top )? ])
+                        },
+                        _ => Err("impossible size"),
+                    }?;
+                    let (addr, v, dest) = make_call(sm, &name, descriptor)?;
+                    pre.extend(v);
+                    Ok((addr, pre, dest))
+                },
+                _ => Err("not implemented".into()),
+            }
         },
         Compare { kind, nans } => {
             let mut v = sm.reserve(1);
@@ -840,7 +846,6 @@ fn make_instructions<'a, T>(
             }
         },
 
-        ArrayAlloc { .. } |
         Invocation { .. } |
         StackOp    { .. } |
         Unhandled  ( .. ) =>
