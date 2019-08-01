@@ -709,6 +709,11 @@ fn make_instructions<'a, T>(
             let descriptor = "(I)Ljava.lang.Object;";
             let proc = "alloc";
             let name = make_builtin_name(proc, descriptor)?;
+            let regs : GeneralResult<Vec<_>> =
+                (0..dims.into())
+                    .map(|r| sm.get(r).ok_or_else(|| "reg lookup failure".into()))
+                    .collect();
+            let regs = regs?;
 
             match (kind, dims) {
                 (Explicit(kind), 1) => {
@@ -716,7 +721,7 @@ fn make_instructions<'a, T>(
                         1 => Ok(vec![]),
                         // insert an instruction that doubles the top-of-stack count
                         2 => {
-                            let top = get_reg(sm.get(0))?;
+                            let top = regs[0];
                             Ok(vec![ tenyr_insn!( top <- top + top )? ])
                         },
                         _ => Err("impossible size"),
