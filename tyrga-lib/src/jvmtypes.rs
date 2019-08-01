@@ -169,11 +169,16 @@ pub struct ExplicitConstant {
     pub value : i16,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum AllocationKind {
+    Array { kind : ArrayKind, dims : u8 },
+    Element { index : u16 },
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Operation {
-    Allocation  { index : u16 },
+    Allocation  (AllocationKind),
     Arithmetic  { kind : JType, op : ArithmeticOperation },
-    ArrayAlloc  { kind : ArrayKind, dims : u8 },
     Branch      { kind : JType, ops : OperandCount, way : Comparison, target : u16 },
     Compare     { kind : JType, nans : Option<NanComparisons> },
     Constant    (Indirection<ExplicitConstant>),
@@ -197,6 +202,7 @@ pub enum Operation {
 
 // returns any Operation parsed and the number of bytes consumed
 pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
+    use AllocationKind::*;
     use JType::*;
     use Indirection::*;
     use Instruction::*;
@@ -465,15 +471,15 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Invokedynamic(index) => Invocation { kind : InvokeKind::Dynamic, index },
         Invokeinterface { index, count } => Invocation { kind : InvokeKind::Interface(count), index },
 
-        New(index) => Allocation { index },
+        New(index) => Allocation(Element { index }),
         Newarray(kind) =>
             JType::try_from(kind)
-                .map(|k| ArrayAlloc { kind : Explicit(k), dims : 1 })
+                .map(|k| Allocation(Array { kind : Explicit(k), dims : 1 }))
                 .unwrap_or(Unhandled(insn)),
         Anewarray(_) =>
-            ArrayAlloc { kind : Explicit(JType::Object), dims : 1 },
+            Allocation(Array { kind : Explicit(JType::Object), dims : 1 }),
         Multianewarray { index, dimensions : dims } =>
-            ArrayAlloc { kind : Indirect(index), dims },
+            Allocation(Array { kind : Indirect(index), dims }),
 
         Arraylength => Length,
 

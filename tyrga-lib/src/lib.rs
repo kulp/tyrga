@@ -260,6 +260,7 @@ fn make_instructions<'a, T>(
     where T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
     use Operation::*;
+    use jvmtypes::AllocationKind::*;
     use jvmtypes::Indirection::*;
     use jvmtypes::SwitchParams::*;
     use std::convert::TryInto;
@@ -704,7 +705,7 @@ fn make_instructions<'a, T>(
             let v = [ res, put? ].concat();
             Ok((*addr, v, default_dest))
         },
-        ArrayAlloc { kind, dims } => {
+        Allocation(Array { kind, dims }) => {
             let descriptor = "(I)Ljava.lang.Object;";
             let proc = "alloc";
             let name = make_builtin_name(proc, descriptor)?;
@@ -834,7 +835,7 @@ fn make_instructions<'a, T>(
                 Err("invalid ConstantInfo kind".into())
             }
         },
-        Allocation { index } => {
+        Allocation(Element { index }) => {
             let class = gc.get_constant(index);
             if let ConstantInfo::Class(cc) = class {
                 let name = get_string(gc, cc.name_index).ok_or("no class name")?;
