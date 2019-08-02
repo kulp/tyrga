@@ -49,7 +49,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let all = std::str::from_utf8(&output.stderr)?;
                     let lines = all.lines();
                     let wrote = lines.filter(|x| x.starts_with(&"[wrote")).next().expect("strange output from javac");
-                    let first = wrote.rfind('[').expect("could not find `[`");
+                    // Different versions of javac use different syntaxes for demarcating paths
+                    let first = wrote.rfind(|c| c == '[' || c == ' ').expect("could not find `[`");
                     let last  = wrote.rfind(']').expect("could not find `]`");
                     let out = Path::new(&wrote[first+1..last-1]);
                     let tas = out.with_extension("tas");
