@@ -204,9 +204,9 @@ fn test_watermark() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
     let mut sm = Manager::new(5, O, v);
-    let _ = sm.reserve(4);
+    let mut insns = sm.reserve(4);
 
-    let insns = sm.set_watermark(0);
+    insns.extend(sm.set_watermark(0));
     assert_eq!(insns.len(), 5);
     let insns = sm.set_watermark(0);
     assert!(insns.is_empty());
