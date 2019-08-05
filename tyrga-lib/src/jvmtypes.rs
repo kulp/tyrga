@@ -211,27 +211,30 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
 
     let (addr, insn) = insn;
 
+    let make_constant = |kind, value|
+        Constant(Explicit(ExplicitConstant { kind, value }));
+
     let op = match insn {
         Nop => Noop,
 
-        Aconstnull => Constant(Explicit(ExplicitConstant { kind : Object, value :  0 })),
-        Iconstm1   => Constant(Explicit(ExplicitConstant { kind : Int   , value : -1 })),
-        Iconst0    => Constant(Explicit(ExplicitConstant { kind : Int   , value :  0 })),
-        Iconst1    => Constant(Explicit(ExplicitConstant { kind : Int   , value :  1 })),
-        Iconst2    => Constant(Explicit(ExplicitConstant { kind : Int   , value :  2 })),
-        Iconst3    => Constant(Explicit(ExplicitConstant { kind : Int   , value :  3 })),
-        Iconst4    => Constant(Explicit(ExplicitConstant { kind : Int   , value :  4 })),
-        Iconst5    => Constant(Explicit(ExplicitConstant { kind : Int   , value :  5 })),
-        Lconst0    => Constant(Explicit(ExplicitConstant { kind : Long  , value :  0 })),
-        Lconst1    => Constant(Explicit(ExplicitConstant { kind : Long  , value :  1 })),
-        Fconst0    => Constant(Explicit(ExplicitConstant { kind : Float , value :  0 })),
-        Fconst1    => Constant(Explicit(ExplicitConstant { kind : Float , value :  1 })),
-        Fconst2    => Constant(Explicit(ExplicitConstant { kind : Float , value :  2 })),
-        Dconst0    => Constant(Explicit(ExplicitConstant { kind : Double, value :  0 })),
-        Dconst1    => Constant(Explicit(ExplicitConstant { kind : Double, value :  1 })),
+        Aconstnull => make_constant(Object,  0),
+        Iconstm1   => make_constant(Int   , -1),
+        Iconst0    => make_constant(Int   ,  0),
+        Iconst1    => make_constant(Int   ,  1),
+        Iconst2    => make_constant(Int   ,  2),
+        Iconst3    => make_constant(Int   ,  3),
+        Iconst4    => make_constant(Int   ,  4),
+        Iconst5    => make_constant(Int   ,  5),
+        Lconst0    => make_constant(Long  ,  0),
+        Lconst1    => make_constant(Long  ,  1),
+        Fconst0    => make_constant(Float ,  0),
+        Fconst1    => make_constant(Float ,  1),
+        Fconst2    => make_constant(Float ,  2),
+        Dconst0    => make_constant(Double,  0),
+        Dconst1    => make_constant(Double,  1),
 
-        Bipush(v) => Constant(Explicit(ExplicitConstant { kind : Int, value : v.into() })),
-        Sipush(v) => Constant(Explicit(ExplicitConstant { kind : Int, value : v })),
+        Bipush(v) => make_constant(Int, v.into()),
+        Sipush(v) => make_constant(Int, v),
 
         Iload(index) => LoadLocal { kind : Int   , index : index.into() },
         Lload(index) => LoadLocal { kind : Long  , index : index.into() },
