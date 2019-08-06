@@ -200,6 +200,41 @@ pub enum Operation {
     Unhandled   (Instruction),
 }
 
+trait OperandType {
+    fn get_operand_type(&self) -> Option<JType>;
+}
+
+impl OperandType for Instruction {
+    fn get_operand_type(&self) -> Option<JType> {
+        use Instruction::*;
+        use JType::*;
+        match self {
+            Aconstnull
+                | Aload(_) | AloadWide(_)
+                | Aload0 | Aload1 | Aload2 | Aload3
+                => Some(Object),
+            Iconstm1 | Iconst0 | Iconst1 | Iconst2 | Iconst3 | Iconst4 | Iconst5
+                | Iload(_) | IloadWide(_)
+                | Iload0 | Iload1 | Iload2 | Iload3
+                => Some(Int),
+            Lconst0 | Lconst1
+                | Lload(_) | LloadWide(_)
+                | Lload0 | Lload1 | Lload2 | Lload3
+                => Some(Long),
+            Fconst0 | Fconst1 | Fconst2
+                | Fload(_) | FloadWide(_)
+                | Fload0 | Fload1 | Fload2 | Fload3
+                => Some(Float),
+            Dconst0 | Dconst1
+                | Dload(_) | DloadWide(_)
+                | Dload0 | Dload1 | Dload2 | Dload3
+                => Some(Double),
+
+            _ => None,
+        }
+    }
+}
+
 // returns any Operation parsed and the number of bytes consumed
 pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
     use AllocationKind::*;
@@ -214,60 +249,40 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
     let make_constant = |kind, value|
         Constant(Explicit(ExplicitConstant { kind, value }));
 
+    let kind_of = |insn : &Instruction|
+        insn.get_operand_type().unwrap_or_else(|| unreachable!("kind must be valid but is not"));
+
+    let kind = || kind_of(&insn);
+
     let op = match insn {
         Nop => Noop,
 
-        Aconstnull => make_constant(Object,  0),
-        Iconstm1   => make_constant(Int   , -1),
-        Iconst0    => make_constant(Int   ,  0),
-        Iconst1    => make_constant(Int   ,  1),
-        Iconst2    => make_constant(Int   ,  2),
-        Iconst3    => make_constant(Int   ,  3),
-        Iconst4    => make_constant(Int   ,  4),
-        Iconst5    => make_constant(Int   ,  5),
-        Lconst0    => make_constant(Long  ,  0),
-        Lconst1    => make_constant(Long  ,  1),
-        Fconst0    => make_constant(Float ,  0),
-        Fconst1    => make_constant(Float ,  1),
-        Fconst2    => make_constant(Float ,  2),
-        Dconst0    => make_constant(Double,  0),
-        Dconst1    => make_constant(Double,  1),
+        Iconstm1   => make_constant(kind(), -1),
+
+        Aconstnull | Iconst0 | Lconst0 | Fconst0 | Dconst0
+            => make_constant(kind(),  0),
+        Iconst1 | Lconst1 | Fconst1 | Dconst1
+            => make_constant(kind(),  1),
+        Iconst2 | Fconst2
+            => make_constant(kind(),  2),
+
+        Iconst3 => make_constant(kind(),  3),
+        Iconst4 => make_constant(kind(),  4),
+        Iconst5 => make_constant(kind(),  5),
 
         Bipush(v) => make_constant(Int, v.into()),
         Sipush(v) => make_constant(Int, v),
 
-        Iload(index) => LoadLocal { kind : Int   , index : index.into() },
-        Lload(index) => LoadLocal { kind : Long  , index : index.into() },
-        Fload(index) => LoadLocal { kind : Float , index : index.into() },
-        Dload(index) => LoadLocal { kind : Double, index : index.into() },
-        Aload(index) => LoadLocal { kind : Object, index : index.into() },
+        Iload(index) | Lload(index) | Fload(index) | Dload(index) | Aload(index)
+            => LoadLocal { kind : kind(), index : index.into() },
 
-        IloadWide(index) => LoadLocal { kind : Int   , index },
-        LloadWide(index) => LoadLocal { kind : Long  , index },
-        FloadWide(index) => LoadLocal { kind : Float , index },
-        DloadWide(index) => LoadLocal { kind : Double, index },
-        AloadWide(index) => LoadLocal { kind : Object, index },
+        IloadWide(index) | LloadWide(index) | FloadWide(index) | DloadWide(index) | AloadWide(index)
+            => LoadLocal { kind : kind(), index },
 
-        Iload0 => LoadLocal { kind : Int   , index : 0 },
-        Iload1 => LoadLocal { kind : Int   , index : 1 },
-        Iload2 => LoadLocal { kind : Int   , index : 2 },
-        Iload3 => LoadLocal { kind : Int   , index : 3 },
-        Lload0 => LoadLocal { kind : Long  , index : 0 },
-        Lload1 => LoadLocal { kind : Long  , index : 1 },
-        Lload2 => LoadLocal { kind : Long  , index : 2 },
-        Lload3 => LoadLocal { kind : Long  , index : 3 },
-        Fload0 => LoadLocal { kind : Float , index : 0 },
-        Fload1 => LoadLocal { kind : Float , index : 1 },
-        Fload2 => LoadLocal { kind : Float , index : 2 },
-        Fload3 => LoadLocal { kind : Float , index : 3 },
-        Dload0 => LoadLocal { kind : Double, index : 0 },
-        Dload1 => LoadLocal { kind : Double, index : 1 },
-        Dload2 => LoadLocal { kind : Double, index : 2 },
-        Dload3 => LoadLocal { kind : Double, index : 3 },
-        Aload0 => LoadLocal { kind : Object, index : 0 },
-        Aload1 => LoadLocal { kind : Object, index : 1 },
-        Aload2 => LoadLocal { kind : Object, index : 2 },
-        Aload3 => LoadLocal { kind : Object, index : 3 },
+        Dload0 | Fload0 | Iload0 | Lload0 | Aload0 => LoadLocal { kind : kind(), index : 0 },
+        Dload1 | Fload1 | Iload1 | Lload1 | Aload1 => LoadLocal { kind : kind(), index : 1 },
+        Dload2 | Fload2 | Iload2 | Lload2 | Aload2 => LoadLocal { kind : kind(), index : 2 },
+        Dload3 | Fload3 | Iload3 | Lload3 | Aload3 => LoadLocal { kind : kind(), index : 3 },
 
         Iaload => LoadArray(Int),
         Laload => LoadArray(Long),
