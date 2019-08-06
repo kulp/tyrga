@@ -1500,13 +1500,19 @@ fn write_method_table(class : &Context<'_, &ClassConstant>, methods : &[MethodIn
 
 fn write_vslot_list(class : &Context<'_, &ClassConstant>, methods : &[MethodInfo], outfile : &mut dyn Write) -> GeneralResult<()> {
     let non_virtual = MethodAccessFlags::STATIC | MethodAccessFlags::PRIVATE;
-    let suff = "vslot";
 
     let virtuals : Vec<_> = methods.iter().filter(|m| (m.access_flags & non_virtual).is_empty()).collect();
-    let width = get_width(class, virtuals.clone().into_iter(), Some(suff)); // TODO obviate clone
+    let names = virtuals.iter().map(|&method| Ok(mangle(&[ class, &class.contextualize(method), &"vslot" ])?) );
+    let lengths : GeneralResult<Vec<_>> =
+        names.map(|s : GeneralResult<String>| {
+            let s = s?;
+            let len = s.len();
+            Ok((s, len))
+        }).collect();
+    let lengths = lengths?;
+    let width = lengths.iter().fold(0, |c, (_, len)| c.max(*len));
 
-    for (index, &method) in virtuals.iter().enumerate() {
-        let mangled_name = mangle(&[ class, &class.contextualize(method), &suff ])?;
+    for (index, (mangled_name, _)) in lengths.iter().enumerate() {
         writeln!(outfile, "    .global {}", mangled_name)?;
         writeln!(outfile, "    .set    {:width$}, {}", mangled_name, index, width=width)?;
     }
