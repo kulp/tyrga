@@ -214,6 +214,7 @@ impl OperandType for Instruction {
                 | Aload0 | Aload1 | Aload2 | Aload3
                 | Astore(_) | AstoreWide(_)
                 | Astore0 | Astore1 | Astore2 | Astore3
+                | Areturn
                 => Some(Object),
             Iconstm1 | Iconst0 | Iconst1 | Iconst2 | Iconst3 | Iconst4 | Iconst5
                 | Iload(_) | IloadWide(_)
@@ -222,6 +223,7 @@ impl OperandType for Instruction {
                 | Istore0 | Istore1 | Istore2 | Istore3
                 | Iadd | Isub | Imul | Idiv | Irem | Ineg
                 | Ishl | Ishr | Iushr | Iand | Ior | Ixor
+                | Ireturn
                 => Some(Int),
             Lconst0 | Lconst1
                 | Lload(_) | LloadWide(_)
@@ -230,6 +232,7 @@ impl OperandType for Instruction {
                 | Lstore0 | Lstore1 | Lstore2 | Lstore3
                 | Ladd | Lsub | Lmul | Ldiv | Lrem | Lneg
                 | Lshl | Lshr | Lushr | Land | Lor | Lxor
+                | Lreturn
                 => Some(Long),
             Fconst0 | Fconst1 | Fconst2
                 | Fload(_) | FloadWide(_)
@@ -237,6 +240,7 @@ impl OperandType for Instruction {
                 | Fstore(_) | FstoreWide(_)
                 | Fstore0 | Fstore1 | Fstore2 | Fstore3
                 | Fadd | Fsub | Fmul | Fdiv | Frem | Fneg
+                | Freturn
                 => Some(Float),
             Dconst0 | Dconst1
                 | Dload(_) | DloadWide(_)
@@ -244,7 +248,10 @@ impl OperandType for Instruction {
                 | Dstore(_) | DstoreWide(_)
                 | Dstore0 | Dstore1 | Dstore2 | Dstore3
                 | Dadd | Dsub | Dmul | Ddiv | Drem | Dneg
+                | Dreturn
                 => Some(Double),
+            Return
+                => Some(Void),
 
                   I2l | I2f | I2d | I2b | I2c | I2s => Some(Int),
             L2i |       L2f | L2d                   => Some(Long),
@@ -441,19 +448,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         GotoW(off) => Jump { target : (addr as isize + off as isize) as u16 }, // TODO remove casts
 
         Ireturn | Lreturn | Freturn | Dreturn | Areturn | Return
-            => {
-                let kind = match insn {
-                    Ireturn => Int,
-                    Lreturn => Long,
-                    Freturn => Float,
-                    Dreturn => Double,
-                    Areturn => Object,
-                    Return  => Void,
-
-                    _ => unreachable!(),
-                };
-                Yield { kind }
-            },
+            => Yield { kind : kind() },
 
         Getstatic(index) => VarAction { op : VarOp::Get, kind : VarKind::Static, index },
         Putstatic(index) => VarAction { op : VarOp::Put, kind : VarKind::Static, index },
