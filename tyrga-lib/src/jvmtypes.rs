@@ -417,27 +417,23 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
             | Ifnull(off) | Ifnonnull(off)
             => {
                 let target = (addr as isize + off as isize) as u16;
-                let way = {
-                    match insn {
-                        Ifeq(_) | IfIcmpeq(_) | IfAcmpeq(_) | Ifnull(_)    => Comparison::Eq,
-                        Ifne(_) | IfIcmpne(_) | IfAcmpne(_) | Ifnonnull(_) => Comparison::Ne,
-                        Iflt(_) | IfIcmplt(_)                              => Comparison::Lt,
-                        Ifge(_) | IfIcmpge(_)                              => Comparison::Ge,
-                        Ifgt(_) | IfIcmpgt(_)                              => Comparison::Gt,
-                        Ifle(_) | IfIcmple(_)                              => Comparison::Le,
+                let way = match insn {
+                    Ifeq(_) | IfIcmpeq(_) | IfAcmpeq(_) | Ifnull(_)    => Comparison::Eq,
+                    Ifne(_) | IfIcmpne(_) | IfAcmpne(_) | Ifnonnull(_) => Comparison::Ne,
+                    Iflt(_) | IfIcmplt(_)                              => Comparison::Lt,
+                    Ifge(_) | IfIcmpge(_)                              => Comparison::Ge,
+                    Ifgt(_) | IfIcmpgt(_)                              => Comparison::Gt,
+                    Ifle(_) | IfIcmple(_)                              => Comparison::Le,
 
-                        _ => unreachable!(),
-                    }
+                    _ => unreachable!(),
                 };
-                let ops = {
-                    match insn {
-                        Ifeq(_) | Ifne(_) | Iflt(_) | Ifge(_) | Ifgt(_) | Ifle(_)
-                            | Ifnull(_) | Ifnonnull(_)
-                            => OperandCount::_1,
-                        IfIcmpeq(_) | IfIcmpne(_) | IfIcmplt(_) | IfIcmpge(_) | IfIcmpgt(_) | IfIcmple(_) | IfAcmpeq(_) | IfAcmpne(_)
-                            => OperandCount::_2,
-                        _ => unreachable!(),
-                    }
+                let ops = match insn {
+                    Ifeq(_) | Ifne(_) | Iflt(_) | Ifge(_) | Ifgt(_) | Ifle(_)
+                        | Ifnull(_) | Ifnonnull(_)
+                        => OperandCount::_1,
+                    IfIcmpeq(_) | IfIcmpne(_) | IfIcmplt(_) | IfIcmpge(_) | IfIcmpgt(_) | IfIcmple(_) | IfAcmpeq(_) | IfAcmpne(_)
+                        => OperandCount::_2,
+                    _ => unreachable!(),
                 };
 
                 Branch { kind : kind(), way, ops, target }
