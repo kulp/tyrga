@@ -246,6 +246,11 @@ impl OperandType for Instruction {
                 | Dadd | Dsub | Dmul | Ddiv | Drem | Dneg
                 => Some(Double),
 
+                  I2l | I2f | I2d | I2b | I2c | I2s => Some(Int),
+            L2i |       L2f | L2d                   => Some(Long),
+            F2i | F2l |       F2d                   => Some(Float),
+            D2i | D2l | D2f                         => Some(Double),
+
             _ => None,
         }
     }
@@ -375,14 +380,6 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
 
         I2l | I2f | I2d | L2i | L2f | L2d | F2i | F2l | F2d | D2i | D2l | D2f | I2b | I2c | I2s
             => {
-                let from = match insn {
-                          I2l | I2f | I2d | I2b | I2c | I2s => Int,
-                    L2i |       L2f | L2d                   => Long,
-                    F2i | F2l |       F2d                   => Float,
-                    D2i | D2l | D2f                         => Double,
-
-                    _ => unreachable!(),
-                };
                 let to = match insn {
                     I2b                   => Byte,
                     I2c                   => Char,
@@ -396,7 +393,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
                     _ => unreachable!(),
                 };
 
-                Conversion { from, to }
+                Conversion { from : kind(), to }
             },
 
         Lcmp    => Compare { kind : Long  , nans : None                          },
