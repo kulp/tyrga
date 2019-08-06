@@ -215,6 +215,7 @@ impl OperandType for Instruction {
                 | Astore(_) | AstoreWide(_)
                 | Astore0 | Astore1 | Astore2 | Astore3
                 | Areturn
+                | IfAcmpeq(_) | IfAcmpne(_) | Ifnull(_) | Ifnonnull(_)
                 => Some(Object),
             Iconstm1 | Iconst0 | Iconst1 | Iconst2 | Iconst3 | Iconst4 | Iconst5
                 | Iload(_) | IloadWide(_)
@@ -224,6 +225,8 @@ impl OperandType for Instruction {
                 | Iadd | Isub | Imul | Idiv | Irem | Ineg
                 | Ishl | Ishr | Iushr | Iand | Ior | Ixor
                 | Ireturn
+                | Ifeq(_) | Ifne(_) | Iflt(_) | Ifge(_) | Ifgt(_) | Ifle(_)
+                | IfIcmpeq(_) | IfIcmpne(_) | IfIcmplt(_) | IfIcmpge(_) | IfIcmpgt(_) | IfIcmple(_)
                 => Some(Int),
             Lconst0 | Lconst1
                 | Lload(_) | LloadWide(_)
@@ -413,10 +416,6 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
             | IfIcmpeq(off) | IfIcmpne(off) | IfIcmplt(off) | IfIcmpge(off) | IfIcmpgt(off) | IfIcmple(off) | IfAcmpeq(off) | IfAcmpne(off)
             | Ifnull(off) | Ifnonnull(off)
             => {
-                let kind = match insn {
-                    IfAcmpeq(_) | IfAcmpne(_) | Ifnull(_) | Ifnonnull(_) => Object,
-                    _ => Int,
-                };
                 let target = (addr as isize + off as isize) as u16;
                 let way = {
                     match insn {
@@ -441,7 +440,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
                     }
                 };
 
-                Branch { kind, way, ops, target }
+                Branch { kind : kind(), way, ops, target }
             },
 
         Goto(off) => Jump { target : (addr as isize + off as isize) as u16 }, // TODO remove casts
