@@ -480,7 +480,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
                 .map(|k| Allocation(Array { kind : Explicit(k), dims : 1 }))
                 .unwrap_or(Unhandled(insn)),
         Anewarray(_) =>
-            Allocation(Array { kind : Explicit(JType::Object), dims : 1 }),
+            Allocation(Array { kind : Explicit(Object), dims : 1 }),
         Multianewarray { index, dimensions : dims } =>
             Allocation(Array { kind : Indirect(index), dims }),
 
