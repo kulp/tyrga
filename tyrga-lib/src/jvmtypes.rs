@@ -212,22 +212,32 @@ impl OperandType for Instruction {
             Aconstnull
                 | Aload(_) | AloadWide(_)
                 | Aload0 | Aload1 | Aload2 | Aload3
+                | Astore(_) | AstoreWide(_)
+                | Astore0 | Astore1 | Astore2 | Astore3
                 => Some(Object),
             Iconstm1 | Iconst0 | Iconst1 | Iconst2 | Iconst3 | Iconst4 | Iconst5
                 | Iload(_) | IloadWide(_)
                 | Iload0 | Iload1 | Iload2 | Iload3
+                | Istore(_) | IstoreWide(_)
+                | Istore0 | Istore1 | Istore2 | Istore3
                 => Some(Int),
             Lconst0 | Lconst1
                 | Lload(_) | LloadWide(_)
                 | Lload0 | Lload1 | Lload2 | Lload3
+                | Lstore(_) | LstoreWide(_)
+                | Lstore0 | Lstore1 | Lstore2 | Lstore3
                 => Some(Long),
             Fconst0 | Fconst1 | Fconst2
                 | Fload(_) | FloadWide(_)
                 | Fload0 | Fload1 | Fload2 | Fload3
+                | Fstore(_) | FstoreWide(_)
+                | Fstore0 | Fstore1 | Fstore2 | Fstore3
                 => Some(Float),
             Dconst0 | Dconst1
                 | Dload(_) | DloadWide(_)
                 | Dload0 | Dload1 | Dload2 | Dload3
+                | Dstore(_) | DstoreWide(_)
+                | Dstore0 | Dstore1 | Dstore2 | Dstore3
                 => Some(Double),
 
             _ => None,
@@ -293,38 +303,16 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Caload => LoadArray(Char),
         Saload => LoadArray(Short),
 
-        Istore(index) => StoreLocal { kind : Int   , index : index.into() },
-        Lstore(index) => StoreLocal { kind : Long  , index : index.into() },
-        Fstore(index) => StoreLocal { kind : Float , index : index.into() },
-        Dstore(index) => StoreLocal { kind : Double, index : index.into() },
-        Astore(index) => StoreLocal { kind : Object, index : index.into() },
+        Istore(index) | Lstore(index) | Fstore(index) | Dstore(index) | Astore(index)
+            => StoreLocal { kind : kind(), index : index.into() },
 
-        IstoreWide(index) => StoreLocal { kind : Int   , index },
-        LstoreWide(index) => StoreLocal { kind : Long  , index },
-        FstoreWide(index) => StoreLocal { kind : Float , index },
-        DstoreWide(index) => StoreLocal { kind : Double, index },
-        AstoreWide(index) => StoreLocal { kind : Object, index },
+        IstoreWide(index) | LstoreWide(index) | FstoreWide(index) | DstoreWide(index) | AstoreWide(index)
+            => StoreLocal { kind : kind(), index },
 
-        Istore0 => StoreLocal { kind : Int   , index : 0 },
-        Istore1 => StoreLocal { kind : Int   , index : 1 },
-        Istore2 => StoreLocal { kind : Int   , index : 2 },
-        Istore3 => StoreLocal { kind : Int   , index : 3 },
-        Lstore0 => StoreLocal { kind : Long  , index : 0 },
-        Lstore1 => StoreLocal { kind : Long  , index : 1 },
-        Lstore2 => StoreLocal { kind : Long  , index : 2 },
-        Lstore3 => StoreLocal { kind : Long  , index : 3 },
-        Fstore0 => StoreLocal { kind : Float , index : 0 },
-        Fstore1 => StoreLocal { kind : Float , index : 1 },
-        Fstore2 => StoreLocal { kind : Float , index : 2 },
-        Fstore3 => StoreLocal { kind : Float , index : 3 },
-        Dstore0 => StoreLocal { kind : Double, index : 0 },
-        Dstore1 => StoreLocal { kind : Double, index : 1 },
-        Dstore2 => StoreLocal { kind : Double, index : 2 },
-        Dstore3 => StoreLocal { kind : Double, index : 3 },
-        Astore0 => StoreLocal { kind : Object, index : 0 },
-        Astore1 => StoreLocal { kind : Object, index : 1 },
-        Astore2 => StoreLocal { kind : Object, index : 2 },
-        Astore3 => StoreLocal { kind : Object, index : 3 },
+        Dstore0 | Fstore0 | Istore0 | Lstore0 | Astore0 => StoreLocal { kind : kind(), index : 0 },
+        Dstore1 | Fstore1 | Istore1 | Lstore1 | Astore1 => StoreLocal { kind : kind(), index : 1 },
+        Dstore2 | Fstore2 | Istore2 | Lstore2 | Astore2 => StoreLocal { kind : kind(), index : 2 },
+        Dstore3 | Fstore3 | Istore3 | Lstore3 | Astore3 => StoreLocal { kind : kind(), index : 3 },
 
         Iastore => StoreArray(Int),
         Lastore => StoreArray(Long),
