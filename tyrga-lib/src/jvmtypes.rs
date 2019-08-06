@@ -220,24 +220,30 @@ impl OperandType for Instruction {
                 | Iload0 | Iload1 | Iload2 | Iload3
                 | Istore(_) | IstoreWide(_)
                 | Istore0 | Istore1 | Istore2 | Istore3
+                | Iadd | Isub | Imul | Idiv | Irem | Ineg
+                | Ishl | Ishr | Iushr | Iand | Ior | Ixor
                 => Some(Int),
             Lconst0 | Lconst1
                 | Lload(_) | LloadWide(_)
                 | Lload0 | Lload1 | Lload2 | Lload3
                 | Lstore(_) | LstoreWide(_)
                 | Lstore0 | Lstore1 | Lstore2 | Lstore3
+                | Ladd | Lsub | Lmul | Ldiv | Lrem | Lneg
+                | Lshl | Lshr | Lushr | Land | Lor | Lxor
                 => Some(Long),
             Fconst0 | Fconst1 | Fconst2
                 | Fload(_) | FloadWide(_)
                 | Fload0 | Fload1 | Fload2 | Fload3
                 | Fstore(_) | FstoreWide(_)
                 | Fstore0 | Fstore1 | Fstore2 | Fstore3
+                | Fadd | Fsub | Fmul | Fdiv | Frem | Fneg
                 => Some(Float),
             Dconst0 | Dconst1
                 | Dload(_) | DloadWide(_)
                 | Dload0 | Dload1 | Dload2 | Dload3
                 | Dstore(_) | DstoreWide(_)
                 | Dstore0 | Dstore1 | Dstore2 | Dstore3
+                | Dadd | Dsub | Dmul | Ddiv | Drem | Dneg
                 => Some(Double),
 
             _ => None,
@@ -346,20 +352,6 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
             | Ior  | Lor
             | Ixor | Lxor
             => {
-                let kind = match insn {
-                    Iadd | Isub | Imul | Idiv | Irem | Ineg
-                        | Ishl | Ishr | Iushr | Iand | Ior | Ixor
-                        => JType::Int,
-                    Ladd | Lsub | Lmul | Ldiv | Lrem | Lneg
-                        | Lshl | Lshr | Lushr | Land | Lor | Lxor
-                        => JType::Long,
-                    Fadd | Fsub | Fmul | Fdiv | Frem | Fneg
-                        => JType::Float,
-                    Dadd | Dsub | Dmul | Ddiv | Drem | Dneg
-                        => JType::Double,
-
-                    _ => unreachable!(),
-                };
                 let op = match insn {
                     Iadd | Ladd | Fadd | Dadd => ArithmeticOperation::Add,
                     Isub | Lsub | Fsub | Dsub => ArithmeticOperation::Sub,
@@ -375,7 +367,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
                     Ixor | Lxor               => ArithmeticOperation::Xor,
                     _ => unreachable!(),
                 };
-                Arithmetic { kind, op }
+                Arithmetic { kind : kind(), op }
             },
 
         Iinc     { index, value } => Increment { index : index.into(), value : value.into() },
