@@ -1462,25 +1462,6 @@ pub fn translate_method<'a, 'b>(class : &'a Context<'b, &'b ClassConstant>, meth
     Ok(Method { name, prologue, blocks, epilogue })
 }
 
-fn get_width<'a, T>(
-        class : &Context<'_, &ClassConstant>,
-        list : impl IntoIterator<Item=&'a T>,
-        suff : Option<&str>,
-    ) -> usize
-    where T : Named + Described + 'a
-{
-    let get_len = |m| {
-        let context = class.contextualize(m);
-        let mut v : Vec<&dyn Manglable> = vec![ class, &context ];
-        {
-            #![allow(clippy::needless_borrow)]
-            if let Some(ref suff) = suff { v.push(suff) }
-        }
-        mangle(&v).unwrap_or_default().len()
-    };
-    list.into_iter().fold(0, |c, m| c.max(get_len(m)))
-}
-
 fn write_method_table(class : &Context<'_, &ClassConstant>, methods : &[MethodInfo], outfile : &mut dyn Write) -> GeneralResult<()> {
     let label = ".Lmethod_table";
     writeln!(outfile, "{}:", label)?;
@@ -1541,25 +1522,22 @@ fn write_field_list(
         generator : impl Fn(&mut dyn Write, &str, usize, usize, usize) -> GeneralResult<()>,
     ) -> GeneralResult<()>
 {
-    let fields : Vec<_> = fields.iter().filter(selector).collect();
-    let width = get_width(class, fields.clone().into_iter(), Some(suff));
-    let get_size = |i| {
-        let s = get_string(class, i).expect("missing descriptor");
-        let desc = s.chars().next().expect("empty descriptor");
-        args::field_size(desc).expect("getting field size failed")
-    };
-    let offsets = fields.iter().scan(0, |off, &f| {
-        let old = *off;
-        *off += get_size(f.descriptor_index);
-        Some(old)
+    let tuples = fields.iter().filter(selector).map(|f| {
+        let s = get_string(class, f.descriptor_index).ok_or("missing descriptor")?;
+        let desc = s.chars().next().ok_or("empty descriptor")?;
+        let size = args::field_size(desc)?.into();
+        let name = mangle(&[ class, &class.contextualize(f), &suff ])?;
+        Ok((size, f, name))
     });
 
-    for (&field, offset) in fields.iter().zip(offsets) {
-        let mangled_name = mangle(&[ class, &class.contextualize(field), &suff ])?;
-        let size = get_size(field.descriptor_index);
-        generator(outfile, &mangled_name, offset.into(), size.into(), width)?;
+    let tuples : Vec<_> = tuples.flat_map(<GeneralResult<_>>::into_iter).collect();
+    let sums = tuples.iter().scan(0, |off, tup| { let old = *off; *off += tup.0; Some(old) });
+    let width = tuples.iter().map(|t| t.2.len()).fold(0, usize::max);
+
+    for ((size, _, mangled_name), offset) in tuples.iter().zip(sums) {
+        generator(outfile, mangled_name, offset, *size, width)?;
     }
-    if ! fields.is_empty() {
+    if ! tuples.is_empty() {
         writeln!(outfile)?;
     }
 
