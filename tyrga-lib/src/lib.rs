@@ -708,6 +708,43 @@ fn make_instructions<'a, T>(
         },
         Invocation { kind : InvokeKind::Static, index } =>
             make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2]),
+        // TODO vet handling of Virtual against JVM spec
+        Invocation { kind : InvokeKind::Virtual, index } => {
+            if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
+                use Register::P;
+
+                // Save return address into bottom of register-based stack
+                let bottom = sm.get_regs()[0];
+                let descriptor = &get_method_parts(gc, index)?[2];
+                let param_count = u16::from(count_params(descriptor)?);
+                let obj = get_reg(sm.get(param_count))?;
+                let stack_count = param_count + 1; // extra "1" for `this`
+
+                let mut insns = Vec::new();
+                insns.extend(sm.freeze());
+                insns.extend(sm.reserve(1));
+
+                let temp = get_reg(sm.get(0))?;
+                let far = format!("@{}", mangle(&[ &gc.contextualize(mr), &"vslot" ])?);
+                let off : tenyr::Immediate20 = tenyr::Immediate::Expr(exprtree::Atom::Variable(far));
+
+                insns.extend(tenyr_insn_list!(
+                    temp <- [obj - 1]   ;
+                    bottom <- P + 1     ;
+                    P <- [temp + (off)] ;
+                ));
+                insns.extend(sm.release(1));
+
+                // adjust stack for returned values
+                sm.release_frozen(stack_count);
+                sm.reserve_frozen(count_returns(descriptor)?.into());
+                insns.extend(sm.thaw());
+
+                Ok((addr, insns, default_dest.clone()))
+            } else {
+                Err("bad constant kind".into())
+            }
+        },
         StackOp { op : StackOperation::Pop, size } => {
             let v = sm.release(size as u16);
             Ok((addr, v, default_dest))
