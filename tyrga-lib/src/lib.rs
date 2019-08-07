@@ -1484,10 +1484,19 @@ fn get_width<'a, T>(
 fn write_method_table(class : &Context<'_, &ClassConstant>, methods : &[MethodInfo], outfile : &mut dyn Write) -> GeneralResult<()> {
     let label = ".Lmethod_table";
     writeln!(outfile, "{}:", label)?;
-    let width = get_width(class, methods, None);
-    for method in methods {
+
+    let names = methods.iter().map(|method| Ok(mangle(&[ class, &class.contextualize(method) ])?) );
+    let lengths : GeneralResult<Vec<_>> =
+        names.map(|s : GeneralResult<String>| {
+            let s = s?;
+            let len = s.len();
+            Ok((s, len))
+        }).collect();
+    let lengths = lengths?;
+    let width = lengths.iter().fold(0, |c, (_, len)| c.max(*len));
+
+    for (method, (mangled_name, _)) in methods.iter().zip(lengths) {
         let flags = method.access_flags;
-        let mangled_name = mangle(&[ class, &class.contextualize(method) ])?;
 
         writeln!(outfile, "    .word @{:width$} - {}, {:#06x}", mangled_name, label, flags.bits(), width=width)?;
     }
