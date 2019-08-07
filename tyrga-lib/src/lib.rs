@@ -312,14 +312,12 @@ fn make_instructions<'a, T>(
 
         // Save return address into bottom of register-based stack
         let bottom = sm.get_regs()[0];
-        insns.push(Instruction {
-            kind : Type3(1_u8.into()),
-            ..make_mov(bottom, tenyr::Register::P)
-        });
-
         let far = format!("@+{}", target);
         let off : tenyr::Immediate20 = tenyr::Immediate::Expr(exprtree::Atom::Variable(far));
-        insns.push( tenyr_insn!( P <- P + (off) )? );
+        insns.extend(tenyr_insn_list!(
+            bottom <- P + 1 ;
+            P <- P + (off)  ;
+        ));
 
         // adjust stack for returned values
         sm.release_frozen(count_params(descriptor)?.into());
