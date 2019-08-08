@@ -38,6 +38,7 @@ pub const NOOP_TYPE3 : Instruction = Instruction {
 };
 
 // Some tenyr ops are more than one token, so require special treatment
+#[macro_export]
 macro_rules! tenyr_get_op {
     ( $callback:ident                       ) => { { use $crate::tenyr::Opcode::*; let op = tenyr_op!( | ); $callback!(op            ) } };
 
@@ -50,6 +51,7 @@ macro_rules! tenyr_get_op {
 
 pub type InsnResult = Result<Instruction, Box<dyn std::error::Error>>;
 
+#[macro_export]
 macro_rules! tenyr_imm {
     ( $imm:expr ) => { {
         use std::convert::TryInto;
@@ -57,6 +59,7 @@ macro_rules! tenyr_imm {
     } };
 }
 
+#[macro_export]
 macro_rules! tenyr_type013 {
     ( $opname:ident ( $imm:expr ) $( + $y:ident )? ) => {
         Ok($crate::tenyr::Instruction {
@@ -122,6 +125,7 @@ macro_rules! tenyr_type013 {
     };
 }
 
+#[macro_export]
 macro_rules! tenyr_type2 {
     ( $opname:ident $x:ident $( + $y:ident )? ) => {
         Ok($crate::tenyr::Instruction {
@@ -136,6 +140,7 @@ macro_rules! tenyr_type2 {
     };
 }
 
+#[macro_export]
 macro_rules! tenyr_rhs {
     ( $( $x:ident + )? ( $imm:expr ) ) => {
         {
