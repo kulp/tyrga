@@ -203,7 +203,7 @@ fn test_normal_stack() {
 fn test_watermark() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
-    let mut sm = Manager::new(5, O, v);
+    let mut sm = Manager::new(v.len() as u16, O, v);
     let mut insns = sm.reserve(4);
 
     insns.extend(sm.set_watermark(0));
