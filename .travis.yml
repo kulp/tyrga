@@ -9,6 +9,7 @@ script:
   - cargo clippy --tests
   - cargo build
   - cargo test
+  - cargo doc
 matrix:
   allow_failures:
     - rust: nightly
