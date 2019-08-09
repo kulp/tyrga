@@ -50,73 +50,6 @@ enum Destination {
     Address(usize),
 }
 
-pub trait Named     { fn name_index(&self)       -> u16; }
-pub trait Described { fn descriptor_index(&self) -> u16; }
-
-impl Named     for MethodInfo { fn name_index(&self)       -> u16 { self.name_index } }
-impl Described for MethodInfo { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
-
-impl Named     for FieldInfo  { fn name_index(&self)       -> u16 { self.name_index } }
-impl Described for FieldInfo  { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
-
-impl Named for ClassConstant { fn name_index(&self) -> u16 { self.name_index } }
-
-impl Named     for NameAndTypeConstant { fn name_index(&self)       -> u16 { self.name_index } }
-impl Described for NameAndTypeConstant { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
-
-// TODO deduplicate this implementation with the one for &dyn Named
-impl Manglable for Context<'_, &ClassConstant> {
-    fn pieces(&self) -> GeneralResult<Vec<String>> {
-        let r : GeneralResult<String> = get_string(self, self.as_ref().name_index()).ok_or_else(|| "no name".into());
-        Ok(vec![ r? ])
-    }
-}
-
-impl Manglable for &str {
-    fn pieces(&self) -> GeneralResult<Vec<String>> { Ok(vec![ self.to_string() ]) }
-}
-
-impl Manglable for Context<'_, &FieldRefConstant> {
-    fn pieces(&self) -> GeneralResult<Vec<std::string::String>> {
-        use classfile_parser::constant_info::ConstantInfo::*;
-
-        let fr = self.as_ref();
-        if let Class(ni) = self.get_constant(fr.class_index) {
-            let ni = ni.name_index;
-            let ss = get_string(self, ni).ok_or("no such name")?;
-            if let NameAndType(nt) = self.get_constant(fr.name_and_type_index) {
-                let nt = self.contextualize(nt);
-                Ok(std::iter::once(ss).chain(nt.pieces()?.into_iter()).collect())
-            } else {
-                Err("invalid ConstantInfo kind".into())
-            }
-        } else {
-            Err("invalid ConstantInfo kind".into())
-        }
-    }
-}
-
-// TODO deduplicate code with FieldRefConstant above
-impl Manglable for Context<'_, &MethodRefConstant> {
-    fn pieces(&self) -> GeneralResult<Vec<std::string::String>> {
-        use classfile_parser::constant_info::ConstantInfo::*;
-
-        let fr = self.as_ref();
-        if let Class(ni) = self.get_constant(fr.class_index) {
-            let ni = ni.name_index;
-            let ss = get_string(self, ni).ok_or("no such name")?;
-            if let NameAndType(nt) = self.get_constant(fr.name_and_type_index) {
-                let nt = self.contextualize(nt);
-                Ok(std::iter::once(ss).chain(nt.pieces()?.into_iter()).collect())
-            } else {
-                Err("invalid ConstantInfo kind".into())
-            }
-        } else {
-            Err("invalid ConstantInfo kind".into())
-        }
-    }
-}
-
 fn expand_immediate_load(sm : &mut stack::Manager, insn : Instruction, imm : i32)
     -> GeneralResult<Vec<Instruction>>
 {
@@ -1011,8 +944,11 @@ fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
 
 mod util {
     use classfile_parser::ClassFile;
+    use classfile_parser::constant_info::*;
     use classfile_parser::constant_info::ConstantInfo;
     use classfile_parser::constant_info::FieldRefConstant;
+    use classfile_parser::field_info::FieldInfo;
+    use classfile_parser::method_info::MethodInfo;
     use std::convert::TryFrom;
     use std::rc::Rc;
     use super::GeneralResult;
@@ -1022,7 +958,73 @@ mod util {
     use super::tenyr::Instruction;
     use super::tenyr::MemoryOpType;
     use super::tenyr::Register;
-    use super::{Described, Named};
+
+    pub trait Named     { fn name_index(&self)       -> u16; }
+    pub trait Described { fn descriptor_index(&self) -> u16; }
+
+    impl Named     for MethodInfo { fn name_index(&self)       -> u16 { self.name_index } }
+    impl Described for MethodInfo { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
+
+    impl Named     for FieldInfo  { fn name_index(&self)       -> u16 { self.name_index } }
+    impl Described for FieldInfo  { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
+
+    impl Named for ClassConstant { fn name_index(&self) -> u16 { self.name_index } }
+
+    impl Named     for NameAndTypeConstant { fn name_index(&self)       -> u16 { self.name_index } }
+    impl Described for NameAndTypeConstant { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
+
+    // TODO deduplicate this implementation with the one for &dyn Named
+    impl Manglable for Context<'_, &ClassConstant> {
+        fn pieces(&self) -> GeneralResult<Vec<String>> {
+            let r : GeneralResult<String> = get_string(self, self.as_ref().name_index()).ok_or_else(|| "no name".into());
+            Ok(vec![ r? ])
+        }
+    }
+
+    impl Manglable for &str {
+        fn pieces(&self) -> GeneralResult<Vec<String>> { Ok(vec![ self.to_string() ]) }
+    }
+
+    impl Manglable for Context<'_, &FieldRefConstant> {
+        fn pieces(&self) -> GeneralResult<Vec<std::string::String>> {
+            use classfile_parser::constant_info::ConstantInfo::*;
+
+            let fr = self.as_ref();
+            if let Class(ni) = self.get_constant(fr.class_index) {
+                let ni = ni.name_index;
+                let ss = get_string(self, ni).ok_or("no such name")?;
+                if let NameAndType(nt) = self.get_constant(fr.name_and_type_index) {
+                    let nt = self.contextualize(nt);
+                    Ok(std::iter::once(ss).chain(nt.pieces()?.into_iter()).collect())
+                } else {
+                    Err("invalid ConstantInfo kind".into())
+                }
+            } else {
+                Err("invalid ConstantInfo kind".into())
+            }
+        }
+    }
+
+    // TODO deduplicate code with FieldRefConstant above
+    impl Manglable for Context<'_, &MethodRefConstant> {
+        fn pieces(&self) -> GeneralResult<Vec<std::string::String>> {
+            use classfile_parser::constant_info::ConstantInfo::*;
+
+            let fr = self.as_ref();
+            if let Class(ni) = self.get_constant(fr.class_index) {
+                let ni = ni.name_index;
+                let ss = get_string(self, ni).ok_or("no such name")?;
+                if let NameAndType(nt) = self.get_constant(fr.name_and_type_index) {
+                    let nt = self.contextualize(nt);
+                    Ok(std::iter::once(ss).chain(nt.pieces()?.into_iter()).collect())
+                } else {
+                    Err("invalid ConstantInfo kind".into())
+                }
+            } else {
+                Err("invalid ConstantInfo kind".into())
+            }
+        }
+    }
 
     pub type ConstantGetter<'a> = dyn Fn(u16) -> &'a ConstantInfo + 'a;
 
