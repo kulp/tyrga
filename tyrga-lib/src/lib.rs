@@ -1,3 +1,7 @@
+//! This crate provides a library interface for converting Java Virtual Machine
+//! bytecode into [tenyr](http://tenyr.info) assembly language - it is an
+//! ahead-of-time compiler for the JVM, targeting the tenyr machine.
+
 #![deny(clippy::items_after_statements)]
 #![deny(clippy::needless_borrow)]
 #![deny(clippy::option_unwrap_used)]
@@ -1544,6 +1548,7 @@ fn write_field_list(
     Ok(())
 }
 
+/// Emits tenyr assembly language corresponding to the given input class.
 pub fn translate_class(class : classfile_parser::ClassFile, outfile : &mut dyn Write) -> GeneralResult<()> {
     let fields = &class.fields;
     let methods = &class.methods;
