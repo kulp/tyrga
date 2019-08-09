@@ -1418,7 +1418,7 @@ fn test_count_returns() -> GeneralResult<()> {
     Ok(())
 }
 
-pub fn translate_method<'a, 'b>(class : &'a Context<'b, &'b ClassConstant>, method : &'a Context<'b, &'b MethodInfo>) -> GeneralResult<Method> {
+fn translate_method<'a, 'b>(class : &'a Context<'b, &'b ClassConstant>, method : &'a Context<'b, &'b MethodInfo>) -> GeneralResult<Method> {
     let total_locals = get_method_code(method.as_ref())?.max_locals;
     let descriptor = get_string(class, method.as_ref().descriptor_index).ok_or("method descriptor missing")?;
     let num_returns = count_returns(&descriptor)?.into();
