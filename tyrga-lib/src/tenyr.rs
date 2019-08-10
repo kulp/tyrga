@@ -208,6 +208,7 @@ macro_rules! tenyr_rhs {
     };
 }
 
+/// Parses a large subset of tenyr assembly language into `Instruction` objects
 #[macro_export]
 macro_rules! tenyr_insn {
     (   $z:ident   <- [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::LoadRight , ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
@@ -262,6 +263,7 @@ fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+/// Parses a list of tenyr instructions, each terminated with `;`, into a chained `Iterator`
 #[macro_export]
 macro_rules! tenyr_insn_list {
     () => { vec![] };
