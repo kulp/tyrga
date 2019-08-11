@@ -1552,6 +1552,10 @@ fn write_field_list(
 
 /// Emits tenyr assembly language corresponding to the given input class.
 pub fn translate_class(class : classfile_parser::ClassFile, outfile : &mut dyn Write) -> GeneralResult<()> {
+    if class.major_version < 50 {
+        return Err("need classfile version ≥50.0 for StackMapTable attributes".into());
+    }
+
     let fields = &class.fields;
     let methods = &class.methods;
     let get_constant = get_constant_getter(&class);
