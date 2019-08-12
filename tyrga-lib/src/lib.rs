@@ -27,6 +27,7 @@ use std::path::Path;
 #[cfg(test)]
 use walkdir::WalkDir;
 
+use classfile_parser::ClassFile;
 use classfile_parser::attribute_info::CodeAttribute;
 use classfile_parser::attribute_info::StackMapFrame;
 use classfile_parser::constant_info::*;
@@ -898,7 +899,7 @@ fn generic_error(e : impl Error) -> Box<dyn Error> {
 }
 
 #[cfg(test)]
-fn parse_class(path : &Path) -> GeneralResult<classfile_parser::ClassFile> {
+fn parse_class(path : &Path) -> GeneralResult<ClassFile> {
     let p = path.with_extension("");
     let p = p.to_str().ok_or("bad path")?;
     classfile_parser::parse_class(p).map_err(Into::into)
@@ -1590,7 +1591,7 @@ fn write_field_list(
 }
 
 /// Emits tenyr assembly language corresponding to the given input class.
-pub fn translate_class(class : classfile_parser::ClassFile, outfile : &mut dyn Write) -> GeneralResult<()> {
+pub fn translate_class(class : ClassFile, outfile : &mut dyn Write) -> GeneralResult<()> {
     if class.major_version < 50 {
         return Err("need classfile version ≥50.0 for StackMapTable attributes".into());
     }
