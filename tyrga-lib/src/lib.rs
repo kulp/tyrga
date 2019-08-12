@@ -1403,7 +1403,7 @@ mod args {
         }
 
         if s.is_empty() { return Ok(0); }
-        let ch = s.chars().next().ok_or("impossible empty string")?; // cannot fail since s is not empty
+        let ch = s.chars().next().unwrap_or('x'); // .next() cannot fail since s is not empty
         let mine = field_size(ch);
         Ok(mine? + count_internal(&s[eat(s)?..])?)
     }
