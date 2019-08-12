@@ -1207,7 +1207,12 @@ fn get_class<'a, T>(ctx : util::Context<'a, T>, index : u16) -> GeneralResult<Co
     }
 }
 
-fn make_label(class : &Context<'_, &ClassConstant>, method : &Context<'_, &MethodInfo>, suffix : &dyn Display) -> GeneralResult<String> {
+fn make_label(
+        class : &Context<'_, &ClassConstant>,
+        method : &Context<'_, &MethodInfo>,
+        suffix : &dyn Display,
+    ) -> GeneralResult<String>
+{
     Ok(format!(".L{}", mangle(&[ class, method, &&*format!("__{}", &suffix) ])?))
 }
 
@@ -1252,8 +1257,11 @@ fn make_basic_block(
 
 // The incoming stack::Manager represents a "prototype" stack::Manager which should be empty, and which
 // will be cloned each time a new BasicBlock is seen.
-fn make_blocks_for_method<'a, 'b>(class : &'a Context<'b, &'b ClassConstant>, method : &'a Context<'b, &'b MethodInfo>, sm : &stack::Manager)
-    -> GeneralResult<Vec<tenyr::BasicBlock>>
+fn make_blocks_for_method<'a, 'b>(
+        class : &'a Context<'b, &'b ClassConstant>,
+        method : &'a Context<'b, &'b MethodInfo>,
+        sm : &stack::Manager,
+    ) -> GeneralResult<Vec<tenyr::BasicBlock>>
 {
     use std::iter::FromIterator;
 
@@ -1264,7 +1272,13 @@ fn make_blocks_for_method<'a, 'b>(class : &'a Context<'b, &'b ClassConstant>, me
         ops : &'a BTreeMap<usize, Operation>,
     }
 
-    fn make_blocks(params : &Params, seen : &mut HashSet<usize>, mut sm : stack::Manager, which : &Range<usize>) -> GeneralResult<Vec<tenyr::BasicBlock>> {
+    fn make_blocks(
+            params : &Params,
+            seen : &mut HashSet<usize>,
+            mut sm : stack::Manager,
+            which : &Range<usize>,
+        ) -> GeneralResult<Vec<tenyr::BasicBlock>>
+    {
         let (class, method, rangemap, ops) =
             (params.class, params.method, params.rangemap, params.ops);
         if seen.contains(&which.start) {
@@ -1420,7 +1434,11 @@ fn test_count_returns() -> GeneralResult<()> {
     Ok(())
 }
 
-fn translate_method<'a, 'b>(class : &'a Context<'b, &'b ClassConstant>, method : &'a Context<'b, &'b MethodInfo>) -> GeneralResult<Method> {
+fn translate_method<'a, 'b>(
+        class : &'a Context<'b, &'b ClassConstant>,
+        method : &'a Context<'b, &'b MethodInfo>,
+    ) -> GeneralResult<Method>
+{
     let total_locals = get_method_code(method.as_ref())?.max_locals;
     let descriptor = get_string(class, method.as_ref().descriptor_index).ok_or("method descriptor missing")?;
     let num_returns = count_returns(&descriptor)?.into();
@@ -1468,7 +1486,12 @@ fn translate_method<'a, 'b>(class : &'a Context<'b, &'b ClassConstant>, method :
     Ok(Method { name, prologue, blocks, epilogue })
 }
 
-fn write_method_table(class : &Context<'_, &ClassConstant>, methods : &[MethodInfo], outfile : &mut dyn Write) -> GeneralResult<()> {
+fn write_method_table(
+        class : &Context<'_, &ClassConstant>,
+        methods : &[MethodInfo],
+        outfile : &mut dyn Write,
+    ) -> GeneralResult<()>
+{
     let label = ".Lmethod_table";
     writeln!(outfile, "{}:", label)?;
 
@@ -1494,7 +1517,12 @@ fn write_method_table(class : &Context<'_, &ClassConstant>, methods : &[MethodIn
     Ok(())
 }
 
-fn write_vslot_list(class : &Context<'_, &ClassConstant>, methods : &[MethodInfo], outfile : &mut dyn Write) -> GeneralResult<()> {
+fn write_vslot_list(
+        class : &Context<'_, &ClassConstant>,
+        methods : &[MethodInfo],
+        outfile : &mut dyn Write,
+    ) -> GeneralResult<()>
+{
     let non_virtual = MethodAccessFlags::STATIC | MethodAccessFlags::PRIVATE;
 
     let virtuals : Vec<_> = methods.iter().filter(|m| (m.access_flags & non_virtual).is_empty()).collect();
