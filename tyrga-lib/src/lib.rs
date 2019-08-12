@@ -94,7 +94,8 @@ fn expand_immediate_load(sm : &mut stack::Manager, insn : Instruction, imm : i32
             let temp = sm.get(0).ok_or("stack unexpectedly empty")?;
             let pack = make_imm(temp, imm)?.into_iter();
             let (op, a, b, c) = match kind {
-                Type3(_) => (BitwiseOr, insn.x, Register::A, temp), // should never be reached, but provides generality
+                // the Type3 case should never be reached, but provides generality
+                Type3(_) => (BitwiseOr, insn.x, Register::A, temp),
                 Type0(g) => (g.op, insn.x, g.y, temp),
                 Type1(g) => (g.op, insn.x, temp, g.y),
                 Type2(g) => (g.op, temp, insn.x, g.y),
@@ -499,7 +500,9 @@ fn make_instructions<'a, T>(
             };
 
             let brancher = |(compare, target)| {
-                let result = make_int_branch(sm, addr, false, (target + here) as u16, target_namer, maker(compare));
+                let m = maker(compare);
+                let result =
+                    make_int_branch(sm, addr, false, (target + here) as u16, target_namer, m);
                 let (_, insns, dests) = result?;
                 Ok((insns, dests)) as GeneralResult<(_,_)>
             };
@@ -1515,7 +1518,8 @@ fn write_method_table(
     for (method, (mangled_name, _)) in methods.iter().zip(lengths) {
         let flags = method.access_flags;
 
-        writeln!(outfile, "    .word @{:width$} - {}, {:#06x}", mangled_name, label, flags.bits(), width=width)?;
+        writeln!(outfile, "    .word @{:width$} - {}, {:#06x}",
+            mangled_name, label, flags.bits(), width=width)?;
     }
 
     writeln!(outfile, "{}_end:", label)?;

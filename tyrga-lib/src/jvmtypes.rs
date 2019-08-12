@@ -413,7 +413,9 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Dcmpg   => Compare { kind : Double, nans : Some(NanComparisons::Greater) },
 
         Ifeq(off) | Ifne(off) | Iflt(off) | Ifge(off) | Ifgt(off) | Ifle(off)
-            | IfIcmpeq(off) | IfIcmpne(off) | IfIcmplt(off) | IfIcmpge(off) | IfIcmpgt(off) | IfIcmple(off) | IfAcmpeq(off) | IfAcmpne(off)
+            | IfIcmpeq(off) | IfIcmpne(off)
+            | IfIcmplt(off) | IfIcmpge(off) | IfIcmpgt(off) | IfIcmple(off)
+            | IfAcmpeq(off) | IfAcmpne(off)
             | Ifnull(off) | Ifnonnull(off)
             => {
                 let target = (addr as isize + off as isize) as u16;
@@ -431,7 +433,9 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
                     Ifeq(_) | Ifne(_) | Iflt(_) | Ifge(_) | Ifgt(_) | Ifle(_)
                         | Ifnull(_) | Ifnonnull(_)
                         => OperandCount::_1,
-                    IfIcmpeq(_) | IfIcmpne(_) | IfIcmplt(_) | IfIcmpge(_) | IfIcmpgt(_) | IfIcmple(_) | IfAcmpeq(_) | IfAcmpne(_)
+                    IfIcmpeq(_) | IfIcmpne(_)
+                        | IfIcmplt(_) | IfIcmpge(_) | IfIcmpgt(_) | IfIcmple(_)
+                        | IfAcmpeq(_) | IfAcmpne(_)
                         => OperandCount::_2,
                     _ => unreachable!(),
                 };

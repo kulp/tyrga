@@ -89,7 +89,8 @@ impl Manager {
 
     pub fn get(&self, which : u16) -> Option<tenyr::Register> {
         // TODO handle Stacked
-        assert!(which as usize <= self.stack.len(), "attempt to access register deeper than register depth");
+        assert!(which as usize <= self.stack.len(),
+            "attempt to access register deeper than register depth");
         // indexing is relative to top of stack, counting backward
         self.get_reg(which).into()
     }
@@ -123,7 +124,13 @@ impl Manager {
         self.frozen = new_frozen as u16;
 
         #[allow(clippy::result_unwrap_used)]
-        let make_insn = |reg, offset : i32| Instruction { dd : NoLoad, kind : Type3(offset.try_into().unwrap()), z : reg, x : stack_ptr };
+        let make_insn =
+            |reg, offset : i32| Instruction {
+                dd : NoLoad,
+                kind : Type3(offset.try_into().unwrap()),
+                z : reg,
+                x : stack_ptr
+            };
         let make_move = |i, offset| make_insn(self.get_reg(i as u16), i + offset + 1);
         // Only one of { `freezing`, `thawing` } will have any elements in it
         let freezing = (level..unfrozen).map(|i| Instruction { dd : StoreRight, ..make_move(i, 0) });
