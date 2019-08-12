@@ -99,7 +99,8 @@ fn expand_immediate_load(sm : &mut stack::Manager, insn : Instruction, imm : i32
                 Type1(g) => (g.op, insn.x, temp, g.y),
                 Type2(g) => (g.op, temp, insn.x, g.y),
             };
-            let operate = once(Instruction { kind : Type0(InsnGeneral { op, y : b, imm : 0_u8.into() }), x : a, dd : NoLoad, z : insn.z });
+            let gen = InsnGeneral { op, y : b, imm : 0_u8.into() };
+            let operate = once(Instruction { kind : Type0(gen), x : a, dd : NoLoad, z : insn.z });
             let add = once(Instruction { kind : Type0(InsnGeneral { y : c, ..adder }), x : insn.z, ..insn });
             let release = sm.release(1).into_iter();
 
@@ -569,7 +570,8 @@ fn make_instructions<'a, T>(
             insns.extend(expand_immediate_load(sm, insn?, low)?);
 
             let make_pairs = |n|
-                Ok((make_jump((n + here) as u16)?, Destination::Address((n + here) as usize))) as GeneralResult<_>;
+                Ok((make_jump((n + here) as u16)?, Destination::Address((n + here) as usize)))
+                    as GeneralResult<_>;
             let (i, d) : (Vec<_>, Vec<_>) =
                 offsets
                     .into_iter()
@@ -588,7 +590,8 @@ fn make_instructions<'a, T>(
 
             Ok((addr, insns, dests))
         },
-        Jump { target } => Ok((addr, vec![ make_jump(target)? ], vec![ Destination::Address(target as usize) ])),
+        Jump { target } =>
+            Ok((addr, vec![ make_jump(target)? ], vec![ Destination::Address(target as usize) ])),
         LoadArray(kind) | StoreArray(kind) => {
             use tenyr::*;
 
@@ -878,7 +881,8 @@ fn test_make_instruction() -> GeneralResult<()> {
     let namer = |x : &dyn fmt::Display| Ok(format!("{}:{}", "test", x.to_string()));
     let insn = make_instructions(&mut sm, (0, op), &namer, &Useless)?;
     let imm = 5_u8.into();
-    assert_eq!(insn.1, vec![ Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad } ]);
+    let rhs = Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad };
+    assert_eq!(insn.1, vec![ rhs ]);
     assert_eq!(insn.1[0].to_string(), " B  <-  5");
 
     Ok(())
@@ -976,7 +980,8 @@ mod util {
     // TODO deduplicate this implementation with the one for &dyn Named
     impl Manglable for Context<'_, &ClassConstant> {
         fn pieces(&self) -> GeneralResult<Vec<String>> {
-            let r : GeneralResult<String> = get_string(self, self.as_ref().name_index()).ok_or_else(|| "no name".into());
+            let r : GeneralResult<String> =
+                get_string(self, self.as_ref().name_index()).ok_or_else(|| "no name".into());
             Ok(vec![ r? ])
         }
     }
@@ -1102,7 +1107,8 @@ mod util {
 
     impl Manglable for Context<'_, &dyn Named> {
         fn pieces(&self) -> GeneralResult<Vec<String>> {
-            let r : GeneralResult<String> = get_string(self, self.as_ref().name_index()).ok_or_else(|| "no name".into());
+            let r : GeneralResult<String> =
+                get_string(self, self.as_ref().name_index()).ok_or_else(|| "no name".into());
             Ok(vec![ r? ])
         }
     }
@@ -1255,8 +1261,8 @@ fn make_basic_block(
     Ok((BasicBlock { label, insns }, exits))
 }
 
-// The incoming stack::Manager represents a "prototype" stack::Manager which should be empty, and which
-// will be cloned each time a new BasicBlock is seen.
+// The incoming stack::Manager represents a "prototype" stack::Manager which should be empty, and
+// which will be cloned each time a new BasicBlock is seen.
 fn make_blocks_for_method<'a, 'b>(
         class : &'a Context<'b, &'b ClassConstant>,
         method : &'a Context<'b, &'b MethodInfo>,
@@ -1297,7 +1303,8 @@ fn make_blocks_for_method<'a, 'b>(
         out.push(bb);
 
         for exit in &ee {
-            out.extend(make_blocks(params, seen, sm.clone(), &rangemap[exit])?); // intentional clone of stack::Manager
+            // intentional clone of stack::Manager
+            out.extend(make_blocks(params, seen, sm.clone(), &rangemap[exit])?);
         }
 
         Ok(out)
