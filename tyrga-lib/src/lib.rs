@@ -14,6 +14,7 @@ mod exprtree;
 mod jvmtypes;
 pub mod mangling;
 mod stack;
+mod stack2;
 #[macro_use]
 mod tenyr;
 
