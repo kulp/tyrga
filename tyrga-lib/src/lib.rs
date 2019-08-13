@@ -103,7 +103,8 @@ fn expand_immediate_load(sm : &mut stack::Manager, insn : Instruction, imm : i32
             };
             let gen = InsnGeneral { op, y : b, imm : 0_u8.into() };
             let operate = once(Instruction { kind : Type0(gen), x : a, dd : NoLoad, z : insn.z });
-            let add = once(Instruction { kind : Type0(InsnGeneral { y : c, ..adder }), x : insn.z, ..insn });
+            let kind = Type0(InsnGeneral { y : c, ..adder });
+            let add = once(Instruction { kind, x : insn.z, ..insn });
             let release = sm.release(1).into_iter();
 
             reserve
