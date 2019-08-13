@@ -229,36 +229,42 @@ fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
 
     let three = 3;
 
-    assert_eq!(tenyr_insn!( B  <-  C  |~ D + 3      )?, Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn      , imm :   3_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  C >>> D + 3      )?, Instruction { kind : Type0(InsnGeneral { y : D, op : ShiftRightLogic , imm :   3_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  C  +  D + 3      )?, Instruction { kind : Type0(InsnGeneral { y : D, op : Add             , imm :   3_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  C  *  D + 3      )?, Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply        , imm :   3_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  C  *  D - 3      )?, Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply        , imm : (-3_i8).into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  C                )?, Instruction { kind : Type0(InsnGeneral { y : A, op : BitwiseOr       , imm :   0_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  C  +  D          )?, Instruction { kind : Type0(InsnGeneral { y : D, op : Add             , imm :   0_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  C  |~ D          )?, Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn      , imm :   0_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  C  ^^ 3          )?, Instruction { kind : Type1(InsnGeneral { y : A, op : Pack            , imm :   3_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  3  *  C          )?, Instruction { kind : Type2(InsnGeneral { y : A, op : Multiply        , imm :   3_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  3  *  C + D      )?, Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply        , imm :   3_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!([B] <-  3  ^^ C + D      )?, Instruction { kind : Type2(InsnGeneral { y : D, op : Pack            , imm :   3_u8 .into() } ) , z : B, x : C, dd : StoreLeft  });
-    assert_eq!(tenyr_insn!( B  -> [3  &~ C + D]     )?, Instruction { kind : Type2(InsnGeneral { y : D, op : BitwiseAndn     , imm :   3_u8 .into() } ) , z : B, x : C, dd : StoreRight });
-    assert_eq!(tenyr_insn!( B  <- [3  @  C + D]     )?, Instruction { kind : Type2(InsnGeneral { y : D, op : TestBit         , imm :   3_u8 .into() } ) , z : B, x : C, dd : LoadRight  });
-    assert_eq!(tenyr_insn!( B  <-  C  |~ D + (three))?, Instruction { kind : Type0(InsnGeneral { y : D, op : BitwiseOrn      , imm :   3_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  C >>> D + (three))?, Instruction { kind : Type0(InsnGeneral { y : D, op : ShiftRightLogic , imm :   3_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  C  +  D + (three))?, Instruction { kind : Type0(InsnGeneral { y : D, op : Add             , imm :   3_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  C  *  D + (three))?, Instruction { kind : Type0(InsnGeneral { y : D, op : Multiply        , imm :   3_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  C  ^^ (three)    )?, Instruction { kind : Type1(InsnGeneral { y : A, op : Pack            , imm :   3_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  (three) * C      )?, Instruction { kind : Type2(InsnGeneral { y : A, op : Multiply        , imm :   3_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!( B  <-  (three) * C + D  )?, Instruction { kind : Type2(InsnGeneral { y : D, op : Multiply        , imm :   3_u8 .into() } ) , z : B, x : C, dd : NoLoad     });
-    assert_eq!(tenyr_insn!([B] <-  (three) ^^ C + D )?, Instruction { kind : Type2(InsnGeneral { y : D, op : Pack            , imm :   3_u8 .into() } ) , z : B, x : C, dd : StoreLeft  });
-    assert_eq!(tenyr_insn!( B  -> [(three) &~ C + D])?, Instruction { kind : Type2(InsnGeneral { y : D, op : BitwiseAndn     , imm :   3_u8 .into() } ) , z : B, x : C, dd : StoreRight });
-    assert_eq!(tenyr_insn!( B  <- [(three) @  C + D])?, Instruction { kind : Type2(InsnGeneral { y : D, op : TestBit         , imm :   3_u8 .into() } ) , z : B, x : C, dd : LoadRight  });
-    assert_eq!(tenyr_insn!( B  <-  C  +  0x12345    )?, Instruction { kind : Type3(  0x12345_i32 .try_into()?), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C  -  0x12345    )?, Instruction { kind : Type3((-0x12345_i32).try_into()?), z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-        0x12345    )?, Instruction { kind : Type3(  0x12345_i32 .try_into()?), z : B, x : A, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C  +  (three)    )?, Instruction { kind : Type3(  3_u8 .into())            , z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-  C  -  (three)    )?, Instruction { kind : Type3((-3_i8).into())            , z : B, x : C, dd : NoLoad });
-    assert_eq!(tenyr_insn!( B  <-        (three)    )?, Instruction { kind : Type3(  3_u8 .into())            , z : B, x : A, dd : NoLoad });
+    let make = |ctor : &dyn Fn(InsnGeneral) -> InstructionType, y, op, imm : i8, z, x, dd|
+        Instruction { kind : ctor(InsnGeneral { y, op, imm : imm.into() }), z, x, dd };
+
+    let make3 = |imm : i32, z, x, dd|
+        Ok(Instruction { kind : Type3(imm.try_into()?), z, x, dd }) as InsnResult;
+
+    assert_eq!(tenyr_insn!( B  <-  C  |~ D + 3      )?, make(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C >>> D + 3      )?, make(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  +  D + 3      )?, make(&Type0,D,Add            , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  *  D + 3      )?, make(&Type0,D,Multiply       , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  *  D - 3      )?, make(&Type0,D,Multiply       ,-3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C                )?, make(&Type0,A,BitwiseOr      , 0_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  +  D          )?, make(&Type0,D,Add            , 0_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  |~ D          )?, make(&Type0,D,BitwiseOrn     , 0_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  ^^ 3          )?, make(&Type1,A,Pack           , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  3  *  C          )?, make(&Type2,A,Multiply       , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  3  *  C + D      )?, make(&Type2,D,Multiply       , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!([B] <-  3  ^^ C + D      )?, make(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ));
+    assert_eq!(tenyr_insn!( B  -> [3  &~ C + D]     )?, make(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight));
+    assert_eq!(tenyr_insn!( B  <- [3  @  C + D]     )?, make(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ));
+    assert_eq!(tenyr_insn!( B  <-  C  |~ D + (three))?, make(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C >>> D + (three))?, make(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  +  D + (three))?, make(&Type0,D,Add            , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  *  D + (three))?, make(&Type0,D,Multiply       , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  ^^ (three)    )?, make(&Type1,A,Pack           , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  (three) * C      )?, make(&Type2,A,Multiply       , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  (three) * C + D  )?, make(&Type2,D,Multiply       , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!([B] <-  (three) ^^ C + D )?, make(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ));
+    assert_eq!(tenyr_insn!( B  -> [(three) &~ C + D])?, make(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight));
+    assert_eq!(tenyr_insn!( B  <- [(three) @  C + D])?, make(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ));
+    assert_eq!(tenyr_insn!( B  <-  C  +  0x12345    )?, make3( 0x12345_i32,B,C,NoLoad)?);
+    assert_eq!(tenyr_insn!( B  <-  C  -  0x12345    )?, make3(-0x12345_i32,B,C,NoLoad)?);
+    assert_eq!(tenyr_insn!( B  <-        0x12345    )?, make3( 0x12345_i32,B,A,NoLoad)?);
+    assert_eq!(tenyr_insn!( B  <-  C  +  (three)    )?, make3(       3_i32,B,C,NoLoad)?);
+    assert_eq!(tenyr_insn!( B  <-  C  -  (three)    )?, make3(      -3_i32,B,C,NoLoad)?);
+    assert_eq!(tenyr_insn!( B  <-        (three)    )?, make3(       3_i32,B,A,NoLoad)?);
 
     Ok(())
 }
