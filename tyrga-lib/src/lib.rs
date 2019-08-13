@@ -60,7 +60,7 @@ fn expand_immediate_load(sm : &mut stack::Manager, insn : Instruction, imm : i32
     use SmallestImmediate::*;
 
     fn make_imm(temp_reg : Register, imm : SmallestImmediate) -> GeneralResult<Vec<Instruction>> {
-        use tenyr::Register::A;
+        use Register::A;
 
         let result = match imm {
             Imm12(imm) => // This path is fairly useless, but it completes generality
@@ -190,11 +190,11 @@ fn make_int_branch(
         invert : bool,
         target : u16,
         target_namer : &Namer,
-        mut comp : impl FnMut(&mut stack::Manager) -> GeneralResult<(tenyr::Register, Vec<Instruction>)>
+        mut comp : impl FnMut(&mut stack::Manager) -> GeneralResult<(Register, Vec<Instruction>)>
     ) -> MakeInsnResult
 {
     use tenyr::*;
-    use tenyr::Register::P;
+    use Register::P;
 
     let o = make_target(&target_namer(&target)?)?;
 
@@ -260,7 +260,7 @@ fn make_instructions<'a, T>(
     let make_jump = |target| {
         let result : GeneralResult<Instruction> = Ok(Instruction {
             kind : Type3(tenyr::Immediate::Expr(make_target(&target_namer(&target)?)?)),
-            ..make_mov(tenyr::Register::P, tenyr::Register::P)
+            ..make_mov(Register::P, Register::P)
         });
         result
     };
@@ -568,7 +568,7 @@ fn make_instructions<'a, T>(
             insns.extend(hi_insns);
 
             let insn = {
-                use tenyr::Register::P;
+                use Register::P;
                 tenyr_insn!( P <- top - 0 + P )
             };
             insns.extend(expand_immediate_load(sm, insn?, low)?);
