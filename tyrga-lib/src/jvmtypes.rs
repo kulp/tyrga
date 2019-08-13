@@ -327,7 +327,11 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Istore(index) | Lstore(index) | Fstore(index) | Dstore(index) | Astore(index)
             => StoreLocal { kind : kind(), index : index.into() },
 
-        IstoreWide(index) | LstoreWide(index) | FstoreWide(index) | DstoreWide(index) | AstoreWide(index)
+        IstoreWide(index)
+            | LstoreWide(index)
+            | FstoreWide(index)
+            | DstoreWide(index)
+            | AstoreWide(index)
             => StoreLocal { kind : kind(), index },
 
         Dstore0 | Fstore0 | Istore0 | Lstore0 | Astore0 => StoreLocal { kind : kind(), index : 0 },
@@ -458,7 +462,8 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Invokespecial(index) => Invocation { kind : InvokeKind::Special, index },
         Invokestatic(index)  => Invocation { kind : InvokeKind::Static , index },
         Invokedynamic(index) => Invocation { kind : InvokeKind::Dynamic, index },
-        Invokeinterface { index, count } => Invocation { kind : InvokeKind::Interface(count), index },
+        Invokeinterface { index, count } =>
+            Invocation { kind : InvokeKind::Interface(count), index },
 
         New(index) => Allocation(Element { index }),
         Newarray(kind) =>
@@ -472,8 +477,10 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
 
         Arraylength => Length,
 
-        Tableswitch { default, low, high, offsets } => Switch(Table { default, low, high, offsets }),
-        Lookupswitch { default, pairs } => Switch(Lookup { default, pairs }),
+        Tableswitch { default, low, high, offsets } =>
+            Switch(Table { default, low, high, offsets }),
+        Lookupswitch { default, pairs } =>
+            Switch(Lookup { default, pairs }),
 
         Ldc(index) => Constant(Indirect(index.into())),
         LdcW(index) | Ldc2W(index) => Constant(Indirect(index)),
