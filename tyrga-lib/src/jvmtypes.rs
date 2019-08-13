@@ -280,10 +280,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
     let make_constant = |kind, value|
         Constant(Explicit(ExplicitConstant { kind, value }));
 
-    let kind_of = |insn : &Instruction|
-        insn.get_operand_type().unwrap_or_else(|| unreachable!("kind must be valid but is not"));
-
-    let kind = || kind_of(&insn);
+    let kind = || insn.get_operand_type().expect("kind must be valid but is not");
 
     let op = match insn {
         Nop => Noop,
