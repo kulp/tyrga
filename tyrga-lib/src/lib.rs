@@ -132,7 +132,6 @@ fn test_expand() -> GeneralResult<()> {
         let imm = 867_5309;
         let insn = tenyr_insn!( D -> [C * B] )?;
         let vv = expand_immediate_load(&mut sm, insn, imm)?;
-        eprintln!("{:?}", vv);
         assert_eq!(vv.len(), 4);
     }
 
@@ -140,7 +139,6 @@ fn test_expand() -> GeneralResult<()> {
         let imm = 123;
         let insn = tenyr_insn!( D -> [C + 0] )?;
         let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
-        eprintln!("{:?}", vv);
         assert_eq!(vv.len(), 1);
         // TODO more robust test
     }
@@ -149,7 +147,6 @@ fn test_expand() -> GeneralResult<()> {
         let imm = 867_5309;
         let insn = tenyr_insn!( D -> [C + 0] )?;
         let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
-        eprintln!("{:?}", vv);
         assert_eq!(vv.len(), 4);
         // TODO more robust test
     }
@@ -158,7 +155,6 @@ fn test_expand() -> GeneralResult<()> {
         let imm = 123;
         let insn = tenyr_insn!( D -> [C * B] )?;
         let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
-        eprintln!("{:?}", vv);
         assert_eq!(vv.len(), 1);
         if let Type0(ref g) = vv[0].kind {
             assert_eq!(g.imm, 123_u8.into());
