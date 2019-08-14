@@ -8,6 +8,7 @@
 #![deny(clippy::redundant_field_names)]
 #![deny(clippy::result_unwrap_used)]
 #![deny(unconditional_recursion)]
+#![deny(clippy::unreadable_literal)]
 
 mod exprtree;
 mod jvmtypes;
@@ -126,36 +127,59 @@ fn test_expand() -> GeneralResult<()> {
     use InstructionType::*;
 
     let v = vec![ C, D, E, F, G ];
-    let mut sm = stack::Manager::new(5, O, v.clone());
+    let mut sm = stack::Manager::new(v.len() as u16, O, v.clone());
 
     {
-        let imm = 867_5309;
+        let imm = 867_5309; // 0x845fed
         let insn = tenyr_insn!( D -> [C * B] )?;
         let vv = expand_immediate_load(&mut sm, insn, imm)?;
-        assert_eq!(vv.len(), 4);
+        let rhs = 0xffff_ffed_u32 as i32;
+        let expect = tenyr_insn_list!(
+                 C  <-  0x845       ;
+                 C  <-  C ^^ (rhs)  ;
+                 D  <-  C  *  B     ;
+                 D  -> [D  +  C]    ;
+            );
+        let ee : Vec<_> = expect.collect();
+        assert_eq!(vv, ee);
     }
 
     {
         let imm = 123;
         let insn = tenyr_insn!( D -> [C + 0] )?;
         let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
-        assert_eq!(vv.len(), 1);
-        // TODO more robust test
+        let expect = tenyr_insn_list!(
+                 D  -> [C + 123]    ;
+            );
+
+        let ee : Vec<_> = expect.collect();
+        assert_eq!(vv, ee);
     }
 
     {
-        let imm = 867_5309;
+        let imm = 867_5309; // 0x845fed
         let insn = tenyr_insn!( D -> [C + 0] )?;
         let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
-        assert_eq!(vv.len(), 4);
-        // TODO more robust test
+        let rhs = 0xffff_ffed_u32 as i32;
+        let expect = tenyr_insn_list!(
+                 C  <-  0x845       ;
+                 C  <-  C ^^ (rhs)  ;
+                 D  <-  C  |  A     ;
+                 D  -> [D  +  C]    ;
+            );
+        let ee : Vec<_> = expect.collect();
+        assert_eq!(vv, ee);
     }
 
     {
         let imm = 123;
         let insn = tenyr_insn!( D -> [C * B] )?;
         let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
-        assert_eq!(vv.len(), 1);
+        let expect = tenyr_insn_list!(
+                 D  -> [C  *  B + 123]  ;
+            );
+        let ee : Vec<_> = expect.collect();
+        assert_eq!(vv, ee);
         if let Type0(ref g) = vv[0].kind {
             assert_eq!(g.imm, 123_u8.into());
         } else {
