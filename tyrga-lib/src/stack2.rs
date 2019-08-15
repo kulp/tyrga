@@ -36,15 +36,18 @@ struct Manager {
     stack_depth : u16,
     /// number of "live" registers desired
     pick_point : u16,
+    /// the register used as a stack pointer
+    stack_ptr : Register,
 }
 
 impl Manager {
     /// create manager for a given register list
     pub fn new<I : IntoIterator<Item=Register>>(regs : I) -> Manager {
-        let regs = regs.into_iter().collect();
+        let regs : Vec<_> = regs.into_iter().collect();
         let stack_depth = 0;
         let pick_point = 0;
-        Manager { regs, stack_depth, pick_point }
+        let stack_ptr = *regs.last().expect("too few registers");
+        Manager { regs, stack_depth, pick_point, stack_ptr }
     }
     /// number of registers usable
     fn register_count(&self) -> u16 { u16::try_from(self.regs.len()).expect("too many registers") }
