@@ -21,8 +21,13 @@
 //! - thaw()     -- load as many locations into registers as will fit
 
 use crate::tenyr::Register;
+use crate::tenyr::Instruction;
 
 use std::convert::TryFrom;
+
+/// a list of stack-maintenance instructions that must be executed
+#[must_use = "StackActions must be implemented to maintain stack discipline"]
+pub type StackActions = Vec<Instruction>;
 
 struct Manager {
     /// registers under our control
