@@ -55,7 +55,7 @@ enum Destination {
 fn expand_immediate_load(sm : &mut stack::Manager, insn : Instruction, imm : i32)
     -> GeneralResult<Vec<Instruction>>
 {
-    use tenyr::InsnGeneral;
+    use tenyr::InsnGeneral as Gen;
     use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::*;
     use SmallestImmediate::*;
@@ -83,15 +83,15 @@ fn expand_immediate_load(sm : &mut stack::Manager, insn : Instruction, imm : i32
     let v = match (insn.kind, imm.into()) {
         (Type3(..), Imm12(imm)) => vec![ Instruction { kind : Type3(imm.into()), ..insn } ],
         (Type3(..), Imm20(imm)) => vec![ Instruction { kind : Type3(imm), ..insn } ],
-        (Type0(g) , Imm12(imm)) => vec![ Instruction { kind : Type0(InsnGeneral { imm, ..g }), ..insn } ],
-        (Type1(g) , Imm12(imm)) => vec![ Instruction { kind : Type1(InsnGeneral { imm, ..g }), ..insn } ],
-        (Type2(g) , Imm12(imm)) => vec![ Instruction { kind : Type2(InsnGeneral { imm, ..g }), ..insn } ],
+        (Type0(g) , Imm12(imm)) => vec![ Instruction { kind : Type0(Gen { imm, ..g }), ..insn } ],
+        (Type1(g) , Imm12(imm)) => vec![ Instruction { kind : Type1(Gen { imm, ..g }), ..insn } ],
+        (Type2(g) , Imm12(imm)) => vec![ Instruction { kind : Type2(Gen { imm, ..g }), ..insn } ],
 
         (kind, imm) => {
             use std::iter::once;
             use tenyr::Opcode::*;
 
-            let adder  = InsnGeneral { y : Register::A, op : Add , imm : 0_u8.into() };
+            let adder  = Gen { y : Register::A, op : Add , imm : 0_u8.into() };
             let reserve = sm.reserve(1).into_iter();
             let temp = sm.get(0).ok_or("stack unexpectedly empty")?;
             let pack = make_imm(temp, imm)?.into_iter();
@@ -102,9 +102,9 @@ fn expand_immediate_load(sm : &mut stack::Manager, insn : Instruction, imm : i32
                 Type1(g) => (g.op, insn.x, temp, g.y),
                 Type2(g) => (g.op, temp, insn.x, g.y),
             };
-            let gen = InsnGeneral { op, y : b, imm : 0_u8.into() };
+            let gen = Gen { op, y : b, imm : 0_u8.into() };
             let operate = once(Instruction { kind : Type0(gen), x : a, dd : NoLoad, z : insn.z });
-            let kind = Type0(InsnGeneral { y : c, ..adder });
+            let kind = Type0(Gen { y : c, ..adder });
             let add = once(Instruction { kind, x : insn.z, ..insn });
             let release = sm.release(1).into_iter();
 
@@ -376,13 +376,14 @@ fn make_instructions<'a, T>(
         Constant(Indirect(index)) => {
             use ConstantInfo::*;
             let c = gc.get_constant(index);
+            let mut m = make_constant;
             match c {
-                Integer(IntegerConstant { value }) => make_constant(&[ *value ]),
-                Long   (   LongConstant { value }) => make_constant(&[ (*value >> 32) as i32, *value as i32 ]),
-                Float  (  FloatConstant { value }) => make_constant(&[ value.to_bits() as i32 ]),
+                Integer(IntegerConstant { value }) => m(&[ *value ]),
+                Long   (   LongConstant { value }) => m(&[ (*value >> 32) as i32, *value as i32 ]),
+                Float  (  FloatConstant { value }) => m(&[ value.to_bits() as i32 ]),
                 Double ( DoubleConstant { value }) => {
                     let bits = value.to_bits();
-                    make_constant(&[ (bits >> 32) as i32, bits as i32 ])
+                    m(&[ (bits >> 32) as i32, bits as i32 ])
                 },
                 Class       (       ClassConstant { .. }) |
                 String      (      StringConstant { .. }) |
@@ -677,6 +678,7 @@ fn make_instructions<'a, T>(
         Invocation { kind : InvokeKind::Virtual, index } => {
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
                 use Register::P;
+                use tenyr::{Immediate, Immediate20};
 
                 // Save return address into bottom of register-based stack
                 let bottom = sm.get_regs()[0];
@@ -691,7 +693,7 @@ fn make_instructions<'a, T>(
 
                 let temp = get_reg(sm.get(0))?;
                 let far = format!("@{}", mangle(&[ &gc.contextualize(mr), &"vslot" ])?);
-                let off : tenyr::Immediate20 = tenyr::Immediate::Expr(exprtree::Atom::Variable(far));
+                let off : Immediate20 = Immediate::Expr(exprtree::Atom::Variable(far));
 
                 insns.extend(tenyr_insn_list!(
                     temp <- [obj - 1]   ;
@@ -985,7 +987,7 @@ mod util {
     use super::mangling;
     use super::stack;
     use super::tenyr::Instruction;
-    use super::tenyr::MemoryOpType;
+    use super::tenyr::MemoryOpType::*;
     use super::tenyr::Register;
 
     pub trait Named     { fn name_index(&self)       -> u16; }
@@ -999,8 +1001,12 @@ mod util {
 
     impl Named for ClassConstant { fn name_index(&self) -> u16 { self.name_index } }
 
-    impl Named     for NameAndTypeConstant { fn name_index(&self)       -> u16 { self.name_index } }
-    impl Described for NameAndTypeConstant { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
+    impl Named for NameAndTypeConstant {
+        fn name_index(&self) -> u16 { self.name_index }
+    }
+    impl Described for NameAndTypeConstant {
+        fn descriptor_index(&self) -> u16 { self.descriptor_index }
+    }
 
     // TODO deduplicate this implementation with the one for &dyn Named
     impl Manglable for Context<'_, &ClassConstant> {
@@ -1159,13 +1165,13 @@ mod util {
     pub fn index_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
         use super::tenyr::InstructionType::Type3;
         let x = sm.get_stack_ptr();
-        Instruction { dd : MemoryOpType::NoLoad, z : reg, x, kind : Type3(sm.get_frame_offset(idx)) }
+        Instruction { dd : NoLoad, z : reg, x, kind : Type3(sm.get_frame_offset(idx)) }
     }
     pub fn load_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
-        Instruction { dd : MemoryOpType::LoadRight, ..index_local(sm, reg, idx) }
+        Instruction { dd : LoadRight, ..index_local(sm, reg, idx) }
     }
     pub fn store_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
-        Instruction { dd : MemoryOpType::StoreRight, ..index_local(sm, reg, idx) }
+        Instruction { dd : StoreRight, ..index_local(sm, reg, idx) }
     }
 }
 
@@ -1201,7 +1207,9 @@ fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
     Ok((ranges, ops))
 }
 
-fn get_method_parts(g : &dyn ContextConstantGetter, pool_index : u16) -> GeneralResult<[String ; 3]> {
+fn get_method_parts(g : &dyn ContextConstantGetter, pool_index : u16)
+    -> GeneralResult<[String ; 3]>
+{
     use classfile_parser::constant_info::ConstantInfo::*;
 
     let get_string = |n| get_string(g, n);
@@ -1231,7 +1239,9 @@ fn mangle(list : &[&dyn Manglable]) -> GeneralResult<String> {
     list.mangle()
 }
 
-fn get_class<'a, T>(ctx : util::Context<'a, T>, index : u16) -> GeneralResult<Context<'a, &'a ClassConstant>> {
+fn get_class<'a, T>(ctx : util::Context<'a, T>, index : u16)
+    -> GeneralResult<Context<'a, &'a ClassConstant>>
+{
     match ctx.get_constant(index) {
         classfile_parser::constant_info::ConstantInfo::Class(cl) => Ok(ctx.contextualize(cl)),
         _ => Err("not a class".into()),
@@ -1343,13 +1353,15 @@ fn make_blocks_for_method<'a, 'b>(
 
     let mut seen = HashSet::new();
 
-    make_blocks(&params, &mut seen, sm.clone(), &rangemap[&0]) // intentional clone of stack::Manager
+    let sm = sm.clone(); // intentional clone of stack::Manager
+    make_blocks(&params, &mut seen, sm, &rangemap[&0])
 }
 
 #[cfg(test)]
 fn test_stack_map_table(path : &Path) -> GeneralResult<()> {
     let class = parse_class(path)?;
-    for method in class.methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
+    let methods = class.methods.iter();
+    for method in methods.filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let sm = stack::Manager::new(5, STACK_PTR, STACK_REGS.to_owned());
         let get_constant = get_constant_getter(&class);
         let class = get_class(get_constant, class.this_class)?;
@@ -1471,8 +1483,9 @@ fn translate_method<'a, 'b>(
         method : &'a Context<'b, &'b MethodInfo>,
     ) -> GeneralResult<Method>
 {
-    let total_locals = get_method_code(method.as_ref())?.max_locals;
-    let descriptor = get_string(class, method.as_ref().descriptor_index).ok_or("method descriptor missing")?;
+    let mr = method.as_ref();
+    let total_locals = get_method_code(mr)?.max_locals;
+    let descriptor = get_string(class, mr.descriptor_index).ok_or("method descriptor missing")?;
     let num_returns = count_returns(&descriptor)?.into();
     // Pretend we have at least as many locals as we have return-slots, so we have somewhere to
     // store our results when we Yield.
@@ -1558,8 +1571,8 @@ fn write_vslot_list(
 {
     let non_virtual = MethodAccessFlags::STATIC | MethodAccessFlags::PRIVATE;
 
-    let virtuals : Vec<_> = methods.iter().filter(|m| (m.access_flags & non_virtual).is_empty()).collect();
-    let names = virtuals.iter().map(|&method| Ok(mangle(&[ class, &class.contextualize(method), &"vslot" ])?) );
+    let virtuals = methods.iter().filter(|m| (m.access_flags & non_virtual).is_empty());
+    let names = virtuals.map(|m| Ok(mangle(&[ class, &class.contextualize(m), &"vslot" ])?) );
     let lengths : GeneralResult<Vec<_>> =
         names.map(|s : GeneralResult<String>| {
             let s = s?;
@@ -1573,7 +1586,7 @@ fn write_vslot_list(
         writeln!(outfile, "    .global {}", mangled_name)?;
         writeln!(outfile, "    .set    {:width$}, {}", mangled_name, index, width=width)?;
     }
-    if ! virtuals.is_empty() {
+    if ! lengths.is_empty() {
         writeln!(outfile)?;
     }
 
