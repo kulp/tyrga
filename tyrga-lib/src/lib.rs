@@ -841,7 +841,7 @@ fn make_instructions<'a, T>(
 
                 let mut range = 0i32..len.into();
                 let mut reversed = range.clone().rev();
-                let (prior, post, memop, iter) : (_, _, _, &mut Iterator<Item=_>) = match op {
+                let (prior, post, memop, iter) : (_, _, _, &mut dyn Iterator<Item=_>) = match op {
                     VarOp::Get => (1, 0, LoadRight , &mut range   ),
                     VarOp::Put => (0, 1, StoreRight, &mut reversed),
                 };
