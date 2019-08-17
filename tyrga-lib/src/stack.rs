@@ -176,7 +176,7 @@ fn test_get_reg(v : Vec<Register>) -> TestResult {
 }
 
 #[test]
-#[should_panic(expected="underflow")]
+#[should_panic(expected = "underflow")]
 fn test_underflow() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
@@ -186,7 +186,7 @@ fn test_underflow() {
 }
 
 #[test]
-#[should_panic(expected="overflow")]
+#[should_panic(expected = "overflow")]
 fn test_overflow() {
     use Register::*;
     let v = vec![ C, D, E, F, G ];
@@ -228,4 +228,3 @@ fn test_watermark() {
     let insns = sm.set_watermark(1);
     assert!(insns.is_empty());
 }
-

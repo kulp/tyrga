@@ -14,7 +14,8 @@ mod exprtree;
 mod jvmtypes;
 pub mod mangling;
 mod stack;
-#[macro_use] mod tenyr;
+#[macro_use]
+mod tenyr;
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::error::Error;
@@ -28,7 +29,6 @@ use std::path::Path;
 #[cfg(test)]
 use walkdir::WalkDir;
 
-use classfile_parser::ClassFile;
 use classfile_parser::attribute_info::CodeAttribute;
 use classfile_parser::attribute_info::StackMapFrame;
 use classfile_parser::constant_info::*;
@@ -36,6 +36,7 @@ use classfile_parser::field_info::FieldAccessFlags;
 use classfile_parser::field_info::FieldInfo;
 use classfile_parser::method_info::MethodAccessFlags;
 use classfile_parser::method_info::MethodInfo;
+use classfile_parser::ClassFile;
 
 use args::*;
 use jvmtypes::*;
@@ -123,8 +124,8 @@ fn expand_immediate_load(sm : &mut stack::Manager, insn : Instruction, imm : i32
 #[test]
 fn test_expand() -> GeneralResult<()> {
     use tenyr::*;
-    use Register::*;
     use InstructionType::*;
+    use Register::*;
 
     let v = vec![ C, D, E, F, G ];
     let mut sm = stack::Manager::new(v.len() as u16, O, v.clone());
@@ -241,13 +242,13 @@ fn make_instructions<'a, T>(
     ) -> MakeInsnResult
     where T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
-    use Operation::*;
     use jvmtypes::AllocationKind::*;
     use jvmtypes::Indirection::*;
     use jvmtypes::SwitchParams::*;
     use std::convert::TryInto;
     use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::*;
+    use Operation::*;
 
     // We need to track destinations and return them so that the caller can track stack state
     // through the chain of control flow, possibly cloning the stack::Manager state along the way to

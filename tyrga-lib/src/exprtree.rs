@@ -49,9 +49,9 @@ impl fmt::Display for Expr {
 
 #[test]
 fn test_expr_display() {
+    use std::rc::Rc;
     use Atom::*;
     use Operation::*;
-    use std::rc::Rc;
 
     let e = Expr { a : Variable("A".to_string()), op : Add, b : Immediate(3)              };
     let ee = Rc::new(e);
@@ -63,4 +63,3 @@ fn test_expr_display() {
     assert_eq!(ff.to_string(), "(A + 3) - B");
     assert_eq!(g.to_string(), "(A + 3) - ((A + 3) - B)");
 }
-
