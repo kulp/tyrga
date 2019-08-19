@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     || tas_in.metadata()?.modified()? > dest.metadata()?.modified()?
                 {
                     let output = Command::new("javac")
-                        .args(&[ "-d", &out_dir ])
+                        .args(&["-d", &out_dir])
                         .arg("-g:none")
                         .arg("-verbose")
                         .arg(name)
@@ -53,9 +53,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .next()
                         .expect("unexpected output from javac");
                     // Different versions of javac use different syntaxes for demarcating paths
-                    let first = wrote.rfind(|c| c == '[' || c == ' ').expect("could not find `[`");
-                    let last  = wrote.rfind(']').expect("could not find `]`");
-                    let out = Path::new(&wrote[first+1..last-1]);
+                    let first = wrote
+                        .rfind(|c| c == '[' || c == ' ')
+                        .expect("could not find `[`");
+                    let last = wrote.rfind(']').expect("could not find `]`");
+                    let out = Path::new(&wrote[first + 1..last - 1]);
                     let tas = out.with_extension("tas");
 
                     fs::copy(tas_in, tas)?;
