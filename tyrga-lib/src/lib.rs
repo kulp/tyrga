@@ -45,7 +45,10 @@ use tenyr::{Instruction, Register, SmallestImmediate};
 use util::*;
 
 const STACK_PTR : Register = Register::O;
-const STACK_REGS : &[Register] = { use Register::*; &[ B, C, D, E, F, G, H, I, J, K, L, M, N ] };
+const STACK_REGS : &[Register] = {
+    use Register::*;
+    &[B, C, D, E, F, G, H, I, J, K, L, M, N]
+};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum Destination {
@@ -127,7 +130,7 @@ fn test_expand() -> GeneralResult<()> {
     use InstructionType::*;
     use Register::*;
 
-    let v = vec![ C, D, E, F, G ];
+    let v = vec![C, D, E, F, G];
     let mut sm = stack::Manager::new(v.len() as u16, O, v.clone());
 
     {
@@ -136,11 +139,11 @@ fn test_expand() -> GeneralResult<()> {
         let vv = expand_immediate_load(&mut sm, insn, imm)?;
         let rhs = 0xffff_ffed_u32 as i32;
         let expect = tenyr_insn_list!(
-                 C  <-  0x845       ;
-                 C  <-  C ^^ (rhs)  ;
-                 D  <-  C  *  B     ;
-                 D  -> [D  +  C]    ;
-            );
+             C  <-  0x845       ;
+             C  <-  C ^^ (rhs)  ;
+             D  <-  C  *  B     ;
+             D  -> [D  +  C]    ;
+        );
         let ee : Vec<_> = expect.collect();
         assert_eq!(vv, ee);
     }
@@ -150,8 +153,8 @@ fn test_expand() -> GeneralResult<()> {
         let insn = tenyr_insn!( D -> [C + 0] )?;
         let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
         let expect = tenyr_insn_list!(
-                 D  -> [C + 123]    ;
-            );
+             D  -> [C + 123]    ;
+        );
 
         let ee : Vec<_> = expect.collect();
         assert_eq!(vv, ee);
@@ -163,11 +166,11 @@ fn test_expand() -> GeneralResult<()> {
         let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
         let rhs = 0xffff_ffed_u32 as i32;
         let expect = tenyr_insn_list!(
-                 C  <-  0x845       ;
-                 C  <-  C ^^ (rhs)  ;
-                 D  <-  C  |  A     ;
-                 D  -> [D  +  C]    ;
-            );
+             C  <-  0x845       ;
+             C  <-  C ^^ (rhs)  ;
+             D  <-  C  |  A     ;
+             D  -> [D  +  C]    ;
+        );
         let ee : Vec<_> = expect.collect();
         assert_eq!(vv, ee);
     }
@@ -177,8 +180,8 @@ fn test_expand() -> GeneralResult<()> {
         let insn = tenyr_insn!( D -> [C * B] )?;
         let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
         let expect = tenyr_insn_list!(
-                 D  -> [C  *  B + 123]  ;
-            );
+             D  -> [C  *  B + 123]  ;
+        );
         let ee : Vec<_> = expect.collect();
         assert_eq!(vv, ee);
         if let Type0(ref g) = vv[0].kind {
@@ -339,9 +342,8 @@ fn make_instructions<'a, T>(
         let result = format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch);
         Ok(result) as GeneralResult<String>
     };
-    let make_builtin_name = move |proc : &str, descriptor : &str| {
-        mangle(&[ &"tyrga/Builtin", &proc, &descriptor ])
-    };
+    let make_builtin_name =
+        move |proc : &str, descriptor : &str| mangle(&[&"tyrga/Builtin", &proc, &descriptor]);
     let make_arithmetic_name = |kind, op| {
         let descriptor = make_arithmetic_descriptor(kind, op)?;
         let proc = name_op(op).to_lowercase();
@@ -502,8 +504,7 @@ fn make_instructions<'a, T>(
 
             make_int_branch(sm, addr, invert, target, target_namer, opper)
         },
-        Branch { .. } =>
-            Err("encountered impossible Branch configuration".into()),
+        Branch { .. } => Err("encountered impossible Branch configuration".into()),
         Switch(Lookup { default, pairs }) => {
             use tenyr::*;
 
@@ -528,7 +529,7 @@ fn make_instructions<'a, T>(
                 let result =
                     make_int_branch(sm, addr, false, (target + here) as u16, target_namer, m);
                 let (_, insns, dests) = result?;
-                Ok((insns, dests)) as GeneralResult<(_,_)>
+                Ok((insns, dests)) as GeneralResult<(_, _)>
             };
             let (i, d) : (Vec<_>, Vec<_>) =
                 pairs
@@ -582,7 +583,7 @@ fn make_instructions<'a, T>(
 
             let (lo_addr, lo_insns, lo_dests) =
                 make_int_branch(sm, addr, false, far, target_namer, maker(&Type1, low))?;
-            let (      _, hi_insns, hi_dests) =
+            let (_, hi_insns, hi_dests) =
                 make_int_branch(sm, addr, false, far, target_namer, maker(&Type2, high))?;
 
             let addr = lo_addr;
@@ -678,8 +679,8 @@ fn make_instructions<'a, T>(
         // TODO vet handling of Virtual against JVM spec
         Invocation { kind : InvokeKind::Virtual, index } => {
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
-                use Register::P;
                 use tenyr::{Immediate, Immediate20};
+                use Register::P;
 
                 // Save return address into bottom of register-based stack
                 let bottom = sm.get_regs()[0];
@@ -693,7 +694,7 @@ fn make_instructions<'a, T>(
                 insns.extend(sm.reserve(1));
 
                 let temp = get_reg(sm.get(0))?;
-                let far = format!("@{}", mangle(&[ &gc.contextualize(mr), &"vslot" ])?);
+                let far = format!("@{}", mangle(&[&gc.contextualize(mr), &"vslot"])?);
                 let off : Immediate20 = Immediate::Expr(exprtree::Atom::Variable(far));
 
                 insns.extend(tenyr_insn_list!(
@@ -869,7 +870,7 @@ fn make_instructions<'a, T>(
             if let ConstantInfo::Class(cc) = class {
                 let name = get_string(gc, cc.name_index).ok_or("no class name")?;
                 let desc = format!("()L{};", name);
-                let call = mangle(&[ &&*name, &"new" ])?;
+                let call = mangle(&[&&*name, &"new"])?;
                 make_call(sm, &call, &desc)
             } else {
                 Err("invalid ConstantInfo kind".into())
@@ -885,18 +886,16 @@ fn make_instructions<'a, T>(
 
 #[test]
 fn test_make_instruction() -> GeneralResult<()> {
-    use Instruction;
-    use Register::A;
     use classfile_parser::constant_info::ConstantInfo;
     use classfile_parser::constant_info::ConstantInfo::Unusable;
     use jvmtypes::Indirection::Explicit;
     use tenyr::InstructionType::Type3;
     use tenyr::MemoryOpType::NoLoad;
+    use Instruction;
+    use Register::A;
     struct Useless;
     impl<'a> ContextConstantGetter<'a> for Useless {
-        fn get_constant(&self, _ : u16) -> &'a ConstantInfo {
-            &Unusable
-        }
+        fn get_constant(&self, _ : u16) -> &'a ConstantInfo { &Unusable }
     }
     impl<'a> Contextualizer<'a> for Useless {
         fn contextualize<U>(&self, _ : U) -> Context<'a, U> {
@@ -918,9 +917,7 @@ fn test_make_instruction() -> GeneralResult<()> {
 
 pub type GeneralResult<T> = std::result::Result<T, Box<dyn Error>>;
 
-fn generic_error(e : impl Error) -> Box<dyn Error> {
-    format!("unknown error: {}", e).into()
-}
+fn generic_error(e : impl Error) -> Box<dyn Error> { format!("unknown error: {}", e).into() }
 
 #[cfg(test)]
 fn parse_class(path : &Path) -> GeneralResult<ClassFile> {
@@ -975,21 +972,21 @@ fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
 }
 
 mod util {
-    use classfile_parser::ClassFile;
-    use classfile_parser::constant_info::*;
-    use classfile_parser::constant_info::ConstantInfo;
-    use classfile_parser::constant_info::FieldRefConstant;
-    use classfile_parser::field_info::FieldInfo;
-    use classfile_parser::method_info::MethodInfo;
-    use std::convert::TryFrom;
-    use std::rc::Rc;
-    use super::GeneralResult;
     use super::jvmtypes::JType;
     use super::mangling;
     use super::stack;
     use super::tenyr::Instruction;
     use super::tenyr::MemoryOpType::*;
     use super::tenyr::Register;
+    use super::GeneralResult;
+    use classfile_parser::constant_info::ConstantInfo;
+    use classfile_parser::constant_info::FieldRefConstant;
+    use classfile_parser::constant_info::*;
+    use classfile_parser::field_info::FieldInfo;
+    use classfile_parser::method_info::MethodInfo;
+    use classfile_parser::ClassFile;
+    use std::convert::TryFrom;
+    use std::rc::Rc;
 
     pub trait Named     { fn name_index(&self)       -> u16; }
     pub trait Described { fn descriptor_index(&self) -> u16; }
@@ -1141,7 +1138,7 @@ mod util {
         fn pieces(&self) -> GeneralResult<Vec<String>> {
             let r : GeneralResult<String> =
                 get_string(self, self.as_ref().name_index()).ok_or_else(|| "no name".into());
-            Ok(vec![ r? ])
+            Ok(vec![r?])
         }
     }
 
@@ -1204,7 +1201,7 @@ fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
 
     let vec = code_parser(&code.code).map_err(generic_error)?.1;
     let (ranges, map) = derive_ranges(vec, table)?;
-    let ops = map.into_iter().map(decode_insn).collect::<BTreeMap<_,_>>();
+    let ops = map.into_iter().map(decode_insn).collect::<BTreeMap<_, _>>();
     Ok((ranges, ops))
 }
 
@@ -1236,9 +1233,7 @@ fn make_callable_name(g : &dyn ContextConstantGetter, pool_index : u16) -> Gener
     mangling::mangle(joined.bytes())
 }
 
-fn mangle(list : &[&dyn Manglable]) -> GeneralResult<String> {
-    list.mangle()
-}
+fn mangle(list : &[&dyn Manglable]) -> GeneralResult<String> { list.mangle() }
 
 fn get_class<'a, T>(ctx : util::Context<'a, T>, index : u16)
     -> GeneralResult<Context<'a, &'a ClassConstant>>
@@ -1418,9 +1413,9 @@ impl fmt::Display for Method {
 }
 
 mod args {
-    use std::convert::TryFrom;
     use super::GeneralResult;
     use super::JType;
+    use std::convert::TryFrom;
 
     pub fn field_size(ch : char) -> GeneralResult<u8> {
         JType::try_from(ch).map(JType::size).map_err(Into::into)
@@ -1437,7 +1432,9 @@ mod args {
             }
         }
 
-        if s.is_empty() { return Ok(0); }
+        if s.is_empty() {
+            return Ok(0);
+        }
         let ch = s.chars().next().unwrap_or('x'); // .next() cannot fail since s is not empty
         let mine = field_size(ch);
         Ok(mine? + count_internal(&s[eat(s)?..])?)

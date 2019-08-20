@@ -62,7 +62,10 @@ impl Manager {
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn reserve(&mut self, n : u16) -> StackActions {
-        assert!((self.count + n) as usize <= self.stack.len(), "operand stack overflow");
+        assert!(
+            (self.count + n) as usize <= self.stack.len(),
+            "operand stack overflow"
+        );
         self.count += n;
         vec![] // TODO support spilling
     }
@@ -89,17 +92,19 @@ impl Manager {
 
     pub fn get(&self, which : u16) -> Option<tenyr::Register> {
         // TODO handle Stacked
-        assert!(which as usize <= self.stack.len(),
-            "attempt to access register deeper than register depth");
+        assert!(
+            which as usize <= self.stack.len(),
+            "attempt to access register deeper than register depth"
+        );
         // indexing is relative to top of stack, counting backward
         self.get_reg(which).into()
     }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     fn set_watermark(&mut self, level : u16) -> StackActions {
-        use tenyr::*;
         use tenyr::InstructionType::*;
         use tenyr::MemoryOpType::*;
+        use tenyr::*;
 
         // TODO remove casts
 
@@ -144,14 +149,10 @@ impl Manager {
     }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
-    pub fn freeze(&mut self) -> StackActions {
-        self.set_watermark(0)
-    }
+    pub fn freeze(&mut self) -> StackActions { self.set_watermark(0) }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
-    pub fn thaw(&mut self) -> StackActions {
-        self.set_watermark(self.stack.len() as u16)
-    }
+    pub fn thaw(&mut self) -> StackActions { self.set_watermark(self.stack.len() as u16) }
 }
 
 #[cfg(test)]
@@ -159,7 +160,7 @@ impl quickcheck::Arbitrary for tenyr::Register {
     fn arbitrary<G : Gen>(g : &mut G) -> Self {
         // TODO use Range once iterating on it works
         use Register::*;
-        [ A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P ][(g.next_u32() % 16) as usize]
+        [A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P][(g.next_u32() % 16) as usize]
     }
 }
 
@@ -179,7 +180,7 @@ fn test_get_reg(v : Vec<Register>) -> TestResult {
 #[should_panic(expected = "underflow")]
 fn test_underflow() {
     use Register::*;
-    let v = vec![ C, D, E, F, G ];
+    let v = vec![C, D, E, F, G];
     let mut sm = Manager::new(5, O, v);
     let _ = sm.reserve(3);
     let _ = sm.release(4);
@@ -189,7 +190,7 @@ fn test_underflow() {
 #[should_panic(expected = "overflow")]
 fn test_overflow() {
     use Register::*;
-    let v = vec![ C, D, E, F, G ];
+    let v = vec![C, D, E, F, G];
     let len = v.len() as u16;
     let mut sm = Manager::new(5, O, v);
     let _ = sm.reserve(len + 1);
@@ -198,7 +199,7 @@ fn test_overflow() {
 #[test]
 fn test_normal_stack() {
     use Register::*;
-    let v = vec![ C, D, E, F, G ];
+    let v = vec![C, D, E, F, G];
     let t = v.clone();
     let mut sm = Manager::new(5, O, v);
     let off = 3;
@@ -209,7 +210,7 @@ fn test_normal_stack() {
 #[test]
 fn test_watermark() {
     use Register::*;
-    let v = vec![ C, D, E, F, G ];
+    let v = vec![C, D, E, F, G];
     let mut sm = Manager::new(v.len() as u16, O, v);
     let mut insns = sm.reserve(4);
 
