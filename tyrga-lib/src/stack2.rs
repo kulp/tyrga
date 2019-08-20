@@ -20,8 +20,8 @@
 //! - freeze()   -- spill all locations to memory
 //! - thaw()     -- load as many locations into registers as will fit
 
-use crate::tenyr::Register;
 use crate::tenyr::Instruction;
+use crate::tenyr::Register;
 
 use std::convert::TryFrom;
 
@@ -42,12 +42,17 @@ struct Manager {
 
 impl Manager {
     /// create manager for a given register list
-    pub fn new<I : IntoIterator<Item=Register>>(regs : I) -> Manager {
+    pub fn new<I : IntoIterator<Item = Register>>(regs : I) -> Manager {
         let regs : Vec<_> = regs.into_iter().collect();
         let stack_depth = 0;
         let pick_point = 0;
         let stack_ptr = *regs.last().expect("too few registers");
-        Manager { regs, stack_depth, pick_point, stack_ptr }
+        Manager {
+            regs,
+            stack_depth,
+            pick_point,
+            stack_ptr,
+        }
     }
     /// number of registers usable
     fn register_count(&self) -> u16 { u16::try_from(self.regs.len()).expect("too many registers") }
@@ -66,4 +71,3 @@ impl Manager {
         assert!(self.pick_point <= self.stack_depth);
     }
 }
-
