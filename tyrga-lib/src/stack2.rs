@@ -64,6 +64,11 @@ impl Manager {
         vec![] // TODO implement
     }
 
+    /// removes all items from the stack
+    pub fn empty(&mut self) -> StackActions {
+        self.nudge(-i32::from(self.pick_point), -i32::from(self.stack_depth))
+    }
+
     fn check_invariants(&self) {
         // Allow "absurd" comparisons to allow us to write runtime assertions that are known to be
         // infallible at compile time *with the the current types*.
