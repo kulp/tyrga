@@ -988,8 +988,8 @@ mod util {
     use std::convert::TryFrom;
     use std::rc::Rc;
 
-    pub trait Named     { fn name_index(&self)       -> u16; }
-    pub trait Described { fn descriptor_index(&self) -> u16; }
+    pub(in super) trait Named     { fn name_index(&self)       -> u16; }
+    pub(in super) trait Described { fn descriptor_index(&self) -> u16; }
 
     impl Named     for MethodInfo { fn name_index(&self)       -> u16 { self.name_index } }
     impl Described for MethodInfo { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
@@ -1060,17 +1060,17 @@ mod util {
         }
     }
 
-    pub type ConstantGetter<'a> = dyn Fn(u16) -> &'a ConstantInfo + 'a;
+    pub(in super) type ConstantGetter<'a> = dyn Fn(u16) -> &'a ConstantInfo + 'a;
 
-    pub trait Contextualizer<'a> {
+    pub(in super) trait Contextualizer<'a> {
         fn contextualize<U>(&self, nested : U) -> Context<'a, U>;
     }
 
-    pub trait ContextConstantGetter<'a> {
+    pub(in super) trait ContextConstantGetter<'a> {
         fn get_constant(&self, index : u16) -> &'a ConstantInfo;
     }
 
-    pub struct Context<'a, T> {
+    pub(in super) struct Context<'a, T> {
         get_constant : Rc<ConstantGetter<'a>>,
         nested : Rc<T>,
     }
@@ -1100,12 +1100,12 @@ mod util {
         fn as_ref(&self) -> &T { &self.nested }
     }
 
-    pub fn get_constant_getter<'a>(nested : &'a ClassFile) -> Context<'a, &ClassFile> {
+    pub(in super) fn get_constant_getter<'a>(nested : &'a ClassFile) -> Context<'a, &ClassFile> {
         let gc = move |n| &nested.const_pool[usize::from(n) - 1];
         Context { get_constant : Rc::new(gc), nested : Rc::new(nested) }
     }
 
-    pub fn get_string(g : &dyn ContextConstantGetter, i : u16) -> Option<String> {
+    pub(in super) fn get_string(g : &dyn ContextConstantGetter, i : u16) -> Option<String> {
         if let classfile_parser::constant_info::ConstantInfo::Utf8(u) = g.get_constant(i) {
             Some(u.utf8_string.to_string())
         } else {
@@ -1113,7 +1113,7 @@ mod util {
         }
     }
 
-    pub trait Manglable {
+    pub(in super) trait Manglable {
         fn pieces(&self) -> GeneralResult<Vec<String>>;
         fn stringify(&self) -> GeneralResult<String> {
             Ok(self.pieces()?.join(":"))
@@ -1148,7 +1148,7 @@ mod util {
         }
     }
 
-    pub fn field_type(fr : &Context<'_, &FieldRefConstant>) -> GeneralResult<JType> {
+    pub(in super) fn field_type(fr : &Context<'_, &FieldRefConstant>) -> GeneralResult<JType> {
         use classfile_parser::constant_info::ConstantInfo::NameAndType;
         if let NameAndType(nt) = fr.get_constant(fr.as_ref().name_and_type_index) {
             let desc = get_string(fr, nt.descriptor_index).ok_or("no description")?;
@@ -1160,15 +1160,15 @@ mod util {
         }
     }
 
-    pub fn index_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
+    pub(in super) fn index_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
         use super::tenyr::InstructionType::Type3;
         let x = sm.get_stack_ptr();
         Instruction { dd : NoLoad, z : reg, x, kind : Type3(sm.get_frame_offset(idx)) }
     }
-    pub fn load_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
+    pub(in super) fn load_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
         Instruction { dd : LoadRight, ..index_local(sm, reg, idx) }
     }
-    pub fn store_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
+    pub(in super) fn store_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
         Instruction { dd : StoreRight, ..index_local(sm, reg, idx) }
     }
 }
