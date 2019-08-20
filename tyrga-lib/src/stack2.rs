@@ -64,6 +64,12 @@ impl Manager {
         vec![] // TODO implement
     }
 
+    /// reserves a given number of slots, pushing the pick point down
+    pub fn reserve(&mut self, n : u16) -> StackActions {
+        let n = n.into();
+        self.nudge(n, n)
+    }
+
     /// removes all items from the stack
     pub fn empty(&mut self) -> StackActions {
         self.nudge(-i32::from(self.pick_point), -i32::from(self.stack_depth))
