@@ -59,6 +59,11 @@ impl Manager {
     /// number of values stored in memory
     fn spilled_count(&self) -> u16 { 0.max(self.pick_point - self.register_count()) }
 
+    fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
+        self.check_invariants();
+        vec![] // TODO implement
+    }
+
     fn check_invariants(&self) {
         // Allow "absurd" comparisons to allow us to write runtime assertions that are known to be
         // infallible at compile time *with the the current types*.
