@@ -23,7 +23,7 @@
 use crate::tenyr::Instruction;
 use crate::tenyr::Register;
 
-use std::convert::TryFrom;
+use std::convert::TryInto;
 
 /// a list of stack-maintenance instructions that must be executed
 #[must_use = "StackActions must be implemented to maintain stack discipline"]
@@ -55,7 +55,7 @@ impl Manager {
         }
     }
     /// number of registers usable
-    fn register_count(&self) -> u16 { u16::try_from(self.regs.len()).expect("too many registers") }
+    fn register_count(&self) -> u16 { self.regs.len().try_into().expect("too many registers") }
     /// number of values stored in memory
     fn spilled_count(&self) -> u16 { 0.max(self.pick_point - self.register_count()) }
 
