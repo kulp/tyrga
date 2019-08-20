@@ -71,3 +71,11 @@ impl Manager {
         assert!(self.pick_point <= self.stack_depth);
     }
 }
+
+#[test]
+fn test_new() {
+    use Register::*;
+    let man = Manager::new(vec![B, C, D]);
+    man.check_invariants();
+    assert_eq!(man.register_count(), 3);
+}
