@@ -86,6 +86,11 @@ impl Manager {
         spilling.chain(loading).collect()
     }
 
+    /// increases pick-point up to a minimum value, if necessary
+    fn require_minimum(&mut self, n : u16) -> StackActions {
+        self.nudge(0.max((n - self.pick_point).into()), 0)
+    }
+
     /// reserves a given number of slots, pushing the pick point down
     pub fn reserve(&mut self, n : u16) -> StackActions {
         let n = n.into();
