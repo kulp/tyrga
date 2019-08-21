@@ -76,6 +76,9 @@ impl Manager {
         self.nudge(n, -n)
     }
 
+    /// commits all registers to memory
+    pub fn freeze(&mut self) -> StackActions { self.nudge(-i32::from(self.pick_point), 0) }
+
     /// removes all items from the stack
     pub fn empty(&mut self) -> StackActions {
         self.nudge(-i32::from(self.pick_point), -i32::from(self.stack_depth))
