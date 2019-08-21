@@ -24,6 +24,7 @@ use crate::tenyr;
 use crate::tenyr::Instruction;
 use crate::tenyr::Register;
 
+use std::convert::TryFrom;
 use std::convert::TryInto;
 
 /// a list of stack-maintenance instructions that must be executed
@@ -58,11 +59,15 @@ impl Manager {
     /// number of registers usable
     fn register_count(&self) -> u16 { self.regs.len().try_into().expect("too many registers") }
     /// number of values stored in memory
-    fn spilled_count(&self) -> u16 { 0.max(self.pick_point - self.register_count()) }
+    fn spilled_count(&self) -> u16 {
+        let regs : i32 = self.register_count().into();
+        let pick : i32 = self.pick_point.into();
+        let deep : i32 = self.stack_depth.into();
+        let count = 0.max(deep - regs.min(pick));
+        count.try_into().expect("too many spilled registers")
+    }
 
     fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
-        use std::convert::TryFrom;
-
         let spilled_before = self.spilled_count();
         self.check_invariants();
 
