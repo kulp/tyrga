@@ -129,3 +129,16 @@ fn test_new() {
     man.check_invariants();
     assert_eq!(man.register_count(), 3);
 }
+
+#[cfg(test)]
+fn get_mgr() -> Manager {
+    use Register::*;
+    Manager::new(vec![B, C, D, E, F, G])
+}
+
+#[test]
+fn test_trivial_reserve() {
+    let mut man = get_mgr();
+    let act = man.reserve(1);
+    assert!(act.is_empty());
+}
