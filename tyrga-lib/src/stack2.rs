@@ -32,7 +32,7 @@ use std::convert::TryInto;
 pub type StackActions = Vec<Instruction>;
 
 struct Manager {
-    /// registers under our control
+    /// registers under our control, excluding `stack_ptr`
     regs : Vec<Register>,
     /// number of items on operand stack
     stack_depth : u16,
@@ -45,10 +45,10 @@ struct Manager {
 impl Manager {
     /// create manager for a given register list
     pub fn new<I : IntoIterator<Item = Register>>(regs : I) -> Manager {
-        let regs : Vec<_> = regs.into_iter().collect();
+        let mut regs : Vec<_> = regs.into_iter().collect();
         let stack_depth = 0;
         let pick_point = 0;
-        let stack_ptr = *regs.last().expect("too few registers");
+        let stack_ptr = regs.pop().expect("too few registers");
         Manager {
             regs,
             stack_depth,
@@ -132,7 +132,7 @@ fn test_new() {
     use Register::*;
     let man = Manager::new(vec![B, C, D]);
     man.check_invariants();
-    assert_eq!(man.register_count(), 3);
+    assert_eq!(man.register_count(), 2);
 }
 
 #[cfg(test)]
