@@ -142,3 +142,10 @@ fn test_trivial_reserve() {
     let act = man.reserve(1);
     assert!(act.is_empty());
 }
+
+#[should_panic(expected = "overflow")]
+#[test]
+fn test_trivial_release() {
+    let mut man = get_mgr();
+    let _ = man.release(1);
+}
