@@ -34,6 +34,8 @@ pub type StackActions = Vec<Instruction>;
 struct Manager {
     /// registers under our control, excluding `stack_ptr`
     regs : Vec<Register>,
+    /// number of registers in our stack
+    register_count : u16,
     /// number of items on operand stack
     stack_depth : u16,
     /// number of "live" registers desired
@@ -49,18 +51,18 @@ impl Manager {
         let stack_depth = 0;
         let pick_point = 0;
         let stack_ptr = regs.pop().expect("too few registers");
+        let register_count = regs.len().try_into().expect("too many registers");
         Manager {
             regs,
+            register_count,
             stack_depth,
             pick_point,
             stack_ptr,
         }
     }
-    /// number of registers usable
-    fn register_count(&self) -> u16 { self.regs.len().try_into().expect("too many registers") }
     /// number of values stored in memory
     fn spilled_count(&self) -> u16 {
-        let regs : i32 = self.register_count().into();
+        let regs : i32 = self.register_count.into();
         let pick : i32 = self.pick_point.into();
         let deep : i32 = self.stack_depth.into();
         let count = 0.max(deep - regs.min(pick));
@@ -132,7 +134,7 @@ fn test_new() {
     use Register::*;
     let man = Manager::new(vec![B, C, D]);
     man.check_invariants();
-    assert_eq!(man.register_count(), 2);
+    assert_eq!(man.register_count, 2);
 }
 
 #[cfg(test)]
