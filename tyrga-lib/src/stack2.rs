@@ -20,6 +20,7 @@
 //! - freeze()   -- spill all locations to memory
 //! - thaw()     -- load as many locations into registers as will fit
 
+use crate::tenyr;
 use crate::tenyr::Instruction;
 use crate::tenyr::Register;
 
@@ -60,8 +61,24 @@ impl Manager {
     fn spilled_count(&self) -> u16 { 0.max(self.pick_point - self.register_count()) }
 
     fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
+        use std::convert::TryFrom;
+
+        let spilled_before = self.spilled_count();
         self.check_invariants();
-        vec![] // TODO implement
+
+        self.pick_point = u16::try_from(i32::from(self.pick_point) + pick_movement)
+            .expect("overflow in pick_point");
+        self.stack_depth = u16::try_from(i32::from(self.stack_depth) + depth_movement)
+            .expect("overflow in stack_depth");
+
+        let spilled_after = self.spilled_count();
+        self.check_invariants();
+
+        // TODO implement real behaviors
+        let spilling = (spilled_before..spilled_after).map(|_| tenyr::NOOP_TYPE0);
+        let loading = (spilled_after..spilled_before).map(|_| tenyr::NOOP_TYPE0);
+
+        spilling.chain(loading).collect()
     }
 
     /// reserves a given number of slots, pushing the pick point down
