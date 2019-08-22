@@ -27,6 +27,9 @@ use crate::tenyr::Register;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 
+#[cfg(test)]
+use quickcheck::{quickcheck, TestResult};
+
 /// a list of stack-maintenance instructions that must be executed
 #[must_use = "StackActions must be implemented to maintain stack discipline"]
 pub type StackActions = Vec<Instruction>;
@@ -158,35 +161,24 @@ fn test_trivial_release() {
     check_invariants(&man);
 }
 
-#[test]
-fn test_boundary() {
-    let mut man = get_mgr();
-    let r = man.register_count;
+#[cfg(test)]
+quickcheck! {
+    fn test_boundary(extra : u16, backoff : u16) -> TestResult {
+        if backoff > extra { return TestResult::discard(); }
 
-    let act = man.reserve(r);
-    assert!(act.is_empty());
-    let act = man.release(r);
-    assert!(act.is_empty());
+        let mut man = get_mgr();
+        let r = man.register_count;
 
-    let act = man.reserve(r + 1);
-    assert_eq!(act.len(), 1);
-    let act = man.release(1);
-    assert_eq!(act.len(), 1);
-    let act = man.release(r);
-    assert!(act.is_empty());
+        let first = extra - backoff;
+        let act = man.reserve(r + first);
+        assert_eq!(act.len(), first.into());
+        let act = man.reserve(backoff);
+        assert_eq!(act.len(), backoff.into());
+        let act = man.release(first);
+        assert_eq!(act.len(), first.into());
+        let act = man.release(r + backoff);
+        assert_eq!(act.len(), backoff.into());
 
-    // TODO quickcheck this
-    for extra in 0..10_u16 {
-        for backoff in 0..extra {
-            let first = extra - backoff;
-            let act = man.reserve(r + first);
-            assert_eq!(act.len(), first.into());
-            let act = man.reserve(backoff);
-            assert_eq!(act.len(), backoff.into());
-            let act = man.release(first);
-            assert_eq!(act.len(), first.into());
-            let act = man.release(r + backoff);
-            assert_eq!(act.len(), backoff.into());
-        }
+        TestResult::passed()
     }
 }
