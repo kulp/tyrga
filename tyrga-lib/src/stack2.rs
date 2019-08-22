@@ -157,3 +157,21 @@ fn test_trivial_release() {
     let _ = man.release(1);
     check_invariants(&man);
 }
+
+#[test]
+fn test_boundary() {
+    let mut man = get_mgr();
+    let r = man.register_count;
+
+    let act = man.reserve(r);
+    assert!(act.is_empty());
+    let act = man.release(r);
+    assert!(act.is_empty());
+
+    let act = man.reserve(r + 1);
+    assert_eq!(act.len(), 1);
+    let act = man.release(1);
+    assert_eq!(act.len(), 1);
+    let act = man.release(r);
+    assert!(act.is_empty());
+}
