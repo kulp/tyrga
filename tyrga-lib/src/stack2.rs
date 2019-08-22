@@ -174,4 +174,19 @@ fn test_boundary() {
     assert_eq!(act.len(), 1);
     let act = man.release(r);
     assert!(act.is_empty());
+
+    // TODO quickcheck this
+    for extra in 0..10_u16 {
+        for backoff in 0..extra {
+            let first = extra - backoff;
+            let act = man.reserve(r + first);
+            assert_eq!(act.len(), first.into());
+            let act = man.reserve(backoff);
+            assert_eq!(act.len(), backoff.into());
+            let act = man.release(first);
+            assert_eq!(act.len(), first.into());
+            let act = man.release(r + backoff);
+            assert_eq!(act.len(), backoff.into());
+        }
+    }
 }
