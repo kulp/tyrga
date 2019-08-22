@@ -71,7 +71,6 @@ impl Manager {
 
     fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
         let spilled_before = self.spilled_count();
-        self.check_invariants();
 
         self.pick_point = u16::try_from(i32::from(self.pick_point) + pick_movement)
             .expect("overflow in pick_point");
@@ -79,7 +78,6 @@ impl Manager {
             .expect("overflow in stack_depth");
 
         let spilled_after = self.spilled_count();
-        self.check_invariants();
 
         // TODO implement real behaviors
         let spilling = (spilled_before..spilled_after).map(|_| tenyr::NOOP_TYPE0);
@@ -115,25 +113,26 @@ impl Manager {
     pub fn empty(&mut self) -> StackActions {
         self.nudge(-i32::from(self.pick_point), -i32::from(self.stack_depth))
     }
+}
 
-    fn check_invariants(&self) {
-        // Allow "absurd" comparisons to allow us to write runtime assertions that are known to be
-        // infallible at compile time *with the the current types*.
-        #![allow(clippy::absurd_extreme_comparisons)]
-        #![allow(unused_comparisons)]
+#[cfg(test)]
+fn check_invariants(man : &Manager) {
+    // Allow "absurd" comparisons to allow us to write runtime assertions that are known to be
+    // infallible at compile time *with the the current types*.
+    #![allow(clippy::absurd_extreme_comparisons)]
+    #![allow(unused_comparisons)]
 
-        assert!(0 <= self.stack_depth);
-        assert!(self.stack_depth <= 255);
-        assert!(0 <= self.pick_point);
-        assert!(self.pick_point <= self.stack_depth);
-    }
+    assert!(0 <= man.stack_depth);
+    assert!(man.stack_depth <= 255);
+    assert!(0 <= man.pick_point);
+    assert!(man.pick_point <= man.stack_depth);
 }
 
 #[test]
 fn test_new() {
     use Register::*;
     let man = Manager::new(vec![B, C, D]);
-    man.check_invariants();
+    check_invariants(&man);
     assert_eq!(man.register_count, 2);
 }
 
@@ -147,6 +146,7 @@ fn get_mgr() -> Manager {
 fn test_trivial_reserve() {
     let mut man = get_mgr();
     let act = man.reserve(1);
+    check_invariants(&man);
     assert!(act.is_empty());
 }
 
@@ -155,4 +155,5 @@ fn test_trivial_reserve() {
 fn test_trivial_release() {
     let mut man = get_mgr();
     let _ = man.release(1);
+    check_invariants(&man);
 }
