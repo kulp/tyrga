@@ -143,12 +143,15 @@ fn check_invariants(man : &Manager) {
     assert!(man.pick_point <= man.stack_depth);
 }
 
-#[test]
-fn test_new() {
-    use Register::*;
-    let man = Manager::new(vec![B, C, D]);
-    check_invariants(&man);
-    assert_eq!(man.register_count, 2);
+#[cfg(test)]
+quickcheck! {
+    fn test_new(num_regs : NumRegs) -> TestResult {
+        if num_regs.0 < 1 { return TestResult::discard(); }
+        let man = get_mgr(num_regs);
+        check_invariants(&man);
+        assert_eq!(man.register_count, (num_regs.0 - 1).into());
+        TestResult::passed()
+    }
 }
 
 #[cfg(test)]
