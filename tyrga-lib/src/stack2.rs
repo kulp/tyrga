@@ -83,10 +83,11 @@ impl Manager {
         let spilled_after = self.spilled_count();
 
         // TODO implement real behaviors
+        let update = tenyr::NOOP_TYPE0;
         let spilling = (spilled_before..spilled_after).map(|_| tenyr::NOOP_TYPE0);
         let loading = (spilled_after..spilled_before).map(|_| tenyr::NOOP_TYPE0);
 
-        spilling.chain(loading).collect()
+        std::iter::once(update).chain(spilling).chain(loading).collect()
     }
 
     /// increases pick-point up to a minimum value, if necessary
@@ -152,6 +153,9 @@ fn get_mgr(num_regs : NumRegs) -> Manager {
 }
 
 #[cfg(test)]
+const POINTER_UPDATE_INSNS : u16 = 1;
+
+#[cfg(test)]
 quickcheck! {
     fn test_new(num_regs : NumRegs) -> TestResult {
         if num_regs.0 < 1 { return TestResult::discard(); }
@@ -166,7 +170,7 @@ quickcheck! {
         let mut man = get_mgr(n);
         let act = man.reserve(1);
         check_invariants(&man);
-        assert!(act.is_empty());
+        assert_eq!(act.len(), POINTER_UPDATE_INSNS.into());
         TestResult::passed()
     }
 
@@ -178,13 +182,13 @@ quickcheck! {
 
         let first = extra - backoff;
         let act = man.reserve(r + first);
-        assert_eq!(act.len(), first.into());
+        assert_eq!(act.len(), (first + POINTER_UPDATE_INSNS).into());
         let act = man.reserve(backoff);
-        assert_eq!(act.len(), backoff.into());
+        assert_eq!(act.len(), (backoff + POINTER_UPDATE_INSNS).into());
         let act = man.release(first);
-        assert_eq!(act.len(), first.into());
+        assert_eq!(act.len(), (first + POINTER_UPDATE_INSNS).into());
         let act = man.release(r + backoff);
-        assert_eq!(act.len(), backoff.into());
+        assert_eq!(act.len(), (backoff + POINTER_UPDATE_INSNS).into());
 
         TestResult::passed()
     }
