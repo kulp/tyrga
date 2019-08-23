@@ -144,17 +144,6 @@ fn check_invariants(man : &Manager) {
 }
 
 #[cfg(test)]
-quickcheck! {
-    fn test_new(num_regs : NumRegs) -> TestResult {
-        if num_regs.0 < 1 { return TestResult::discard(); }
-        let man = get_mgr(num_regs);
-        check_invariants(&man);
-        assert_eq!(man.register_count, (num_regs.0 - 1).into());
-        TestResult::passed()
-    }
-}
-
-#[cfg(test)]
 fn get_mgr(num_regs : NumRegs) -> Manager {
     use Register::*;
     let regs = [B, C, D, E, F, G, H, I, J, K, L, M, N, O];
@@ -164,6 +153,14 @@ fn get_mgr(num_regs : NumRegs) -> Manager {
 
 #[cfg(test)]
 quickcheck! {
+    fn test_new(num_regs : NumRegs) -> TestResult {
+        if num_regs.0 < 1 { return TestResult::discard(); }
+        let man = get_mgr(num_regs);
+        check_invariants(&man);
+        assert_eq!(man.register_count, (num_regs.0 - 1).into());
+        TestResult::passed()
+    }
+
     fn test_trivial_reserve(n : NumRegs) -> TestResult {
         if n.0 < 2 { return TestResult::discard(); }
         let mut man = get_mgr(n);
@@ -172,18 +169,7 @@ quickcheck! {
         assert!(act.is_empty());
         TestResult::passed()
     }
-}
 
-#[should_panic(expected = "overflow")]
-#[test]
-fn test_trivial_release() {
-    let mut man = get_mgr(NumRegs(6));
-    let _ = man.release(1);
-    check_invariants(&man);
-}
-
-#[cfg(test)]
-quickcheck! {
     fn test_boundary(extra : u16, backoff : u16) -> TestResult {
         if backoff > extra { return TestResult::discard(); }
 
@@ -202,4 +188,12 @@ quickcheck! {
 
         TestResult::passed()
     }
+}
+
+#[should_panic(expected = "overflow")]
+#[test]
+fn test_trivial_release() {
+    let mut man = get_mgr(NumRegs(6));
+    let _ = man.release(1);
+    check_invariants(&man);
 }
