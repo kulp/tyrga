@@ -28,7 +28,7 @@ use std::convert::TryFrom;
 use std::convert::TryInto;
 
 #[cfg(test)]
-use quickcheck::{quickcheck, TestResult};
+use quickcheck::{quickcheck, Gen, TestResult};
 
 /// a list of stack-maintenance instructions that must be executed
 #[must_use = "StackActions must be implemented to maintain stack discipline"]
@@ -119,6 +119,18 @@ impl Manager {
 }
 
 #[cfg(test)]
+#[derive(Copy, Clone, Debug)]
+struct NumRegs(u8);
+
+#[cfg(test)]
+impl quickcheck::Arbitrary for NumRegs {
+    fn arbitrary<G : Gen>(g : &mut G) -> Self {
+        #[allow(clippy::result_unwrap_used)]
+        NumRegs((g.next_u32() % 14).try_into().unwrap()) // do not count A and P
+    }
+}
+
+#[cfg(test)]
 fn check_invariants(man : &Manager) {
     // Allow "absurd" comparisons to allow us to write runtime assertions that are known to be
     // infallible at compile time *with the the current types*.
@@ -140,25 +152,29 @@ fn test_new() {
 }
 
 #[cfg(test)]
-fn get_mgr(num_regs : u8) -> Manager {
+fn get_mgr(num_regs : NumRegs) -> Manager {
     use Register::*;
     let regs = [B, C, D, E, F, G, H, I, J, K, L, M, N, O];
-    let regs = regs.iter().take(num_regs.into()).cloned();
+    let regs = regs.iter().take(num_regs.0.into()).cloned();
     Manager::new(regs)
 }
 
-#[test]
-fn test_trivial_reserve() {
-    let mut man = get_mgr(6);
-    let act = man.reserve(1);
-    check_invariants(&man);
-    assert!(act.is_empty());
+#[cfg(test)]
+quickcheck! {
+    fn test_trivial_reserve(n : NumRegs) -> TestResult {
+        if n.0 < 2 { return TestResult::discard(); }
+        let mut man = get_mgr(n);
+        let act = man.reserve(1);
+        check_invariants(&man);
+        assert!(act.is_empty());
+        TestResult::passed()
+    }
 }
 
 #[should_panic(expected = "overflow")]
 #[test]
 fn test_trivial_release() {
-    let mut man = get_mgr(6);
+    let mut man = get_mgr(NumRegs(6));
     let _ = man.release(1);
     check_invariants(&man);
 }
@@ -168,7 +184,7 @@ quickcheck! {
     fn test_boundary(extra : u16, backoff : u16) -> TestResult {
         if backoff > extra { return TestResult::discard(); }
 
-        let mut man = get_mgr(6);
+        let mut man = get_mgr(NumRegs(6));
         let r = man.register_count;
 
         let first = extra - backoff;
