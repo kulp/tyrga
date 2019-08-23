@@ -140,14 +140,16 @@ fn test_new() {
 }
 
 #[cfg(test)]
-fn get_mgr() -> Manager {
+fn get_mgr(num_regs : u8) -> Manager {
     use Register::*;
-    Manager::new(vec![B, C, D, E, F, G])
+    let regs = [B, C, D, E, F, G, H, I, J, K, L, M, N, O];
+    let regs = regs.iter().take(num_regs.into()).cloned();
+    Manager::new(regs)
 }
 
 #[test]
 fn test_trivial_reserve() {
-    let mut man = get_mgr();
+    let mut man = get_mgr(6);
     let act = man.reserve(1);
     check_invariants(&man);
     assert!(act.is_empty());
@@ -156,7 +158,7 @@ fn test_trivial_reserve() {
 #[should_panic(expected = "overflow")]
 #[test]
 fn test_trivial_release() {
-    let mut man = get_mgr();
+    let mut man = get_mgr(6);
     let _ = man.release(1);
     check_invariants(&man);
 }
@@ -166,7 +168,7 @@ quickcheck! {
     fn test_boundary(extra : u16, backoff : u16) -> TestResult {
         if backoff > extra { return TestResult::discard(); }
 
-        let mut man = get_mgr();
+        let mut man = get_mgr(6);
         let r = man.register_count;
 
         let first = extra - backoff;
