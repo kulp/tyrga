@@ -10,13 +10,15 @@
 #![deny(unconditional_recursion)]
 #![deny(clippy::unreadable_literal)]
 
+// make macros visible to later modules
+#[macro_use]
+mod tenyr;
+
 mod exprtree;
 mod jvmtypes;
 pub mod mangling;
 mod stack;
 mod stack2;
-#[macro_use]
-mod tenyr;
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::error::Error;
