@@ -72,6 +72,13 @@ impl Manager {
         count.try_into().expect("too many spilled registers")
     }
 
+    fn wrap<T>(f : impl FnOnce() -> Result<T, Box<dyn std::error::Error>>) -> T {
+        match f() {
+            Ok(t) => t,
+            Err(e) => panic!(e.to_string()),
+        }
+    }
+
     fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
         let spilled_before = self.spilled_count();
 
