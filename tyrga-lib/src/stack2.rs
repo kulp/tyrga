@@ -98,7 +98,10 @@ impl Manager {
         let spilling = (spilled_before..spilled_after).map(|_| tenyr::NOOP_TYPE0);
         let loading = (spilled_after..spilled_before).map(|_| tenyr::NOOP_TYPE0);
 
-        std::iter::once(update).chain(spilling).chain(loading).collect()
+        std::iter::once(update)
+            .chain(spilling)
+            .chain(loading)
+            .collect()
     }
 
     /// increases pick-point up to a minimum value, if necessary
