@@ -72,17 +72,15 @@ impl Manager {
         count.try_into().expect("too many spilled registers")
     }
 
-    fn wrap<T>(f : impl FnOnce() -> Result<T, Box<dyn std::error::Error>>) -> T {
-        match f() {
-            Ok(t) => t,
-            Err(e) => panic!(e.to_string()),
-        }
+    fn unwrap<T>(f : impl FnOnce() -> Result<T, Box<dyn std::error::Error>>) -> T {
+        #[allow(clippy::result_unwrap_used)]
+        f().unwrap()
     }
 
     fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
         let spilled_before = self.spilled_count();
 
-        let (update, spilled_after) = Self::wrap(|| {
+        let (update, spilled_after) = Self::unwrap(|| {
             self.pick_point = u16::try_from(i32::from(self.pick_point) + pick_movement)
                 .or(Err("overflow in pick_point"))?;
             self.stack_depth = u16::try_from(i32::from(self.stack_depth) + depth_movement)
