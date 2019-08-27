@@ -117,8 +117,8 @@ impl Manager {
 
     /// releases a given number of slots, pulling the pick point up
     pub fn release(&mut self, n : u16) -> StackActions {
-        let n = n.into();
-        self.nudge(n, -n)
+        let n = i32::from(n);
+        self.nudge(-n, -n)
     }
 
     /// commits all registers to memory
@@ -203,6 +203,8 @@ quickcheck! {
         assert_eq!(act.len(), (first + POINTER_UPDATE_INSNS).into());
         let act = man.release(r + backoff);
         assert_eq!(act.len(), (backoff + POINTER_UPDATE_INSNS).into());
+
+        assert_eq!(man.pick_point, 0);
 
         TestResult::passed()
     }
