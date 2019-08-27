@@ -78,9 +78,9 @@ impl Manager {
     }
 
     fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
-        let spilled_before = self.spilled_count();
-
         let (update, spilling, loading) = Self::unwrap(|| {
+            let spilled_before = self.spilled_count();
+    
             self.pick_point = u16::try_from(i32::from(self.pick_point) + pick_movement)
                 .or(Err("overflow in pick_point"))?;
             self.stack_depth = u16::try_from(i32::from(self.stack_depth) + depth_movement)
