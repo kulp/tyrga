@@ -91,6 +91,7 @@ impl Manager {
             let sp = self.stack_ptr;
             let n = i32::from(spilled_after) - i32::from(spilled_before);
             let update = tenyr_insn!(sp <- sp + (n))?;
+            let update = if n != 0 { vec![update] } else { vec![] };
             // TODO implement real behaviors
             let spilling = (spilled_before..spilled_after).map(|_| tenyr::NOOP_TYPE0);
             let loading = (spilled_after..spilled_before).map(|_| tenyr::NOOP_TYPE0);
@@ -98,7 +99,8 @@ impl Manager {
             Ok((update, spilling, loading))
         });
 
-        std::iter::once(update)
+        update
+            .into_iter()
             .chain(spilling)
             .chain(loading)
             .collect()
@@ -169,6 +171,16 @@ fn get_mgr(num_regs : NumRegs) -> Manager {
 #[cfg(test)]
 const POINTER_UPDATE_INSNS : u16 = 1;
 
+#[test]
+fn test_trivial_spill() {
+    let num_regs = NumRegs(6);
+    let mut man = get_mgr(num_regs);
+    let act = man.reserve((num_regs.0 - 1).into());
+    assert!(act.is_empty());
+    let act = man.reserve(1);
+    assert_eq!(act.len(), 2);
+}
+
 #[cfg(test)]
 quickcheck! {
     fn test_new(num_regs : NumRegs) -> TestResult {
@@ -184,7 +196,7 @@ quickcheck! {
         let mut man = get_mgr(n);
         let act = man.reserve(1);
         check_invariants(&man);
-        assert_eq!(act.len(), POINTER_UPDATE_INSNS.into());
+        assert!(act.is_empty());
         TestResult::passed()
     }
 
@@ -195,14 +207,16 @@ quickcheck! {
         let r = man.register_count;
 
         let first = extra - backoff;
+        let update_first = if first != 0 { POINTER_UPDATE_INSNS } else { 0 };
+        let update_backoff = if backoff != 0 { POINTER_UPDATE_INSNS } else { 0 };
         let act = man.reserve(r + first);
-        assert_eq!(act.len(), (first + POINTER_UPDATE_INSNS).into());
+        assert_eq!(act.len(), (first + update_first).into());
         let act = man.reserve(backoff);
-        assert_eq!(act.len(), (backoff + POINTER_UPDATE_INSNS).into());
+        assert_eq!(act.len(), (backoff + update_backoff).into());
         let act = man.release(first);
-        assert_eq!(act.len(), (first + POINTER_UPDATE_INSNS).into());
+        assert_eq!(act.len(), (first + update_first).into());
         let act = man.release(r + backoff);
-        assert_eq!(act.len(), (backoff + POINTER_UPDATE_INSNS).into());
+        assert_eq!(act.len(), (backoff + update_backoff).into());
 
         assert_eq!(man.pick_point, 0);
 
