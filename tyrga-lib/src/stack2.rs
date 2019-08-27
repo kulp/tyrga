@@ -92,9 +92,13 @@ impl Manager {
             let n = i32::from(spilled_before) - i32::from(spilled_after);
             let update = tenyr_insn!(sp <- sp + (n))?;
             let update = if n != 0 { vec![update] } else { vec![] };
-            // TODO implement real behaviors
-            let spilling = (spilled_before..spilled_after).map(|_| tenyr::NOOP_TYPE0);
-            let loading = (spilled_after..spilled_before).map(|_| tenyr::NOOP_TYPE0);
+            let spiller = |offset| {
+                // TODO implement real behaviors
+                tenyr::NOOP_TYPE0
+            };
+            let loader = spiller;
+            let spilling = (spilled_before..spilled_after).map(spiller);
+            let loading = (spilled_after..spilled_before).map(loader);
     
             Ok((update, spilling, loading))
         });
