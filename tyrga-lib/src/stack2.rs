@@ -89,7 +89,7 @@ impl Manager {
             let spilled_after = self.spilled_count();
 
             let sp = self.stack_ptr;
-            let n = i32::from(spilled_after) - i32::from(spilled_before);
+            let n = i32::from(spilled_before) - i32::from(spilled_after);
             let update = tenyr_insn!(sp <- sp + (n))?;
             let update = if n != 0 { vec![update] } else { vec![] };
             // TODO implement real behaviors
@@ -173,12 +173,23 @@ const POINTER_UPDATE_INSNS : u16 = 1;
 
 #[test]
 fn test_trivial_spill() {
-    let num_regs = NumRegs(6);
-    let mut man = get_mgr(num_regs);
-    let act = man.reserve((num_regs.0 - 1).into());
-    assert!(act.is_empty());
-    let act = man.reserve(1);
-    assert_eq!(act.len(), 2);
+    Manager::unwrap(|| {
+        let num_regs = NumRegs(6);
+        let mut man = get_mgr(num_regs);
+        let act = man.reserve((num_regs.0 - 1).into());
+        assert!(act.is_empty());
+        let act = man.reserve(1);
+        let sp = man.stack_ptr;
+        let top = man.regs[0];
+        let exp : Vec<_> = tenyr_insn_list!(
+            sp  <- sp - 1   ;
+            top -> [sp + 1] ;
+        ).collect();
+        // TODO make the whole list match
+        assert_eq!(act.len(), exp.len());
+        assert_eq!(act[0], exp[0]);
+        Ok(())
+    });
 }
 
 #[cfg(test)]
