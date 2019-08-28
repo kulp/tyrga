@@ -20,7 +20,6 @@
 //! - freeze()   -- spill all locations to memory
 //! - thaw()     -- load as many locations into registers as will fit
 
-use crate::tenyr;
 use crate::tenyr::Instruction;
 use crate::tenyr::Register;
 
@@ -101,11 +100,17 @@ impl Manager {
                 else if n > 0   { (vec![], update) }
                 else            { (vec![], vec![]) }
             };
-            let spiller = |offset| {
-                // TODO implement real behaviors
-                Ok(tenyr::NOOP_TYPE0)
+            let reg = |off| self.regs[usize::from(off % self.register_count)];
+            let spiller = move |offset : u16| {
+                let r = reg(offset);
+                let offset = i32::from(offset) + n;
+                tenyr_insn!(r -> [sp - (offset)])
             };
-            let loader = spiller;
+            let loader = move |offset : u16| {
+                let r = reg(offset);
+                let offset = i32::from(offset) + n;
+                tenyr_insn!(r <- [sp + (offset)])
+            };
             let spilling = (spilled_before..spilled_after).map(Self::unwrapper(spiller));
             let loading = (spilled_after..spilled_before).map(Self::unwrapper(loader));
     
@@ -199,9 +204,7 @@ fn test_trivial_spill() {
             sp  <- sp - 1   ;
             top -> [sp + 1] ;
         ).collect();
-        // TODO make the whole list match
-        assert_eq!(act.len(), exp.len());
-        assert_eq!(act[0], exp[0]);
+        assert_eq!(act, exp);
         Ok(())
     });
 }
