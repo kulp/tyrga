@@ -103,11 +103,11 @@ impl Manager {
             };
             let spiller = |offset| {
                 // TODO implement real behaviors
-                tenyr::NOOP_TYPE0
+                Ok(tenyr::NOOP_TYPE0)
             };
             let loader = spiller;
-            let spilling = (spilled_before..spilled_after).map(spiller);
-            let loading = (spilled_after..spilled_before).map(loader);
+            let spilling = (spilled_before..spilled_after).map(Self::unwrapper(spiller));
+            let loading = (spilled_after..spilled_before).map(Self::unwrapper(loader));
     
             Ok((prologue, spilling, loading, epilogue))
         });
