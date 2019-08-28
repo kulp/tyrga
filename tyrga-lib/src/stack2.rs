@@ -101,18 +101,17 @@ impl Manager {
                 else            { (vec![], vec![]) }
             };
             let reg = |off| self.regs[usize::from(off % self.register_count)];
-            let spiller = move |offset : u16| {
-                let r = reg(offset);
-                let offset = -n - i32::from(offset);
-                tenyr_insn!(r -> [sp + (offset)])
+            let mover = |n : i32, dir| {
+                move |offset : u16| {
+                    let r = reg(offset);
+                    let insn = tenyr_insn!(r <- [sp + (n - i32::from(offset))])?;
+                    Ok(Instruction { dd : dir, ..insn })
+                }
             };
-            let loader = move |offset : u16| {
-                let r = reg(offset);
-                let offset = n - i32::from(offset);
-                tenyr_insn!(r <- [sp + (offset)])
-            };
+            let spiller = mover(-n, crate::tenyr::MemoryOpType::StoreRight);
+            let loader  = mover( n, crate::tenyr::MemoryOpType::LoadRight);
             let spilling = (spilled_before..spilled_after).map(Self::unwrapper(spiller));
-            let loading = (spilled_after..spilled_before).map(Self::unwrapper(loader));
+            let loading  = (spilled_after..spilled_before).map(Self::unwrapper(loader));
     
             Ok((prologue, spilling, loading, epilogue))
         });
