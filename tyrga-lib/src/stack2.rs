@@ -190,31 +190,6 @@ fn get_mgr(num_regs : NumRegs) -> Manager {
 #[cfg(test)]
 const POINTER_UPDATE_INSNS : u16 = 1;
 
-#[test]
-fn test_trivial_spill_and_load() {
-    Manager::unwrap(|| {
-        let num_regs = NumRegs(6);
-        let mut man = get_mgr(num_regs);
-        let act = man.reserve((num_regs.0 - 1).into());
-        assert!(act.is_empty());
-        let act = man.reserve(1);
-        let sp = man.stack_ptr;
-        let top = man.regs[0];
-        let exp : Vec<_> = tenyr_insn_list!(
-            sp  <- sp - 1   ;
-            top -> [sp + 1] ;
-        ).collect();
-        assert_eq!(act, exp);
-        let act = man.release(1);
-        let exp : Vec<_> = tenyr_insn_list!(
-            top <- [sp + 1] ;
-            sp  <- sp + 1   ;
-        ).collect();
-        assert_eq!(act, exp);
-        Ok(())
-    });
-}
-
 #[cfg(test)]
 quickcheck! {
     fn test_new(num_regs : NumRegs) -> TestResult {
@@ -231,6 +206,31 @@ quickcheck! {
         let act = man.reserve(1);
         check_invariants(&man);
         assert!(act.is_empty());
+        TestResult::passed()
+    }
+
+    fn test_trivial_spill_and_load(num_regs : NumRegs) -> TestResult {
+        if num_regs.0 < 2 { return TestResult::discard(); }
+        Manager::unwrap(|| {
+            let mut man = get_mgr(num_regs);
+            let act = man.reserve((num_regs.0 - 1).into());
+            assert!(act.is_empty());
+            let act = man.reserve(1);
+            let sp = man.stack_ptr;
+            let top = man.regs[0];
+            let exp : Vec<_> = tenyr_insn_list!(
+                sp  <- sp - 1   ;
+                top -> [sp + 1] ;
+            ).collect();
+            assert_eq!(act, exp);
+            let act = man.release(1);
+            let exp : Vec<_> = tenyr_insn_list!(
+                top <- [sp + 1] ;
+                sp  <- sp + 1   ;
+            ).collect();
+            assert_eq!(act, exp);
+            Ok(())
+        });
         TestResult::passed()
     }
 
