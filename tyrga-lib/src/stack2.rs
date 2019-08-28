@@ -208,7 +208,7 @@ quickcheck! {
         TestResult::passed()
     }
 
-    fn test_trivial_spill_and_load(num_regs : NumRegs) -> TestResult {
+    fn test_small_spill_and_load(num_regs : NumRegs) -> TestResult {
         if num_regs.0 < 3 { return TestResult::discard(); }
         Manager::unwrap(|| {
             let mut man = get_mgr(num_regs);
