@@ -103,8 +103,8 @@ impl Manager {
             Ok((update, spilling, loading))
         });
 
-        update
-            .into_iter()
+        std::iter::empty()
+            .chain(update)
             .chain(spilling)
             .chain(loading)
             .collect()
