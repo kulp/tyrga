@@ -191,7 +191,7 @@ fn get_mgr(num_regs : NumRegs) -> Manager {
 const POINTER_UPDATE_INSNS : u16 = 1;
 
 #[test]
-fn test_trivial_spill() {
+fn test_trivial_spill_and_load() {
     Manager::unwrap(|| {
         let num_regs = NumRegs(6);
         let mut man = get_mgr(num_regs);
@@ -203,6 +203,12 @@ fn test_trivial_spill() {
         let exp : Vec<_> = tenyr_insn_list!(
             sp  <- sp - 1   ;
             top -> [sp + 1] ;
+        ).collect();
+        assert_eq!(act, exp);
+        let act = man.release(1);
+        let exp : Vec<_> = tenyr_insn_list!(
+            top <- [sp + 1] ;
+            sp  <- sp + 1   ;
         ).collect();
         assert_eq!(act, exp);
         Ok(())
