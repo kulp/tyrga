@@ -209,26 +209,29 @@ quickcheck! {
     }
 
     fn test_small_spill_and_load(num_regs : NumRegs) -> TestResult {
-        if num_regs.0 < 3 { return TestResult::discard(); }
+        if num_regs.0 < 4 { return TestResult::discard(); }
         Manager::unwrap(|| {
             let mut man = get_mgr(num_regs);
             let act = man.reserve((num_regs.0 - 1).into());
             assert!(act.is_empty());
-            let act = man.reserve(2);
+            let act = man.reserve(3);
             let sp = man.stack_ptr;
             let top = man.regs[0];
             let sec = man.regs[1];
+            let thr = man.regs[2];
             let exp : Vec<_> = tenyr_insn_list!(
-                sp  <- sp - (2) ;
-                top -> [sp + 2] ;
-                sec -> [sp + 1] ;
+                sp  <- sp - (3) ;
+                top -> [sp + 3] ;
+                sec -> [sp + 2] ;
+                thr -> [sp + 1] ;
             ).collect();
             assert_eq!(act, exp);
-            let act = man.release(2);
+            let act = man.release(3);
             let exp : Vec<_> = tenyr_insn_list!(
-                top <- [sp + 2] ;
-                sec <- [sp + 1] ;
-                sp  <- sp + (2) ;
+                top <- [sp + 3] ;
+                sec <- [sp + 2] ;
+                thr <- [sp + 1] ;
+                sp  <- sp + (3) ;
             ).collect();
             assert_eq!(act, exp);
             Ok(())
