@@ -78,7 +78,7 @@ impl Manager {
     }
 
     fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
-        let (prologue, spilling, loading) = Self::unwrap(|| {
+        let (prologue, spilling, loading, epilogue) = Self::unwrap(|| {
             let spilled_before = self.spilled_count();
     
             self.pick_point = u16::try_from(i32::from(self.pick_point) + pick_movement)
@@ -90,8 +90,12 @@ impl Manager {
 
             let sp = self.stack_ptr;
             let n = i32::from(spilled_before) - i32::from(spilled_after);
-            let update = tenyr_insn!(sp <- sp + (n))?;
-            let prologue = if n != 0 { vec![update] } else { vec![] };
+            let (prologue, epilogue) = {
+                let update = vec![tenyr_insn!(sp <- sp + (n))?];
+                if n < 0        { (update, vec![]) }
+                else if n > 0   { (vec![], update) }
+                else            { (vec![], vec![]) }
+            };
             let spiller = |offset| {
                 // TODO implement real behaviors
                 tenyr::NOOP_TYPE0
@@ -100,13 +104,14 @@ impl Manager {
             let spilling = (spilled_before..spilled_after).map(spiller);
             let loading = (spilled_after..spilled_before).map(loader);
     
-            Ok((prologue, spilling, loading))
+            Ok((prologue, spilling, loading, epilogue))
         });
 
         std::iter::empty()
             .chain(prologue)
             .chain(spilling)
             .chain(loading)
+            .chain(epilogue)
             .collect()
     }
 
