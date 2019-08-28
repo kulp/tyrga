@@ -77,6 +77,11 @@ impl Manager {
         f().unwrap()
     }
 
+    fn unwrapper<P, T>(f : impl Fn(P) -> Result<T, Box<dyn std::error::Error>>) -> impl Fn(P) -> T {
+        #[allow(clippy::result_unwrap_used)]
+        move |x| f(x).unwrap()
+    }
+
     fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
         let (prologue, spilling, loading, epilogue) = Self::unwrap(|| {
             let spilled_before = self.spilled_count();
