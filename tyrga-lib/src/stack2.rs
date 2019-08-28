@@ -103,12 +103,12 @@ impl Manager {
             let reg = |off| self.regs[usize::from(off % self.register_count)];
             let spiller = move |offset : u16| {
                 let r = reg(offset);
-                let offset = i32::from(offset) + n;
-                tenyr_insn!(r -> [sp - (offset)])
+                let offset = -n - i32::from(offset);
+                tenyr_insn!(r -> [sp + (offset)])
             };
             let loader = move |offset : u16| {
                 let r = reg(offset);
-                let offset = i32::from(offset) + n;
+                let offset = n - i32::from(offset);
                 tenyr_insn!(r <- [sp + (offset)])
             };
             let spilling = (spilled_before..spilled_after).map(Self::unwrapper(spiller));
@@ -210,23 +210,26 @@ quickcheck! {
     }
 
     fn test_trivial_spill_and_load(num_regs : NumRegs) -> TestResult {
-        if num_regs.0 < 2 { return TestResult::discard(); }
+        if num_regs.0 < 3 { return TestResult::discard(); }
         Manager::unwrap(|| {
             let mut man = get_mgr(num_regs);
             let act = man.reserve((num_regs.0 - 1).into());
             assert!(act.is_empty());
-            let act = man.reserve(1);
+            let act = man.reserve(2);
             let sp = man.stack_ptr;
             let top = man.regs[0];
+            let sec = man.regs[1];
             let exp : Vec<_> = tenyr_insn_list!(
-                sp  <- sp - 1   ;
-                top -> [sp + 1] ;
+                sp  <- sp - (2) ;
+                top -> [sp + 2] ;
+                sec -> [sp + 1] ;
             ).collect();
             assert_eq!(act, exp);
-            let act = man.release(1);
+            let act = man.release(2);
             let exp : Vec<_> = tenyr_insn_list!(
-                top <- [sp + 1] ;
-                sp  <- sp + 1   ;
+                top <- [sp + 2] ;
+                sec <- [sp + 1] ;
+                sp  <- sp + (2) ;
             ).collect();
             assert_eq!(act, exp);
             Ok(())
