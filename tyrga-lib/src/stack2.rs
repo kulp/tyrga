@@ -177,6 +177,9 @@ impl Manager {
         let reg = self.regs[(deep - 1 - n) % len];
         (reg, act)
     }
+
+    /// returns the register that points to the highest empty slot in memory
+    pub fn get_stack_ptr(&self) -> Register { self.stack_ptr }
 }
 
 #[cfg(test)]
