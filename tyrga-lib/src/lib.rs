@@ -43,7 +43,6 @@ use classfile_parser::ClassFile;
 
 use args::*;
 use jvmtypes::*;
-use stack::*;
 use tenyr::{Instruction, Register, SmallestImmediate};
 use util::*;
 
@@ -1486,6 +1485,8 @@ fn translate_method<'a, 'b>(
         method : &'a Context<'b, &'b MethodInfo>,
     ) -> GeneralResult<Method>
 {
+    use stack::SAVE_SLOTS;
+
     let mr = method.as_ref();
     let total_locals = get_method_code(mr)?.max_locals;
     let descriptor = get_string(class, mr.descriptor_index).ok_or("method descriptor missing")?;
@@ -1516,7 +1517,7 @@ fn translate_method<'a, 'b>(
 
     let epilogue = {
         let name = "epilogue";
-        let off = i32::from(stack::SAVE_SLOTS) + i32::from(total_locals) - i32::from(num_returns);
+        let off = i32::from(SAVE_SLOTS) + i32::from(total_locals) - i32::from(num_returns);
         let down = i32::from(num_returns) - max_locals;
         let rp = Register::P;
         let insns = {
