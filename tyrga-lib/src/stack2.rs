@@ -156,9 +156,11 @@ impl Manager {
         self.nudge(-i32::from(self.pick_point), -i32::from(self.stack_depth))
     }
 
-    /// gets a register at depth from top of stack
+    /// gets a register at depth from top of stack, panicking if requested depth
+    /// is greater than the number of registers that can be alive at once
     pub fn get(&mut self, n : u16) -> (Register, StackActions) {
         let act = self.require_minimum(n);
+        assert!(n < self.register_count);
         let len : usize = self.register_count.into();
         let n : usize = n.into();
         let deep : usize = self.stack_depth.into();
@@ -313,4 +315,16 @@ fn test_get() {
     let exp = man.regs[from_top(free_regs - 1)];
     assert_eq!(r, exp);
     assert!(act.is_empty());
+}
+
+#[should_panic(expected = "assertion failed")]
+#[test]
+fn test_get_too_deep() {
+    let num_regs = NumRegs(6);
+    let mut man = get_mgr(num_regs);
+    let free_regs : u16 = (num_regs.0 - 1).into();
+    let act = man.reserve(free_regs * 2); // ensure we spill
+    assert_eq!(act.len(), num_regs.0.into());
+
+    let _ = man.get(free_regs);
 }
