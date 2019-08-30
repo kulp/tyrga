@@ -190,8 +190,7 @@ impl quickcheck::Arbitrary for NumRegs {
         let min = 2;
         // do not count A and P registers
         let max = 14;
-        #[allow(clippy::result_unwrap_used)]
-        NumRegs((g.next_u32() % (max - min) + min).try_into().unwrap())
+        NumRegs((g.next_u32() as u8) % (max - min) + min) // lossy cast is fine
     }
 }
 
