@@ -47,6 +47,8 @@ use stack::*;
 use tenyr::{Instruction, Register, SmallestImmediate};
 use util::*;
 
+type StackManager = stack::Manager;
+
 const STACK_PTR : Register = Register::O;
 const STACK_REGS : &[Register] = {
     use Register::*;
@@ -59,7 +61,7 @@ enum Destination {
     Address(usize),
 }
 
-fn expand_immediate_load(sm : &mut stack::Manager, insn : Instruction, imm : i32)
+fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
     -> GeneralResult<Vec<Instruction>>
 {
     use tenyr::InsnGeneral as Gen;
@@ -134,7 +136,7 @@ fn test_expand() -> GeneralResult<()> {
     use Register::*;
 
     let v = vec![C, D, E, F, G];
-    let mut sm = stack::Manager::new(v.len() as u16, O, v.clone());
+    let mut sm = StackManager::new(v.len() as u16, O, v.clone());
 
     {
         let imm = 867_5309; // 0x845fed
@@ -213,12 +215,12 @@ fn make_target(target : &dyn std::string::ToString) -> GeneralResult<exprtree::A
 }
 
 fn make_int_branch(
-        sm : &mut stack::Manager,
+        sm : &mut StackManager,
         addr : usize,
         invert : bool,
         target : u16,
         target_namer : &Namer,
-        mut comp : impl FnMut(&mut stack::Manager) -> GeneralResult<(Register, Vec<Instruction>)>
+        mut comp : impl FnMut(&mut StackManager) -> GeneralResult<(Register, Vec<Instruction>)>
     ) -> MakeInsnResult
 {
     use tenyr::*;
@@ -241,7 +243,7 @@ fn make_int_branch(
 }
 
 fn make_instructions<'a, T>(
-        sm : &mut stack::Manager,
+        sm : &mut StackManager,
         (addr, op) : (usize, Operation),
         target_namer : &Namer,
         gc : &T,
@@ -257,7 +259,7 @@ fn make_instructions<'a, T>(
     use Operation::*;
 
     // We need to track destinations and return them so that the caller can track stack state
-    // through the chain of control flow, possibly cloning the stack::Manager state along the way to
+    // through the chain of control flow, possibly cloning the StackManager state along the way to
     // follow multiple destinations. Each basic block needs to be visited only once, however, since
     // the JVM guarantees that every instance of every instruction within a method always sees the
     // same depth of the operand stack every time that instance is executed.
@@ -293,7 +295,7 @@ fn make_instructions<'a, T>(
         result
     };
 
-    let make_call = |sm : &mut stack::Manager, target : &str, descriptor| {
+    let make_call = |sm : &mut StackManager, target : &str, descriptor| {
         use Register::P;
 
         let mut insns = Vec::new();
@@ -483,7 +485,7 @@ fn make_instructions<'a, T>(
                 jvmtypes::Comparison::Le => (Opcode::CompareGe, true , false),
             };
 
-            let opper = move |sm : &mut stack::Manager| {
+            let opper = move |sm : &mut StackManager| {
                 let count = ops as u16;
                 let lhs = get_reg(sm.get(count - 1))?;
                 let rhs = if ops == OperandCount::_2 { get_reg(sm.get(0))? } else { Register::A };
@@ -520,7 +522,7 @@ fn make_instructions<'a, T>(
             let temp_reg = get_reg(sm.get(0))?;
 
             let maker = |imm : i32| {
-                move |sm : &mut stack::Manager| {
+                move |sm : &mut StackManager| {
                     let insn = tenyr_insn!( temp_reg <- top == 0 );
                     let insns = expand_immediate_load(sm, insn?, imm)?;
                     Ok((temp_reg, insns))
@@ -567,7 +569,7 @@ fn make_instructions<'a, T>(
             let temp_reg = get_reg(sm.get(0))?;
 
             let maker = |kind : &'static InsnType, imm : i32| {
-                move |sm : &mut stack::Manager| {
+                move |sm : &mut StackManager| {
                     let insn = Instruction {
                         kind : kind(
                             InsnGeneral {
@@ -627,7 +629,7 @@ fn make_instructions<'a, T>(
             use tenyr::*;
 
             let mut v = Vec::new();
-            let array_params = |sm : &mut stack::Manager, v : &mut Vec<Instruction>| {
+            let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
                 let idx = get_reg(sm.get(0))?;
                 let arr = get_reg(sm.get(1))?;
                 v.extend(sm.release(2));
@@ -906,7 +908,7 @@ fn test_make_instruction() -> GeneralResult<()> {
         }
     }
 
-    let mut sm = stack::Manager::new(5, STACK_PTR, STACK_REGS.to_owned());
+    let mut sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
     let op = Operation::Constant(Explicit(ExplicitConstant { kind : JType::Int, value : 5 }));
     let namer = |x : &dyn fmt::Display| Ok(format!("{}:{}", "test", x.to_string()));
     let insn = make_instructions(&mut sm, (0, op), &namer, &Useless)?;
@@ -977,11 +979,11 @@ fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
 mod util {
     use super::jvmtypes::JType;
     use super::mangling;
-    use super::stack;
     use super::tenyr::Instruction;
     use super::tenyr::MemoryOpType::*;
     use super::tenyr::Register;
     use super::GeneralResult;
+    use super::StackManager;
     use classfile_parser::constant_info::ConstantInfo;
     use classfile_parser::constant_info::FieldRefConstant;
     use classfile_parser::constant_info::*;
@@ -1163,15 +1165,15 @@ mod util {
         }
     }
 
-    pub(in super) fn index_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
+    pub(in super) fn index_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
         use super::tenyr::InstructionType::Type3;
         let x = sm.get_stack_ptr();
         Instruction { dd : NoLoad, z : reg, x, kind : Type3(sm.get_frame_offset(idx)) }
     }
-    pub(in super) fn load_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
+    pub(in super) fn load_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
         Instruction { dd : LoadRight, ..index_local(sm, reg, idx) }
     }
-    pub(in super) fn store_local(sm : &stack::Manager, reg : Register, idx : i32) -> Instruction {
+    pub(in super) fn store_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
         Instruction { dd : StoreRight, ..index_local(sm, reg, idx) }
     }
 }
@@ -1295,12 +1297,12 @@ fn make_basic_block(
     Ok((BasicBlock { label, insns }, exits))
 }
 
-// The incoming stack::Manager represents a "prototype" stack::Manager which should be empty, and
+// The incoming StackManager represents a "prototype" StackManager which should be empty, and
 // which will be cloned each time a new BasicBlock is seen.
 fn make_blocks_for_method<'a, 'b>(
         class : &'a Context<'b, &'b ClassConstant>,
         method : &'a Context<'b, &'b MethodInfo>,
-        sm : &stack::Manager,
+        sm : &StackManager,
     ) -> GeneralResult<Vec<tenyr::BasicBlock>>
 {
     use std::iter::FromIterator;
@@ -1315,7 +1317,7 @@ fn make_blocks_for_method<'a, 'b>(
     fn make_blocks(
             params : &Params,
             seen : &mut HashSet<usize>,
-            mut sm : stack::Manager,
+            mut sm : StackManager,
             which : &Range<usize>,
         ) -> GeneralResult<Vec<tenyr::BasicBlock>>
     {
@@ -1337,7 +1339,7 @@ fn make_blocks_for_method<'a, 'b>(
         out.push(bb);
 
         for exit in &ee {
-            // intentional clone of stack::Manager
+            // intentional clone of StackManager
             out.extend(make_blocks(params, seen, sm.clone(), &rangemap[exit])?);
         }
 
@@ -1352,7 +1354,7 @@ fn make_blocks_for_method<'a, 'b>(
 
     let mut seen = HashSet::new();
 
-    let sm = sm.clone(); // intentional clone of stack::Manager
+    let sm = sm.clone(); // intentional clone of StackManager
     make_blocks(&params, &mut seen, sm, &rangemap[&0])
 }
 
@@ -1361,7 +1363,7 @@ fn test_stack_map_table(path : &Path) -> GeneralResult<()> {
     let class = parse_class(path)?;
     let methods = class.methods.iter();
     for method in methods.filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
-        let sm = stack::Manager::new(5, STACK_PTR, STACK_REGS.to_owned());
+        let sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
         let get_constant = get_constant_getter(&class);
         let class = get_class(get_constant, class.this_class)?;
         let method = class.contextualize(method);
@@ -1492,7 +1494,7 @@ fn translate_method<'a, 'b>(
     // store our results when we Yield.
     let max_locals = total_locals.max(num_returns);
 
-    let sm = &stack::Manager::new(max_locals, STACK_PTR, STACK_REGS.to_owned());
+    let sm = &StackManager::new(max_locals, STACK_PTR, STACK_REGS.to_owned());
     let sp = sm.get_stack_ptr();
     let max_locals = i32::from(max_locals);
 
