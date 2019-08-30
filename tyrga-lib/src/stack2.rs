@@ -186,8 +186,12 @@ struct NumRegs(u8);
 #[cfg(test)]
 impl quickcheck::Arbitrary for NumRegs {
     fn arbitrary<G : Gen>(g : &mut G) -> Self {
+        // to be useful, we need a stack pointer and a non-stack pointer
+        let min = 2;
+        // do not count A and P registers
+        let max = 14;
         #[allow(clippy::result_unwrap_used)]
-        NumRegs((g.next_u32() % 14).try_into().unwrap()) // do not count A and P
+        NumRegs((g.next_u32() % (max - min) + min).try_into().unwrap())
     }
 }
 
@@ -217,21 +221,17 @@ const POINTER_UPDATE_INSNS : u16 = 1;
 
 #[cfg(test)]
 quickcheck! {
-    fn test_new(num_regs : NumRegs) -> TestResult {
-        if num_regs.0 < 1 { return TestResult::discard(); }
+    fn test_new(num_regs : NumRegs) -> () {
         let man = get_mgr(num_regs);
         check_invariants(&man);
         assert_eq!(man.register_count, (num_regs.0 - 1).into());
-        TestResult::passed()
     }
 
-    fn test_trivial_reserve(n : NumRegs) -> TestResult {
-        if n.0 < 2 { return TestResult::discard(); }
+    fn test_trivial_reserve(n : NumRegs) -> () {
         let mut man = get_mgr(n);
         let act = man.reserve(1);
         check_invariants(&man);
         assert!(act.is_empty());
-        TestResult::passed()
     }
 
     fn test_small_spill_and_load(num_regs : NumRegs) -> TestResult {
