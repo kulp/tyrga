@@ -290,9 +290,20 @@ fn test_trivial_release() {
 }
 
 #[test]
-fn test_trivial_get() {
+fn test_get() {
     let num_regs = NumRegs(6);
     let mut man = get_mgr(num_regs);
-    let act = man.reserve((num_regs.0 - 1).into());
+    let free_regs = (num_regs.0 - 1).into();
+    let act = man.reserve(free_regs);
+    assert!(act.is_empty());
+    let (r, act) = man.get(free_regs - 1);
+    // The expected register is computed using the same logic that is used in
+    // the `get` function, so ths is not an independent check, but it does help
+    // avoid regressions.
+    let len : usize = man.register_count.into();
+    let deep : usize = man.stack_depth.into();
+    let idx : usize = (deep - 1 - (usize::from(free_regs) - 1)) % len;
+    let exp = man.regs[idx];
+    assert_eq!(r, exp);
     assert!(act.is_empty());
 }
