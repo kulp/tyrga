@@ -131,14 +131,12 @@ impl Manager {
 
     /// reserves a given number of slots, pushing the pick point down
     pub fn reserve(&mut self, n : u16) -> StackActions {
-        let n = n.into();
-        self.nudge(n, n)
+        self.adjust(i32::from(n))
     }
 
     /// releases a given number of slots, pulling the pick point up
     pub fn release(&mut self, n : u16) -> StackActions {
-        let n = i32::from(n);
-        self.nudge(-n, -n)
+        self.adjust(-i32::from(n))
     }
 
     /// reserves (positive argument) or releases (negative input) a given number
