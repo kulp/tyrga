@@ -141,6 +141,12 @@ impl Manager {
         self.nudge(-n, -n)
     }
 
+    /// reserves (positive argument) or releases (negative input) a given number
+    /// of slots (zero means no operation)
+    pub fn adjust(&mut self, n : i32) -> StackActions {
+        self.nudge(n, n)
+    }
+
     /// commits all registers to memory
     pub fn freeze(&mut self) -> StackActions { self.nudge(-i32::from(self.pick_point), 0) }
 
