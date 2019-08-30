@@ -30,6 +30,9 @@ use std::convert::TryInto;
 use quickcheck::{quickcheck, Gen, TestResult};
 
 /// a list of stack-maintenance instructions that must be executed
+/// Note: the `must_use` attribute here does not appear to be effective on
+/// functions that return `StackActions`, so the `must_use` directive is
+/// reproduced on multiple functions below.
 #[must_use = "StackActions must be implemented to maintain stack discipline"]
 pub type StackActions = Vec<Instruction>;
 
@@ -130,34 +133,41 @@ impl Manager {
     }
 
     /// reserves a given number of slots, pushing the pick point down
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn reserve(&mut self, n : u16) -> StackActions {
         self.adjust(i32::from(n))
     }
 
     /// releases a given number of slots, pulling the pick point up
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn release(&mut self, n : u16) -> StackActions {
         self.adjust(-i32::from(n))
     }
 
     /// reserves (positive argument) or releases (negative input) a given number
     /// of slots (zero means no operation)
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn adjust(&mut self, n : i32) -> StackActions {
         self.nudge(n, n)
     }
 
     /// commits all registers to memory
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn freeze(&mut self) -> StackActions { self.nudge(-i32::from(self.pick_point), 0) }
 
     /// liberates all registers from memory
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn thaw(&mut self) -> StackActions { self.nudge(i32::from(self.stack_depth), 0) }
 
     /// removes all items from the stack
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn empty(&mut self) -> StackActions {
         self.nudge(-i32::from(self.pick_point), -i32::from(self.stack_depth))
     }
 
     /// gets a register at depth from top of stack, panicking if requested depth
     /// is greater than the number of registers that can be alive at once
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn get(&mut self, n : u16) -> (Register, StackActions) {
         let act = self.require_minimum(n);
         assert!(n < self.register_count);
