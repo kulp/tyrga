@@ -304,6 +304,11 @@ fn test_get() {
     let deep : usize = man.stack_depth.into();
     let from_top = |n| (deep - 1 - usize::from(n)) % len;
 
+    let (r, act) = man.get(0);
+    let exp = man.regs[from_top(0)];
+    assert_eq!(r, exp);
+    assert!(act.is_empty());
+
     let (r, act) = man.get(free_regs - 1);
     let exp = man.regs[from_top(free_regs - 1)];
     assert_eq!(r, exp);
