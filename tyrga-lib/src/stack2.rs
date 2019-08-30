@@ -155,6 +155,16 @@ impl Manager {
     pub fn empty(&mut self) -> StackActions {
         self.nudge(-i32::from(self.pick_point), -i32::from(self.stack_depth))
     }
+
+    /// gets a register at depth from top of stack
+    pub fn get(&mut self, n : u16) -> (Register, StackActions) {
+        let act = self.require_minimum(n);
+        let len : usize = self.register_count.into();
+        let n : usize = n.into();
+        let deep : usize = self.stack_depth.into();
+        let reg = self.regs[(deep - 1 - n) % len];
+        (reg, act)
+    }
 }
 
 #[cfg(test)]
@@ -277,4 +287,12 @@ fn test_trivial_release() {
     let mut man = get_mgr(NumRegs(6));
     let _ = man.release(1);
     check_invariants(&man);
+}
+
+#[test]
+fn test_trivial_get() {
+    let num_regs = NumRegs(6);
+    let mut man = get_mgr(num_regs);
+    let act = man.reserve((num_regs.0 - 1).into());
+    assert!(act.is_empty());
 }
