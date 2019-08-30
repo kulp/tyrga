@@ -234,6 +234,11 @@ quickcheck! {
         assert!(act.is_empty());
     }
 
+    fn test_trivial_release(num_regs : NumRegs) -> TestResult {
+        let mut man = get_mgr(num_regs);
+        TestResult::must_fail(move || { let _ = man.release(1); })
+    }
+
     fn test_small_spill_and_load(num_regs : NumRegs) -> TestResult {
         if num_regs.0 < 4 { return TestResult::discard(); }
         Manager::unwrap(|| {
@@ -330,12 +335,4 @@ quickcheck! {
     
         TestResult::must_fail(move || { let _ = man.get(free_regs); })
     }
-}
-
-#[should_panic(expected = "overflow")]
-#[test]
-fn test_trivial_release() {
-    let mut man = get_mgr(NumRegs(6));
-    let _ = man.release(1);
-    check_invariants(&man);
 }
