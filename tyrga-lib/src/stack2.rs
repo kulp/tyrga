@@ -293,9 +293,9 @@ fn test_trivial_release() {
 fn test_get() {
     let num_regs = NumRegs(6);
     let mut man = get_mgr(num_regs);
-    let free_regs = (num_regs.0 - 1).into();
-    let act = man.reserve(free_regs);
-    assert!(act.is_empty());
+    let free_regs : u16 = (num_regs.0 - 1).into();
+    let act = man.reserve(free_regs * 2); // ensure we spill
+    assert_eq!(act.len(), num_regs.0.into());
 
     // The expected register is computed using the same logic that is used in
     // the `get` function, so ths is not an independent check, but it does help
