@@ -281,6 +281,45 @@ quickcheck! {
 
         TestResult::passed()
     }
+
+    fn test_get(num_regs : NumRegs) -> TestResult {
+        if num_regs.0 < 3 { return TestResult::discard(); }
+
+        let mut man = get_mgr(num_regs);
+        let free_regs : u16 = (num_regs.0 - 1).into();
+        let act = man.reserve(free_regs * 2); // ensure we spill
+        assert_eq!(act.len(), num_regs.0.into());
+
+        // The expected register is computed using the same logic that is used in
+        // the `get` function, so ths is not an independent check, but it does help
+        // avoid regressions.
+        let len : usize = man.register_count.into();
+        let deep : usize = man.stack_depth.into();
+        let from_top = |n| (deep - 1 - usize::from(n)) % len;
+
+        let (r, act) = man.get(0);
+        let exp = man.regs[from_top(0)];
+        assert_eq!(r, exp);
+        assert!(act.is_empty());
+
+        let (r, act) = man.get(free_regs - 1);
+        let exp = man.regs[from_top(free_regs - 1)];
+        assert_eq!(r, exp);
+        assert!(act.is_empty());
+
+        TestResult::passed()
+    }
+
+    fn test_get_too_deep(num_regs : NumRegs) -> TestResult {
+        if num_regs.0 < 3 { return TestResult::discard(); }
+
+        let mut man = get_mgr(num_regs);
+        let free_regs : u16 = (num_regs.0 - 1).into();
+        let act = man.reserve(free_regs * 2); // ensure we spill
+        assert_eq!(act.len(), num_regs.0.into());
+    
+        TestResult::must_fail(move || { let _ = man.get(free_regs); })
+    }
 }
 
 #[should_panic(expected = "overflow")]
@@ -289,42 +328,4 @@ fn test_trivial_release() {
     let mut man = get_mgr(NumRegs(6));
     let _ = man.release(1);
     check_invariants(&man);
-}
-
-#[test]
-fn test_get() {
-    let num_regs = NumRegs(6);
-    let mut man = get_mgr(num_regs);
-    let free_regs : u16 = (num_regs.0 - 1).into();
-    let act = man.reserve(free_regs * 2); // ensure we spill
-    assert_eq!(act.len(), num_regs.0.into());
-
-    // The expected register is computed using the same logic that is used in
-    // the `get` function, so ths is not an independent check, but it does help
-    // avoid regressions.
-    let len : usize = man.register_count.into();
-    let deep : usize = man.stack_depth.into();
-    let from_top = |n| (deep - 1 - usize::from(n)) % len;
-
-    let (r, act) = man.get(0);
-    let exp = man.regs[from_top(0)];
-    assert_eq!(r, exp);
-    assert!(act.is_empty());
-
-    let (r, act) = man.get(free_regs - 1);
-    let exp = man.regs[from_top(free_regs - 1)];
-    assert_eq!(r, exp);
-    assert!(act.is_empty());
-}
-
-#[should_panic(expected = "assertion failed")]
-#[test]
-fn test_get_too_deep() {
-    let num_regs = NumRegs(6);
-    let mut man = get_mgr(num_regs);
-    let free_regs : u16 = (num_regs.0 - 1).into();
-    let act = man.reserve(free_regs * 2); // ensure we spill
-    assert_eq!(act.len(), num_regs.0.into());
-
-    let _ = man.get(free_regs);
 }
