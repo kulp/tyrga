@@ -274,10 +274,10 @@ quickcheck! {
         TestResult::passed()
     }
 
-    fn test_boundary(extra : u16, backoff : u16) -> TestResult {
+    fn test_boundary(num_regs : NumRegs, extra : u16, backoff : u16) -> TestResult {
         if backoff > extra { return TestResult::discard(); }
 
-        let mut man = get_mgr(NumRegs(6));
+        let mut man = get_mgr(num_regs);
         let r = man.register_count;
 
         let first = extra - backoff;
