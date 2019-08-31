@@ -74,14 +74,13 @@ impl Manager {
         self.stack[usize::from(self.count - which - 1) % self.stack.len()]
     }
 
-    pub fn get(&self, which : u16) -> Option<tenyr::Register> {
-        // TODO handle Stacked
+    pub fn get(&self, which : u16) -> tenyr::Register {
         assert!(
             which as usize <= self.stack.len(),
             "attempt to access register deeper than register depth"
         );
         // indexing is relative to top of stack, counting backward
-        self.get_reg(which).into()
+        self.get_reg(which)
     }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
@@ -188,7 +187,7 @@ fn test_normal_stack() {
     let mut sm = Manager::new(5, O, v);
     let off = 3;
     let _ = sm.reserve(off as u16);
-    assert_eq!(sm.get(0), t[off - 1].into());
+    assert_eq!(sm.get(0), t[off - 1]);
 }
 
 #[test]
