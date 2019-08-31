@@ -241,6 +241,21 @@ fn make_int_branch(
     Ok((addr, v, dest))
 }
 
+// number of slots of data we will save between locals and stack
+const SAVE_SLOTS : u8 = 1;
+
+fn get_frame_offset(sm : &StackManager, n : i32) -> tenyr::Immediate20 {
+    use std::convert::TryInto;
+
+    let saved : u16 = SAVE_SLOTS.into();
+
+    // frame_offset computes how much higher in memory the base of the current
+    // (downward-growing) frame is than the current stack_ptr
+    let frame_offset = sm.frozen + saved + sm.max_locals;
+    #[allow(clippy::result_unwrap_used)]
+    (i32::from(frame_offset) - n).try_into().unwrap()
+}
+
 fn make_instructions<'a, T>(
         sm : &mut StackManager,
         (addr, op) : (usize, Operation),
@@ -461,7 +476,7 @@ fn make_instructions<'a, T>(
             v.extend(sm.reserve(1));
             let temp_reg = get_reg(sm.get(0))?;
             let stack_ptr = sm.get_stack_ptr();
-            let offset = sm.get_frame_offset(index.into());
+            let offset = get_frame_offset(sm, index.into());
             v.extend(tenyr_insn_list!(
                 temp_reg <- [stack_ptr + (offset.clone())] ;
                 temp_reg <- temp_reg + (value)             ;
@@ -1167,7 +1182,7 @@ mod util {
     pub(in super) fn index_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
         use super::tenyr::InstructionType::Type3;
         let x = sm.get_stack_ptr();
-        Instruction { dd : NoLoad, z : reg, x, kind : Type3(sm.get_frame_offset(idx)) }
+        Instruction { dd : NoLoad, z : reg, x, kind : Type3(super::get_frame_offset(sm, idx)) }
     }
     pub(in super) fn load_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
         Instruction { dd : LoadRight, ..index_local(sm, reg, idx) }
@@ -1485,8 +1500,6 @@ fn translate_method<'a, 'b>(
         method : &'a Context<'b, &'b MethodInfo>,
     ) -> GeneralResult<Method>
 {
-    use stack::SAVE_SLOTS;
-
     let mr = method.as_ref();
     let total_locals = get_method_code(mr)?.max_locals;
     let descriptor = get_string(class, mr.descriptor_index).ok_or("method descriptor missing")?;
@@ -1502,7 +1515,7 @@ fn translate_method<'a, 'b>(
     let prologue = {
         let name = "prologue";
         let off = -(max_locals - i32::from(count_params(&descriptor)?) + i32::from(SAVE_SLOTS));
-        let down = sm.get_frame_offset(max_locals);
+        let down = get_frame_offset(sm, max_locals);
         let rp = STACK_REGS[0];
         let insns = {
             // save return address in save-slot, one past the maximum number of locals

@@ -7,18 +7,15 @@ use quickcheck::{quickcheck, Gen, TestResult};
 
 #[derive(Clone, Debug)]
 pub struct Manager {
-    max_locals : u16,
+    pub max_locals : u16, // XXX temporarily public during migration
     stack_ptr : Register,
     stack : Vec<Register>,
     // stack sizes are inherently constrained by JVM to be 16-bit
     count : u16,
-    frozen : u16,
+    pub frozen : u16, // XXX temporarily public during migration
 }
 
 type StackActions = Vec<tenyr::Instruction>;
-
-// number of slots of data we will save between locals and stack
-pub const SAVE_SLOTS : u8 = 1;
 
 // This simple Manager implementation does not do spilling to nor reloading from memory.
 // For now, it panics if we run out of free registers.
@@ -34,17 +31,6 @@ impl Manager {
     }
 
     pub fn get_stack_ptr(&self) -> Register { self.stack_ptr }
-
-    #[must_use]
-    pub fn get_frame_offset(&self, n : i32) -> tenyr::Immediate20 {
-        let saved : u16 = SAVE_SLOTS.into();
-
-        // frame_offset computes how much higher in memory the base of the current
-        // (downward-growing) frame is than the current stack_ptr
-        let frame_offset = self.frozen + saved + self.max_locals;
-        #[allow(clippy::result_unwrap_used)]
-        (i32::from(frame_offset) - n).try_into().unwrap()
-    }
 
     // Sometimes we need to accommodate actions by external agents upon our frozen stack
     // TODO name release_frozen and reserve_frozen better
