@@ -51,13 +51,13 @@ struct Manager {
 
 impl Manager {
     /// create manager for a given register list
-    pub fn new<I : IntoIterator<Item = Register>>(regs : I) -> Manager {
+    pub fn new<I : IntoIterator<Item = Register>>(regs : I) -> Self {
         let mut regs : Vec<_> = regs.into_iter().collect();
         let stack_depth = 0;
         let pick_point = 0;
         let stack_ptr = regs.pop().expect("too few registers");
         let register_count = regs.len().try_into().expect("too many registers");
-        Manager {
+        Self {
             regs,
             register_count,
             stack_depth,
