@@ -301,7 +301,7 @@ fn make_instructions<'a, T>(
         insns.extend(sm.freeze());
 
         // Save return address into bottom of register-based stack
-        let bottom = sm.get_base_reg();
+        let bottom = STACK_REGS[0];
         let far = format!("@+{}", target);
         let off : tenyr::Immediate20 = tenyr::Immediate::Expr(exprtree::Atom::Variable(far));
         insns.extend(tenyr_insn_list!(
@@ -687,7 +687,7 @@ fn make_instructions<'a, T>(
                 use Register::P;
 
                 // Save return address into bottom of register-based stack
-                let bottom = sm.get_base_reg();
+                let bottom = STACK_REGS[0];
                 let descriptor = &get_method_parts(gc, index)?[2];
                 let param_count = u16::from(count_params(descriptor)?);
                 let obj = get_reg(sm.get(param_count))?;
@@ -1503,7 +1503,7 @@ fn translate_method<'a, 'b>(
         let name = "prologue";
         let off = -(max_locals - i32::from(count_params(&descriptor)?) + i32::from(SAVE_SLOTS));
         let down = sm.get_frame_offset(max_locals);
-        let rp = sm.get_base_reg();
+        let rp = STACK_REGS[0];
         let insns = {
             // save return address in save-slot, one past the maximum number of locals
             tenyr_insn_list!(

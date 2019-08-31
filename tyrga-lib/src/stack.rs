@@ -35,8 +35,6 @@ impl Manager {
 
     pub fn get_stack_ptr(&self) -> Register { self.stack_ptr }
 
-    pub fn get_base_reg(&self) -> Register { self.stack[0] }
-
     #[must_use]
     pub fn get_frame_offset(&self, n : i32) -> tenyr::Immediate20 {
         let saved : u16 = SAVE_SLOTS.into();
