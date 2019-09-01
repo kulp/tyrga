@@ -101,7 +101,7 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
 
             let adder  = Gen { y : Register::A, op : Add , imm : 0_u8.into() };
             let reserve = sm.reserve(1).into_iter();
-            let temp = sm.get(0);
+            let (temp, gets) = sm.get(0);
             let pack = make_imm(temp, imm)?.into_iter();
             let (op, a, b, c) = match kind {
                 // the Type3 case should never be reached, but provides generality
@@ -116,7 +116,9 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
             let add = once(Instruction { kind, x : insn.z, ..insn });
             let release = sm.release(1).into_iter();
 
-            reserve
+            std::iter::empty()
+                .chain(reserve)
+                .chain(gets)
                 .chain(pack)
                 .chain(operate)
                 .chain(add)
@@ -279,8 +281,6 @@ fn make_instructions<'a, T>(
     // same depth of the operand stack every time that instance is executed.
     let default_dest = vec![Destination::Successor];
 
-    let get_reg = |t| Ok(t) as GeneralResult<Register>;
-
     let translate_arithmetic_op =
         |x| {
             use tenyr::Opcode::*;
@@ -373,7 +373,9 @@ fn make_instructions<'a, T>(
         let f = |v : GeneralResult<Vec<_>>, &value| {
             let mut v = v?;
             v.extend(sm.reserve(1));
-            let insn = make_mov(sm.get(0), Register::A);
+            let (reg, gets) = sm.get(0);
+            v.extend(gets);
+            let insn = make_mov(reg, Register::A);
             v.extend(expand_immediate_load(sm, insn, value)?);
             Ok(v)
         };
@@ -420,7 +422,9 @@ fn make_instructions<'a, T>(
             use Register::P;
             let mut v = Vec::new();
             for i in 0 .. kind.size() {
-                v.push(store_local(sm, sm.get(i.into()), i.into()));
+                let (reg, gets) = sm.get(i.into());
+                v.extend(gets);
+                v.push(store_local(sm, reg, i.into()));
             }
             v.extend(sm.empty());
             let ex = tenyr::Immediate::Expr(make_target(&target_namer(&"epilogue")?)?);
@@ -431,19 +435,23 @@ fn make_instructions<'a, T>(
         Arithmetic { kind : JType::Int, op : ArithmeticOperation::Neg } => {
             use tenyr::*;
             use Register::A;
-            let y = sm.get(0);
-            let v = vec![ tenyr_insn!( y <- A - y )? ];
+            let mut v = Vec::new();
+            let (y, gets) = sm.get(0);
+            v.extend(gets);
+            v.push(tenyr_insn!( y <- A - y )?);
             Ok((addr, v, default_dest))
         },
         Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some() => {
             use tenyr::*;
-            let y = sm.get(0);
-            let x = sm.get(1);
+            let mut v = Vec::new();
+            let (y, gets) = sm.get(0);
+            v.extend(gets);
+            let (x, gets) = sm.get(1);
+            v.extend(gets);
             let z = x;
             let op = translate_arithmetic_op(op).ok_or("no op for this opcode")?;
             let dd = MemoryOpType::NoLoad;
             let imm = 0_u8.into();
-            let mut v = Vec::new();
             v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
             v.extend(sm.release(1));
             Ok((addr, v, default_dest))
@@ -455,7 +463,9 @@ fn make_instructions<'a, T>(
             let size = kind.size().into();
             v.extend(sm.reserve(size));
             for i in 0 .. size {
-                v.push(load_local(sm, sm.get(i), (index + i).into()));
+                let (reg, gets) = sm.get(i);
+                v.extend(gets);
+                v.push(load_local(sm, reg, (index + i).into()));
             }
             Ok((addr, v, default_dest))
         },
@@ -463,7 +473,9 @@ fn make_instructions<'a, T>(
             let mut v = Vec::new();
             let size = kind.size().into();
             for i in 0 .. size {
-                v.push(store_local(sm, sm.get(i), (index + i).into()));
+                let (reg, gets) = sm.get(i);
+                v.extend(gets);
+                v.push(store_local(sm, reg, (index + i).into()));
             }
             v.extend(sm.release(size));
             Ok((addr, v, default_dest))
@@ -474,7 +486,8 @@ fn make_instructions<'a, T>(
             // method, but we should try to avoid dedicated temporary registers.
             let mut v = Vec::new();
             v.extend(sm.reserve(1));
-            let temp_reg = sm.get(0);
+            let (temp_reg, gets) = sm.get(0);
+            v.extend(gets);
             let stack_ptr = sm.get_stack_ptr();
             let offset = get_frame_offset(sm, index.into());
             v.extend(tenyr_insn_list!(
@@ -500,13 +513,16 @@ fn make_instructions<'a, T>(
             };
 
             let opper = move |sm : &mut StackManager| {
+                let mut v = Vec::new();
                 let count = ops as u16;
-                let lhs = sm.get(count - 1);
-                let rhs = if ops == OperandCount::_2 { sm.get(0) } else { Register::A };
+                let (lhs, gets) = sm.get(count - 1);
+                v.extend(gets);
+                let (rhs, gets) = if ops == OperandCount::_2 { sm.get(0) } else { (Register::A, vec![]) };
+                v.extend(gets);
                 let temp_reg = lhs;
                 let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
 
-                let mut v = sm.release(count);
+                v.extend(sm.release(count));
                 v.push(Instruction {
                     kind : InstructionType::Type0(
                         InsnGeneral {
@@ -531,9 +547,12 @@ fn make_instructions<'a, T>(
             let far = (default + here) as u16;
 
             let mut dests = Vec::new();
-            let top = sm.get(0);
-            let mut insns = sm.reserve(1); // need a persistent temporary
-            let temp_reg = sm.get(0);
+            let mut insns = Vec::new();
+            let (top, gets) = sm.get(0);
+            insns.extend(gets);
+            insns.extend(sm.reserve(1)); // need a persistent temporary
+            let (temp_reg, gets) = sm.get(0);
+            insns.extend(gets);
 
             let maker = |imm : i32| {
                 move |sm : &mut StackManager| {
@@ -578,9 +597,12 @@ fn make_instructions<'a, T>(
             let far = (default + here) as u16;
 
             let mut dests = Vec::new();
-            let top = sm.get(0);
-            let mut insns = sm.reserve(1); // need a persistent temporary
-            let temp_reg = sm.get(0);
+            let mut insns = Vec::new();
+            let (top, gets) = sm.get(0);
+            insns.extend(gets);
+            insns.extend(sm.reserve(1)); // need a persistent temporary
+            let (temp_reg, gets) = sm.get(0);
+            insns.extend(gets);
 
             let maker = |kind : &'static InsnType, imm : i32| {
                 move |sm : &mut StackManager| {
@@ -644,8 +666,10 @@ fn make_instructions<'a, T>(
 
             let mut v = Vec::new();
             let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
-                let idx = sm.get(0);
-                let arr = sm.get(1);
+                let (idx, gets) = sm.get(0);
+                v.extend(gets);
+                let (arr, gets) = sm.get(1);
+                v.extend(gets);
                 v.extend(sm.release(2));
                 Ok((idx, arr)) as GeneralResult<(Register, Register)>
             };
@@ -653,11 +677,13 @@ fn make_instructions<'a, T>(
                 LoadArray(_) => {
                     let (idx, arr) = array_params(sm, &mut v)?;
                     v.extend(sm.reserve(1));
-                    let res = sm.get(0);
+                    let (res, gets) = sm.get(0);
+                    v.extend(gets);
                     (idx, arr, res, LoadRight)
                 },
                 StoreArray(_) => {
-                    let val = sm.get(0);
+                    let (val, gets) = sm.get(0);
+                    v.extend(gets);
                     v.extend(sm.release(1));
                     let (idx, arr) = array_params(sm, &mut v)?;
                     (idx, arr, val, StoreRight)
@@ -682,9 +708,12 @@ fn make_instructions<'a, T>(
             // TODO document layout of arrays
             // This implementation assumes a reference to an array points to its first element, and
             // that one word below that element is a word containing the number of elements.
-            let top = sm.get(0);
+            let mut v = Vec::new();
+            let (top, gets) = sm.get(0);
+            v.extend(gets);
             let insn = Instruction { kind : Type3((-1_i8).into()), ..make_load(top, top) };
-            Ok((addr, vec![ insn ], default_dest))
+            v.push(insn);
+            Ok((addr, v, default_dest))
         },
         // TODO fully handle Special (this is dumb partial handling)
         Invocation { kind : InvokeKind::Special, index } => {
@@ -701,18 +730,20 @@ fn make_instructions<'a, T>(
                 use tenyr::{Immediate, Immediate20};
                 use Register::P;
 
+                let mut insns = Vec::new();
                 // Save return address into bottom of register-based stack
                 let bottom = STACK_REGS[0];
                 let descriptor = &get_method_parts(gc, index)?[2];
                 let param_count = u16::from(count_params(descriptor)?);
-                let obj = sm.get(param_count);
+                let (obj, gets) = sm.get(param_count);
+                insns.extend(gets);
                 let stack_count = param_count + 1; // extra "1" for `this`
 
-                let mut insns = Vec::new();
                 insns.extend(sm.freeze());
                 insns.extend(sm.reserve(1));
 
-                let temp = sm.get(0);
+                let (temp, gets) = sm.get(0);
+                insns.extend(gets);
                 let far = format!("@{}", mangle(&[&gc.contextualize(mr), &"vslot"])?);
                 let off : Immediate20 = Immediate::Expr(exprtree::Atom::Variable(far));
 
@@ -738,16 +769,19 @@ fn make_instructions<'a, T>(
             Ok((addr, v, default_dest))
         },
         StackOp { op : StackOperation::Dup, size } => {
+            let mut v = Vec::new();
             let size = size as u16;
-            let old : GeneralResult<Vec<_>> = (0..size).map(|i| get_reg(sm.get(i))).collect();
-            let old = old?;
+            let (_, gets) = sm.get(size - 1); // ensure spills are reloaded
+            v.extend(gets);
+            let old : Vec<_> = (0..size).map(|i| sm.get(i).0).collect();
             let res : Vec<_> = (0..size).map(|_| sm.reserve(1)).flatten().collect();
             let put : GeneralResult<Vec<_>> = (0..size).map(|i| {
-                let new = sm.get(i);
+                let (new, _) = sm.get(i); // already forced gets above
                 let t = old[i as usize];
                 tenyr_insn!( new <- t )
             }).collect();
-            let v = [ res, put? ].concat();
+            v.extend(res);
+            v.extend(put?);
             Ok((addr, v, default_dest))
         },
         Allocation(Array { kind, dims }) => {
@@ -765,8 +799,11 @@ fn make_instructions<'a, T>(
                         1 => Ok(vec![]),
                         // insert an instruction that doubles the top-of-stack count
                         2 => {
-                            let top = regs[0];
-                            Ok(vec![ tenyr_insn!( top <- top + top )? ])
+                            let mut v = Vec::new();
+                            let (top, gets) = regs[0].clone();
+                            v.extend(gets);
+                            v.push(tenyr_insn!( top <- top + top )?);
+                            Ok(v)
                         },
                         _ => Err("impossible size"),
                     }?;
@@ -782,7 +819,8 @@ fn make_instructions<'a, T>(
             let name = "cmp";
             let ch : char = kind.try_into()?;
 
-            let gc = sm.get(0);
+            let (gc, gets) = sm.get(0);
+            v.extend(gets);
             let n = match nans {
                 Some(NanComparisons::Greater) => 1,
                 Some(NanComparisons::Less) => -1,
@@ -796,22 +834,34 @@ fn make_instructions<'a, T>(
             Ok((addr, v, dests))
         },
         Conversion { from : JType::Int, to : JType::Byte } => {
-            let top = sm.get(0);
+            let mut v = Vec::new();
+            let (top, gets) = sm.get(0);
+            v.extend(gets);
             let left  = tenyr_insn!( top <- top << 24 )?;
             let right = tenyr_insn!( top <- top >> 24 )?; // arithmetic shift, result is signed
-            Ok((addr, vec![ left, right ], default_dest ))
+            v.push(left);
+            v.push(right);
+            Ok((addr, v, default_dest ))
         },
         Conversion { from : JType::Int, to : JType::Short } => {
-            let top = sm.get(0);
+            let mut v = Vec::new();
+            let (top, gets) = sm.get(0);
+            v.extend(gets);
             let left  = tenyr_insn!( top <- top << 16 )?;
             let right = tenyr_insn!( top <- top >> 16 )?; // arithmetic shift, result is signed
-            Ok((addr, vec![ left, right ], default_dest ))
+            v.push(left);
+            v.push(right);
+            Ok((addr, v, default_dest ))
         },
         Conversion { from : JType::Int, to : JType::Char } => {
-            let top = sm.get(0);
+            let mut v = Vec::new();
+            let (top, gets) = sm.get(0);
+            v.extend(gets);
             let left  = tenyr_insn!( top <- top <<  16 )?;
             let right = tenyr_insn!( top <- top >>> 16 )?; // logical shift, result is positive
-            Ok((addr, vec![ left, right ], default_dest ))
+            v.push(left);
+            v.push(right);
+            Ok((addr, v, default_dest ))
         },
         Conversion { from, to } => {
             let ch_from : char = from.try_into()?;
@@ -848,9 +898,9 @@ fn make_instructions<'a, T>(
                     Ok(format!("@{}", mangle(&[ &fr, &suff ])?))
                         as GeneralResult<std::string::String>;
 
-                let (reg, base) = match kind {
+                let ((reg, gets), base) = match kind {
                     VarKind::Static =>
-                        (   Register::P,
+                        (   (Register::P, vec![]),
                             make_target(&format("static")?)?
                         ),
                     VarKind::Field =>
@@ -858,6 +908,7 @@ fn make_instructions<'a, T>(
                             Atom::Variable(format("field_offset")?)
                         ),
                 };
+                insns.extend(gets);
 
                 let mut range = 0i32..len.into();
                 let mut reversed = range.clone().rev();
@@ -869,7 +920,8 @@ fn make_instructions<'a, T>(
                 for it in iter {
                     let imm = make_off(base.clone(), it);
                     insns.extend(sm.reserve(prior));
-                    let top = sm.get(0);
+                    let (top, gets) = sm.get(0);
+                    insns.extend(gets);
                     insns.push(Instruction { dd : memop, ..tenyr_insn!( top <- [reg + (imm)] )? });
                     insns.extend(sm.release(post));
                 }
