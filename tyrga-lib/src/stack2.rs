@@ -36,6 +36,7 @@ use quickcheck::{quickcheck, Gen, TestResult};
 #[must_use = "StackActions must be implemented to maintain stack discipline"]
 pub type StackActions = Vec<Instruction>;
 
+#[derive(Clone)]
 pub struct Manager {
     /// registers under our control, excluding `stack_ptr`
     regs : Vec<Register>,
