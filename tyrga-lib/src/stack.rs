@@ -33,15 +33,9 @@ impl Manager {
     pub fn get_stack_ptr(&self) -> Register { self.stack_ptr }
 
     // Sometimes we need to accommodate actions by external agents upon our frozen stack
-    // TODO name release_frozen and reserve_frozen better
-    pub fn reserve_frozen(&mut self, n : u16) {
-        self.count += n;
-        self.frozen += n;
-    }
-
-    pub fn release_frozen(&mut self, n : u16) {
-        self.count -= n;
-        self.frozen -= n;
+    pub fn adjust(&mut self, n : i32) {
+        self.count = (i32::from(self.count) + n) as u16;
+        self.frozen = (i32::from(self.frozen) + n) as u16;
     }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]

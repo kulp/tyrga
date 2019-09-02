@@ -325,8 +325,9 @@ fn make_instructions<'a, T>(
         ));
 
         // adjust stack for returned values
-        sm.release_frozen(count_params(descriptor)?.into());
-        sm.reserve_frozen(count_returns(descriptor)?.into());
+        let rets  : i32 = count_returns(descriptor)?.into();
+        let parms : i32 = count_params(descriptor)?.into();
+        sm.adjust(rets - parms);
         insns.extend(sm.thaw());
         Ok((addr, insns, default_dest.clone()))
     };
@@ -755,8 +756,8 @@ fn make_instructions<'a, T>(
                 insns.extend(sm.release(1));
 
                 // adjust stack for returned values
-                sm.release_frozen(stack_count);
-                sm.reserve_frozen(count_returns(descriptor)?.into());
+                let rets : i32 = count_returns(descriptor)?.into();
+                sm.adjust(rets - i32::from(stack_count));
                 insns.extend(sm.thaw());
 
                 Ok((addr, insns, default_dest.clone()))
