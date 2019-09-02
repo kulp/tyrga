@@ -30,6 +30,15 @@ impl Manager {
         }
     }
 
+    pub fn get_frame_base(&self, reg : tenyr::Register) -> tenyr::Instruction {
+        tenyr::Instruction {
+            dd : tenyr::MemoryOpType::NoLoad,
+            z : reg,
+            x : self.stack_ptr,
+            kind : tenyr::InstructionType::Type3(self.frozen.into()),
+        }
+    }
+
     pub fn get_stack_ptr(&self) -> Register { self.stack_ptr }
 
     // Sometimes we need to accommodate actions by external agents upon our frozen stack

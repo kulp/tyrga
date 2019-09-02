@@ -181,6 +181,18 @@ impl Manager {
 
     /// returns the register that points to the highest empty slot in memory
     pub fn get_stack_ptr(&self) -> Register { self.stack_ptr }
+
+    /// returns an Instruction that sets a given register to the address of the
+    /// zeroth element on the operand stack, regardless of the number of spilled
+    /// slots
+    pub fn get_frame_base(&self, reg : crate::tenyr::Register) -> crate::tenyr::Instruction {
+        crate::tenyr::Instruction {
+            dd : crate::tenyr::MemoryOpType::NoLoad,
+            z : reg,
+            x : self.stack_ptr,
+            kind : crate::tenyr::InstructionType::Type3(self.spilled_count().into()),
+        }
+    }
 }
 
 #[cfg(test)]
