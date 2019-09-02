@@ -489,13 +489,10 @@ fn make_instructions<'a, T>(
             v.extend(sm.reserve(1));
             let (temp_reg, gets) = sm.get(0);
             v.extend(gets);
-            let stack_ptr = sm.get_stack_ptr();
-            let offset = get_frame_offset(sm, index.into());
-            v.extend(tenyr_insn_list!(
-                temp_reg <- [stack_ptr + (offset.clone())] ;
-                temp_reg <- temp_reg + (value)             ;
-                temp_reg -> [stack_ptr + (offset.clone())] ;
-            ));
+            let insn = index_local(sm, temp_reg, index.into());
+            v.push(Instruction { dd : MemoryOpType::LoadRight, ..insn.clone() });
+            v.push(tenyr_insn!( temp_reg <- temp_reg + (value) )?);
+            v.push(Instruction { dd : MemoryOpType::StoreRight, ..insn });
             v.extend(sm.release(1));
 
             Ok((addr, v, default_dest))
@@ -1568,15 +1565,12 @@ fn translate_method<'a, 'b>(
     let prologue = {
         let name = "prologue";
         let off = -(max_locals - i32::from(count_params(&descriptor)?) + i32::from(SAVE_SLOTS));
-        let down = get_frame_offset(sm, max_locals);
-        let rp = STACK_REGS[0];
-        let insns = {
+        let base = index_local(sm, STACK_REGS[0], max_locals);
+        let insns = vec![
             // save return address in save-slot, one past the maximum number of locals
-            tenyr_insn_list!(
-                sp <-  sp + (off)   ;
-                rp -> [sp + (down)] ;
-            ).collect()
-        };
+            tenyr_insn!( sp <-  sp + (off) )?,
+            Instruction{ dd : tenyr::MemoryOpType::StoreRight, ..base },
+        ];
         let label = make_label(class, method, &name)?;
         tenyr::BasicBlock { label, insns }
     };
