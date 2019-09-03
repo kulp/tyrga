@@ -19,12 +19,14 @@ type StackActions = Vec<tenyr::Instruction>;
 // This simple Manager implementation does not do spilling to nor reloading from memory.
 // For now, it panics if we run out of free registers.
 impl Manager {
-    pub fn new(sp : Register, regs : impl IntoIterator<Item=Register>) -> Self {
+    pub fn new(regs : impl IntoIterator<Item=Register>) -> Self {
+        let mut regs : Vec<_> = regs.into_iter().collect();
+        let sp = regs.pop().expect("need more registers");
         Self {
             count : 0,
             frozen : 0,
             stack_ptr : sp,
-            stack : regs.into_iter().collect()
+            stack : regs,
         }
     }
 
@@ -154,12 +156,13 @@ impl quickcheck::Arbitrary for tenyr::Register {
 #[cfg(test)]
 quickcheck! {
 fn test_get_reg(v : Vec<Register>) -> TestResult {
-    if v.is_empty() {
+    if v.len() < 2 { // need at least two registers to be useful
         return TestResult::discard();
     }
-    let mut sm = Manager::new(Register::O, v.clone());
-    let _ = sm.reserve(v.len() as u16);
-    TestResult::from_bool(v[0] == sm.get_reg(v.len() as u16 - 1))
+    let mut sm = Manager::new(v.clone());
+    let len = v.len() as u16 - 1;
+    let _ = sm.reserve(len);
+    TestResult::from_bool(v[0] == sm.get_reg(len - 1))
 }
 }
 
@@ -167,8 +170,8 @@ fn test_get_reg(v : Vec<Register>) -> TestResult {
 #[should_panic(expected = "underflow")]
 fn test_underflow() {
     use Register::*;
-    let v = vec![C, D, E, F, G];
-    let mut sm = Manager::new(O, v);
+    let v = vec![C, D, E, F, G, O];
+    let mut sm = Manager::new(v);
     let _ = sm.reserve(3);
     let _ = sm.release(4);
 }
@@ -177,18 +180,18 @@ fn test_underflow() {
 #[should_panic(expected = "overflow")]
 fn test_overflow() {
     use Register::*;
-    let v = vec![C, D, E, F, G];
-    let len = v.len() as u16;
-    let mut sm = Manager::new(O, v);
+    let v = vec![C, D, E, F, G, O];
+    let len = v.len() as u16 - 1;
+    let mut sm = Manager::new(v);
     let _ = sm.reserve(len + 1);
 }
 
 #[test]
 fn test_normal_stack() {
     use Register::*;
-    let v = vec![C, D, E, F, G];
+    let v = vec![C, D, E, F, G, O];
     let t = v.clone();
-    let mut sm = Manager::new(O, v);
+    let mut sm = Manager::new(v);
     let off = 3;
     let _ = sm.reserve(off as u16);
     assert_eq!(sm.get(0).0, t[off - 1]);
@@ -197,8 +200,8 @@ fn test_normal_stack() {
 #[test]
 fn test_watermark() {
     use Register::*;
-    let v = vec![C, D, E, F, G];
-    let mut sm = Manager::new(O, v);
+    let v = vec![C, D, E, F, G, O];
+    let mut sm = Manager::new(v);
     let mut insns = sm.reserve(4);
 
     insns.extend(sm.set_watermark(0));

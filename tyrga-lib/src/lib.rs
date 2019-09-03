@@ -48,10 +48,9 @@ use util::*;
 
 type StackManager = stack::Manager;
 
-const STACK_PTR : Register = Register::O;
 const STACK_REGS : &[Register] = {
     use Register::*;
-    &[B, C, D, E, F, G, H, I, J, K, L, M, N]
+    &[B, C, D, E, F, G, H, I, J, K, L, M, N, O]
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -137,7 +136,7 @@ fn test_expand() -> GeneralResult<()> {
     use Register::*;
 
     let v = vec![C, D, E, F, G];
-    let mut sm = StackManager::new(O, v.clone());
+    let mut sm = StackManager::new(v.clone());
 
     {
         let imm = 867_5309; // 0x845fed
@@ -961,7 +960,7 @@ fn test_make_instruction() -> GeneralResult<()> {
         }
     }
 
-    let mut sm = StackManager::new(STACK_PTR, STACK_REGS.to_owned());
+    let mut sm = StackManager::new(STACK_REGS.to_owned());
     let op = Operation::Constant(Explicit(ExplicitConstant { kind : JType::Int, value : 5 }));
     let namer = |x : &dyn fmt::Display| Ok(format!("{}:{}", "test", x.to_string()));
     let insn = make_instructions(&mut sm, (0, op), &namer, &Useless, 0)?;
@@ -1417,7 +1416,7 @@ fn test_stack_map_table(path : &Path) -> GeneralResult<()> {
     let class = parse_class(path)?;
     let methods = class.methods.iter();
     for method in methods.filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
-        let sm = StackManager::new(STACK_PTR, STACK_REGS.to_owned());
+        let sm = StackManager::new(STACK_REGS.to_owned());
         let get_constant = get_constant_getter(&class);
         let class = get_class(get_constant, class.this_class)?;
         let max_locals = get_method_code(method)?.max_locals;
@@ -1549,7 +1548,7 @@ fn translate_method<'a, 'b>(
     // store our results when we Yield.
     let max_locals = total_locals.max(num_returns);
 
-    let sm = &StackManager::new(STACK_PTR, STACK_REGS.to_owned());
+    let sm = &StackManager::new(STACK_REGS.to_owned());
     let sp = sm.get_stack_ptr();
     let max_locals_i32 = i32::from(max_locals);
 
