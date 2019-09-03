@@ -39,8 +39,6 @@ _6Except01_3a3sub02_3a281I01_291I:
      C  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3div02_3a282II01_291I
-     C  <- [O]
-     O  <-  O + 1
      B  <- [O + 1]
      O  <-  O + 1
      B  -> [O + 2]

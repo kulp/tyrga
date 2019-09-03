@@ -36,11 +36,9 @@ _7Recurse01_3a7recurse03_3a28291V:
      B  <- [O + 2]
      O  <-  O - 1
      B  -> [O + 1]
-     C  <- [B - 1]
+     B  <- [B - 1]
      B  <-  P + 1
-     P  <- [C + @_7Recurse01_3a7recurse03_3a28291V01_3a5vslot]
-     B  <- [O + 1]
-     O  <-  O + 1
+     P  <- [B + @_7Recurse01_3a7recurse03_3a28291V01_3a5vslot]
      P  <-  (.L_7Recurse01_3a7recurse03_3a28291V01_3a10__epilogue - (. + 1))  +  P
 .L_7Recurse01_3a7recurse03_3a28291V01_3a10__epilogue:
      O  <-  O + 2

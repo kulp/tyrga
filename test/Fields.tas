@@ -72,9 +72,6 @@ _6Fields01_3a13access_fields03_3a28291V:
      F  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3sub02_3a282JJ01_291J
-     E  <- [O - 1]
-     F  <- [O - 2]
-     O  <-  O + 2
      B  <- [O + 3]
      C  <- [O + 2]
      D  <- [O + 1]
@@ -125,9 +122,6 @@ _6Fields01_3a14access_statics03_3a28291V:
      E  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3sub02_3a282JJ01_291J
-     D  <- [O]
-     E  <- [O - 1]
-     O  <-  O + 2
      B  <- [O + 2]
      C  <- [O + 1]
      O  <-  O + 2
