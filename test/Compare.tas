@@ -57,6 +57,9 @@ _7Compare01_3a2lt02_3a282FF01_291Z:
      D  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283FFI01_291I
+     C  <- [O + 1]
+     D  <- [O]
+     O  <-  O + 2
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  B >=  A
@@ -87,6 +90,9 @@ _7Compare01_3a2le02_3a282FF01_291Z:
      D  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283FFI01_291I
+     C  <- [O + 1]
+     D  <- [O]
+     O  <-  O + 2
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  A  <  B
@@ -117,6 +123,9 @@ _7Compare01_3a2eq02_3a282FF01_291Z:
      D  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283FFI01_291I
+     C  <- [O + 1]
+     D  <- [O]
+     O  <-  O + 2
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  B ==  A
@@ -147,6 +156,9 @@ _7Compare01_3a2gt02_3a282FF01_291Z:
      D  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283FFI01_291I
+     C  <- [O + 1]
+     D  <- [O]
+     O  <-  O + 2
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  A >=  B
@@ -177,6 +189,9 @@ _7Compare01_3a2ge02_3a282FF01_291Z:
      D  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283FFI01_291I
+     C  <- [O + 1]
+     D  <- [O]
+     O  <-  O + 2
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  B  <  A
@@ -207,6 +222,9 @@ _7Compare01_3a2ne02_3a282FF01_291Z:
      D  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283FFI01_291I
+     C  <- [O + 1]
+     D  <- [O]
+     O  <-  O + 2
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  B ==  A
@@ -241,6 +259,11 @@ _7Compare01_3a2lt02_3a282DD01_291Z:
      F  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283DDI01_291I
+     C  <- [O + 3]
+     D  <- [O + 2]
+     E  <- [O + 1]
+     F  <- [O]
+     O  <-  O + 4
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  B >=  A
@@ -275,6 +298,11 @@ _7Compare01_3a2le02_3a282DD01_291Z:
      F  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283DDI01_291I
+     C  <- [O + 3]
+     D  <- [O + 2]
+     E  <- [O + 1]
+     F  <- [O]
+     O  <-  O + 4
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  A  <  B
@@ -309,6 +337,11 @@ _7Compare01_3a2eq02_3a282DD01_291Z:
      F  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283DDI01_291I
+     C  <- [O + 3]
+     D  <- [O + 2]
+     E  <- [O + 1]
+     F  <- [O]
+     O  <-  O + 4
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  B ==  A
@@ -343,6 +376,11 @@ _7Compare01_3a2gt02_3a282DD01_291Z:
      F  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283DDI01_291I
+     C  <- [O + 3]
+     D  <- [O + 2]
+     E  <- [O + 1]
+     F  <- [O]
+     O  <-  O + 4
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  A >=  B
@@ -377,6 +415,11 @@ _7Compare01_3a2ge02_3a282DD01_291Z:
      F  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283DDI01_291I
+     C  <- [O + 3]
+     D  <- [O + 2]
+     E  <- [O + 1]
+     F  <- [O]
+     O  <-  O + 4
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  B  <  A
@@ -411,6 +454,11 @@ _7Compare01_3a2ne02_3a282DD01_291Z:
      F  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283DDI01_291I
+     C  <- [O + 3]
+     D  <- [O + 2]
+     E  <- [O + 1]
+     F  <- [O]
+     O  <-  O + 4
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  B ==  A
@@ -445,6 +493,11 @@ _7Compare01_3a2lt02_3a282JJ01_291Z:
      F  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283JJI01_291I
+     C  <- [O + 3]
+     D  <- [O + 2]
+     E  <- [O + 1]
+     F  <- [O]
+     O  <-  O + 4
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  B >=  A
@@ -479,6 +532,11 @@ _7Compare01_3a2le02_3a282JJ01_291Z:
      F  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283JJI01_291I
+     C  <- [O + 3]
+     D  <- [O + 2]
+     E  <- [O + 1]
+     F  <- [O]
+     O  <-  O + 4
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  A  <  B
@@ -513,6 +571,11 @@ _7Compare01_3a2eq02_3a282JJ01_291Z:
      F  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283JJI01_291I
+     C  <- [O + 3]
+     D  <- [O + 2]
+     E  <- [O + 1]
+     F  <- [O]
+     O  <-  O + 4
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  B ==  A
@@ -547,6 +610,11 @@ _7Compare01_3a2gt02_3a282JJ01_291Z:
      F  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283JJI01_291I
+     C  <- [O + 3]
+     D  <- [O + 2]
+     E  <- [O + 1]
+     F  <- [O]
+     O  <-  O + 4
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  A >=  B
@@ -581,6 +649,11 @@ _7Compare01_3a2ge02_3a282JJ01_291Z:
      F  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283JJI01_291I
+     C  <- [O + 3]
+     D  <- [O + 2]
+     E  <- [O + 1]
+     F  <- [O]
+     O  <-  O + 4
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  B  <  A
@@ -615,6 +688,11 @@ _7Compare01_3a2ne02_3a282JJ01_291Z:
      F  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3cmp02_3a283JJI01_291I
+     C  <- [O + 3]
+     D  <- [O + 2]
+     E  <- [O + 1]
+     F  <- [O]
+     O  <-  O + 4
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  B ==  A

@@ -46,9 +46,10 @@ impl Manager {
     pub fn get_stack_ptr(&self) -> Register { self.stack_ptr }
 
     // Sometimes we need to accommodate actions by external agents upon our frozen stack
-    pub fn adjust(&mut self, n : i32) {
+    pub fn adjust(&mut self, n : i32) -> StackActions {
         self.count = (i32::from(self.count) + n) as u16;
         self.frozen = (i32::from(self.frozen) + n) as u16;
+        vec![] // empty actions during migration
     }
 
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
