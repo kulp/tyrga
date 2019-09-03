@@ -1219,19 +1219,8 @@ mod util {
     }
 
     pub(in super) fn index_local(sm : &StackManager, reg : Register, idx : i32, max_locals : u16) -> Instruction {
-        use super::tenyr::InstructionType::Type3;
-        use std::convert::TryInto;
-
-        let x = sm.get_stack_ptr();
-
         let saved : u16 = super::SAVE_SLOTS.into();
-
-        // frame_offset computes how much higher in memory the base of the current
-        // (downward-growing) frame is than the current stack_ptr
-        let frame_offset = sm.frozen + saved + max_locals;
-        #[allow(clippy::result_unwrap_used)]
-        let val = (i32::from(frame_offset) - idx).try_into().unwrap();
-        Instruction { dd : NoLoad, z : reg, x, kind : Type3(val) }
+        sm.get_frame_offset(reg, idx - i32::from(saved + max_locals))
     }
     pub(in super) fn load_local(sm : &StackManager, reg : Register, idx : i32, max_locals : u16) -> Instruction {
         Instruction { dd : LoadRight, ..index_local(sm, reg, idx, max_locals) }
