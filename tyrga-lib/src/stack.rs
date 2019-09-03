@@ -11,7 +11,7 @@ pub struct Manager {
     stack : Vec<Register>,
     // stack sizes are inherently constrained by JVM to be 16-bit
     count : u16,
-    pub frozen : u16, // XXX temporarily public during migration
+    frozen : u16,
 }
 
 type StackActions = Vec<tenyr::Instruction>;
