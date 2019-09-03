@@ -20,8 +20,8 @@ _4Tiny02_3a3c4init04_3e3a28291V:
      B  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3a3c4init04_3e3a28291V
+     B  <- [O + 1]
      O  <-  O + 1
-     B  <- [O]
      P  <-  (.L_4Tiny02_3a3c4init04_3e3a28291V01_3a10__epilogue - (. + 1))  +  P
 .L_4Tiny02_3a3c4init04_3e3a28291V01_3a10__epilogue:
      O  <-  O + 2
@@ -96,12 +96,12 @@ _4Tiny01_3a6primes03_3a285b1I01_291V:
      D  <- [O + 2]
      C  <- [D  |  0 + C]
      O  <-  O - 2
-     C  -> [O + 1]
      B  -> [O + 2]
+     C  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3rem02_3a282II01_291I
+     B  <- [O + 1]
      O  <-  O + 1
-     B  <- [O]
      B  <-  B ==  A
      P  <-  (.L_4Tiny01_3a6primes03_3a285b1I01_291V01_3a4__80 - (. + 1)) &~  B + P
      B  <-  1

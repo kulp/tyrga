@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::tenyr;
 use std::convert::TryInto;
 use tenyr::Register;

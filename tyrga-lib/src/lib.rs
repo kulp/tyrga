@@ -46,7 +46,7 @@ use jvmtypes::*;
 use tenyr::{Instruction, Register, SmallestImmediate};
 use util::*;
 
-type StackManager = stack::Manager;
+type StackManager = stack2::Manager;
 
 const STACK_REGS : &[Register] = {
     use Register::*;

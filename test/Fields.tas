@@ -39,8 +39,8 @@ _6Fields02_3a3c4init04_3e3a28291V:
      B  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3a3c4init04_3e3a28291V
+     B  <- [O + 1]
      O  <-  O + 1
-     B  <- [O]
      P  <-  (.L_6Fields02_3a3c4init04_3e3a28291V01_3a10__epilogue - (. + 1))  +  P
 .L_6Fields02_3a3c4init04_3e3a28291V01_3a10__epilogue:
      O  <-  O + 2
@@ -65,17 +65,17 @@ _6Fields01_3a13access_fields03_3a28291V:
      E  <-  0
      F  <-  1
      O  <-  O - 5
-     F  -> [O + 1]
-     E  -> [O + 2]
-     D  -> [O + 3]
-     C  -> [O + 4]
      B  -> [O + 5]
+     C  -> [O + 4]
+     D  -> [O + 3]
+     E  -> [O + 2]
+     F  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3sub02_3a282JJ01_291J
+     B  <- [O + 3]
+     C  <- [O + 2]
+     D  <- [O + 1]
      O  <-  O + 3
-     D  <- [O - 2]
-     C  <- [O - 1]
-     B  <- [O]
      D  -> [B + (@_6Fields01_3a6length01_3a1J01_3a12field_offset + 1)]
      C  -> [B + (@_6Fields01_3a6length01_3a1J01_3a12field_offset + 0)]
      B  <- [O + 2]
@@ -116,15 +116,15 @@ _6Fields01_3a14access_statics03_3a28291V:
      D  <-  0
      E  <-  1
      O  <-  O - 4
-     E  -> [O + 1]
-     D  -> [O + 2]
-     C  -> [O + 3]
      B  -> [O + 4]
+     C  -> [O + 3]
+     D  -> [O + 2]
+     E  -> [O + 1]
      B  <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3sub02_3a282JJ01_291J
+     B  <- [O + 2]
+     C  <- [O + 1]
      O  <-  O + 2
-     C  <- [O - 1]
-     B  <- [O]
      C  -> [P + ((@_6Fields01_3a13static_length01_3a1J01_3a6static - (. + 1)) + 1)]
      B  -> [P + ((@_6Fields01_3a13static_length01_3a1J01_3a6static - (. + 1)) + 0)]
      B  <- [P + ((@_6Fields01_3a17static_truthiness01_3a1Z01_3a6static - (. + 1)) + 0)]
