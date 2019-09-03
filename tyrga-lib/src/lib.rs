@@ -246,18 +246,6 @@ fn make_int_branch(
 // number of slots of data we will save between locals and stack
 const SAVE_SLOTS : u8 = 1;
 
-fn get_frame_offset(sm : &StackManager, n : i32) -> tenyr::Immediate20 {
-    use std::convert::TryInto;
-
-    let saved : u16 = SAVE_SLOTS.into();
-
-    // frame_offset computes how much higher in memory the base of the current
-    // (downward-growing) frame is than the current stack_ptr
-    let frame_offset = sm.frozen + saved + sm.max_locals;
-    #[allow(clippy::result_unwrap_used)]
-    (i32::from(frame_offset) - n).try_into().unwrap()
-}
-
 fn make_instructions<'a, T>(
         sm : &mut StackManager,
         (addr, op) : (usize, Operation),
