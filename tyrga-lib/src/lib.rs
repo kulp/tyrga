@@ -301,7 +301,7 @@ fn make_instructions<'a, T>(
         use Register::P;
 
         let mut insns = Vec::new();
-        insns.extend(sm.freeze());
+        insns.extend(sm.freeze(0));
 
         // Save return address into bottom of register-based stack
         let bottom = STACK_REGS[0];
@@ -316,7 +316,7 @@ fn make_instructions<'a, T>(
         let rets  : i32 = count_returns(descriptor)?.into();
         let parms : i32 = count_params(descriptor)?.into();
         insns.extend(sm.adjust(rets - parms));
-        insns.extend(sm.thaw());
+        insns.extend(sm.thaw(0));
         Ok((addr, insns, default_dest.clone()))
     };
 
@@ -725,7 +725,7 @@ fn make_instructions<'a, T>(
                 insns.extend(gets);
                 let stack_count = param_count + 1; // extra "1" for `this`
 
-                insns.extend(sm.freeze());
+                insns.extend(sm.freeze(0));
                 insns.extend(sm.reserve(1));
 
                 let (temp, gets) = sm.get(0);
@@ -743,7 +743,7 @@ fn make_instructions<'a, T>(
                 // adjust stack for returned values
                 let rets : i32 = count_returns(descriptor)?.into();
                 insns.extend(sm.adjust(rets - i32::from(stack_count)));
-                insns.extend(sm.thaw());
+                insns.extend(sm.thaw(0));
 
                 Ok((addr, insns, default_dest.clone()))
             } else {

@@ -17,8 +17,8 @@
 //! - release(N) -- deallocate N locations from the top of stack
 //! - empty()    -- release all contents of the stack
 //! - get(N)     -- get location for offset N >= 0, down from top of stack
-//! - freeze()   -- spill all locations to memory
-//! - thaw()     -- load as many locations into registers as will fit
+//! - freeze(N)  -- spill all locations to memory and release N
+//! - thaw(N)    -- load registers from memory and reserve N
 
 use crate::tenyr::Instruction;
 use crate::tenyr::Register;
@@ -153,13 +153,20 @@ impl Manager {
         self.nudge(n, n)
     }
 
-    /// commits all registers to memory
+    /// commits all registers to memory, optionally releasing afterward
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
-    pub fn freeze(&mut self) -> StackActions { self.nudge(-i32::from(self.pick_point), 0) }
+    pub fn freeze(&mut self, count : u16) -> StackActions {
+        let act = self.nudge(-i32::from(self.pick_point), 0);
+        let _ = self.release(count); // throw away actions
+        act
+    }
 
-    /// liberates all registers from memory
+    /// liberates all registers from memory, optionally reserving beforehand
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
-    pub fn thaw(&mut self) -> StackActions { self.nudge(i32::from(self.stack_depth), 0) }
+    pub fn thaw(&mut self, count : u16) -> StackActions {
+        self.stack_depth += count;
+        self.nudge(i32::from(self.stack_depth), 0)
+    }
 
     /// removes all items from the stack
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
