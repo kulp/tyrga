@@ -17,7 +17,6 @@ mod tenyr;
 mod exprtree;
 mod jvmtypes;
 pub mod mangling;
-mod stack;
 mod stack2;
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
