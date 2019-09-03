@@ -89,7 +89,8 @@ impl Manager {
         let (prologue, spilling, loading, epilogue) = Self::unwrap(|| {
             let spilled_before = self.spilled_count();
     
-            self.pick_point = u16::try_from(i32::from(self.pick_point) + pick_movement)
+            // pick point will never go negative
+            self.pick_point = u16::try_from(0.max(i32::from(self.pick_point) + pick_movement))
                 .or(Err("overflow in pick_point"))?;
             self.stack_depth = u16::try_from(i32::from(self.stack_depth) + depth_movement)
                 .or(Err("overflow in stack_depth"))?;
@@ -351,5 +352,15 @@ quickcheck! {
         assert_eq!(act.len(), num_regs.0.into());
     
         TestResult::must_fail(move || { let _ = man.get(free_regs); })
+    }
+
+    fn test_pick_underflow(num_regs : NumRegs, n : u16) -> TestResult {
+        if u16::from(num_regs.0 + 1) < n { return TestResult::discard(); }
+
+        let mut man = get_mgr(num_regs);
+        let _ = man.reserve(n);
+        let _ = man.nudge(-i32::from(n + 3), 0); // force underflow
+        assert_eq!(man.pick_point, 0);
+        TestResult::passed()
     }
 }
