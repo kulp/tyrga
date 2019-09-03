@@ -7,7 +7,6 @@ use quickcheck::{quickcheck, Gen, TestResult};
 
 #[derive(Clone, Debug)]
 pub struct Manager {
-    pub max_locals : u16, // XXX temporarily public during migration
     stack_ptr : Register,
     stack : Vec<Register>,
     // stack sizes are inherently constrained by JVM to be 16-bit
@@ -20,9 +19,8 @@ type StackActions = Vec<tenyr::Instruction>;
 // This simple Manager implementation does not do spilling to nor reloading from memory.
 // For now, it panics if we run out of free registers.
 impl Manager {
-    pub fn new(max_locals : u16, sp : Register, regs : impl IntoIterator<Item=Register>) -> Self {
+    pub fn new(sp : Register, regs : impl IntoIterator<Item=Register>) -> Self {
         Self {
-            max_locals,
             count : 0,
             frozen : 0,
             stack_ptr : sp,
@@ -159,7 +157,7 @@ fn test_get_reg(v : Vec<Register>) -> TestResult {
     if v.is_empty() {
         return TestResult::discard();
     }
-    let mut sm = Manager::new(v.len() as u16, Register::O, v.clone());
+    let mut sm = Manager::new(Register::O, v.clone());
     let _ = sm.reserve(v.len() as u16);
     TestResult::from_bool(v[0] == sm.get_reg(v.len() as u16 - 1))
 }
@@ -170,7 +168,7 @@ fn test_get_reg(v : Vec<Register>) -> TestResult {
 fn test_underflow() {
     use Register::*;
     let v = vec![C, D, E, F, G];
-    let mut sm = Manager::new(5, O, v);
+    let mut sm = Manager::new(O, v);
     let _ = sm.reserve(3);
     let _ = sm.release(4);
 }
@@ -181,7 +179,7 @@ fn test_overflow() {
     use Register::*;
     let v = vec![C, D, E, F, G];
     let len = v.len() as u16;
-    let mut sm = Manager::new(5, O, v);
+    let mut sm = Manager::new(O, v);
     let _ = sm.reserve(len + 1);
 }
 
@@ -190,7 +188,7 @@ fn test_normal_stack() {
     use Register::*;
     let v = vec![C, D, E, F, G];
     let t = v.clone();
-    let mut sm = Manager::new(5, O, v);
+    let mut sm = Manager::new(O, v);
     let off = 3;
     let _ = sm.reserve(off as u16);
     assert_eq!(sm.get(0).0, t[off - 1]);
@@ -200,7 +198,7 @@ fn test_normal_stack() {
 fn test_watermark() {
     use Register::*;
     let v = vec![C, D, E, F, G];
-    let mut sm = Manager::new(v.len() as u16, O, v);
+    let mut sm = Manager::new(O, v);
     let mut insns = sm.reserve(4);
 
     insns.extend(sm.set_watermark(0));
