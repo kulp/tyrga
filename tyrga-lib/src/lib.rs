@@ -17,7 +17,7 @@ mod tenyr;
 mod exprtree;
 mod jvmtypes;
 pub mod mangling;
-mod stack2;
+mod stack;
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::error::Error;
@@ -45,7 +45,7 @@ use jvmtypes::*;
 use tenyr::{Instruction, Register, SmallestImmediate};
 use util::*;
 
-type StackManager = stack2::Manager;
+type StackManager = stack::Manager;
 
 const STACK_REGS : &[Register] = {
     use Register::*;
