@@ -30,12 +30,15 @@ impl Manager {
         }
     }
 
-    pub fn get_frame_base(&self, reg : tenyr::Register) -> tenyr::Instruction {
+    pub fn get_frame_offset(&self, reg : tenyr::Register, n : i32) -> tenyr::Instruction {
+        let off = i32::from(self.frozen) - n;
+        #[allow(clippy::result_unwrap_used)]
+        let kind = tenyr::InstructionType::Type3(off.try_into().unwrap());
         tenyr::Instruction {
             dd : tenyr::MemoryOpType::NoLoad,
             z : reg,
             x : self.stack_ptr,
-            kind : tenyr::InstructionType::Type3(self.frozen.into()),
+            kind,
         }
     }
 

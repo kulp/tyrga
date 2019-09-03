@@ -183,14 +183,16 @@ impl Manager {
     pub fn get_stack_ptr(&self) -> Register { self.stack_ptr }
 
     /// returns an Instruction that sets a given register to the address of the
-    /// zeroth element on the operand stack, regardless of the number of spilled
+    /// nth element on the operand stack, regardless of the number of spilled
     /// slots
-    pub fn get_frame_base(&self, reg : crate::tenyr::Register) -> crate::tenyr::Instruction {
+    pub fn get_frame_offset(&self, reg : crate::tenyr::Register, n : i32) -> crate::tenyr::Instruction {
+        let off = i32::from(self.spilled_count()) - n;
+        let kind = crate::tenyr::InstructionType::Type3(off.try_into().expect("immediate too large"));
         crate::tenyr::Instruction {
             dd : crate::tenyr::MemoryOpType::NoLoad,
             z : reg,
             x : self.stack_ptr,
-            kind : crate::tenyr::InstructionType::Type3(self.spilled_count().into()),
+            kind,
         }
     }
 }
