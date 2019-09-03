@@ -263,6 +263,7 @@ fn make_instructions<'a, T>(
         (addr, op) : (usize, Operation),
         target_namer : &Namer,
         gc : &T,
+        max_locals : u16,
     ) -> MakeInsnResult
     where T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
@@ -425,7 +426,7 @@ fn make_instructions<'a, T>(
             for i in 0 .. kind.size() {
                 let (reg, gets) = sm.get(i.into());
                 v.extend(gets);
-                v.push(store_local(sm, reg, i.into()));
+                v.push(store_local(sm, reg, i.into(), max_locals));
             }
             v.extend(sm.empty());
             let ex = tenyr::Immediate::Expr(make_target(&target_namer(&"epilogue")?)?);
@@ -466,7 +467,7 @@ fn make_instructions<'a, T>(
             for i in 0 .. size {
                 let (reg, gets) = sm.get(i);
                 v.extend(gets);
-                v.push(load_local(sm, reg, (index + i).into()));
+                v.push(load_local(sm, reg, (index + i).into(), max_locals));
             }
             Ok((addr, v, default_dest))
         },
@@ -476,7 +477,7 @@ fn make_instructions<'a, T>(
             for i in 0 .. size {
                 let (reg, gets) = sm.get(i);
                 v.extend(gets);
-                v.push(store_local(sm, reg, (index + i).into()));
+                v.push(store_local(sm, reg, (index + i).into(), max_locals));
             }
             v.extend(sm.release(size));
             Ok((addr, v, default_dest))
@@ -489,7 +490,7 @@ fn make_instructions<'a, T>(
             v.extend(sm.reserve(1));
             let (temp_reg, gets) = sm.get(0);
             v.extend(gets);
-            let insn = index_local(sm, temp_reg, index.into());
+            let insn = index_local(sm, temp_reg, index.into(), max_locals);
             v.push(Instruction { dd : MemoryOpType::LoadRight, ..insn.clone() });
             v.push(tenyr_insn!( temp_reg <- temp_reg + (value) )?);
             v.push(Instruction { dd : MemoryOpType::StoreRight, ..insn });
@@ -975,7 +976,7 @@ fn test_make_instruction() -> GeneralResult<()> {
     let mut sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
     let op = Operation::Constant(Explicit(ExplicitConstant { kind : JType::Int, value : 5 }));
     let namer = |x : &dyn fmt::Display| Ok(format!("{}:{}", "test", x.to_string()));
-    let insn = make_instructions(&mut sm, (0, op), &namer, &Useless)?;
+    let insn = make_instructions(&mut sm, (0, op), &namer, &Useless, 0)?;
     let imm = 5_u8.into();
     let rhs = Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad };
     assert_eq!(insn.1, vec![ rhs ]);
@@ -1229,16 +1230,26 @@ mod util {
         }
     }
 
-    pub(in super) fn index_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
+    pub(in super) fn index_local(sm : &StackManager, reg : Register, idx : i32, max_locals : u16) -> Instruction {
         use super::tenyr::InstructionType::Type3;
+        use std::convert::TryInto;
+
         let x = sm.get_stack_ptr();
-        Instruction { dd : NoLoad, z : reg, x, kind : Type3(super::get_frame_offset(sm, idx)) }
+
+        let saved : u16 = super::SAVE_SLOTS.into();
+
+        // frame_offset computes how much higher in memory the base of the current
+        // (downward-growing) frame is than the current stack_ptr
+        let frame_offset = sm.frozen + saved + max_locals;
+        #[allow(clippy::result_unwrap_used)]
+        let val = (i32::from(frame_offset) - idx).try_into().unwrap();
+        Instruction { dd : NoLoad, z : reg, x, kind : Type3(val) }
     }
-    pub(in super) fn load_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
-        Instruction { dd : LoadRight, ..index_local(sm, reg, idx) }
+    pub(in super) fn load_local(sm : &StackManager, reg : Register, idx : i32, max_locals : u16) -> Instruction {
+        Instruction { dd : LoadRight, ..index_local(sm, reg, idx, max_locals) }
     }
-    pub(in super) fn store_local(sm : &StackManager, reg : Register, idx : i32) -> Instruction {
-        Instruction { dd : StoreRight, ..index_local(sm, reg, idx) }
+    pub(in super) fn store_local(sm : &StackManager, reg : Register, idx : i32, max_locals : u16) -> Instruction {
+        Instruction { dd : StoreRight, ..index_local(sm, reg, idx, max_locals) }
     }
 }
 
@@ -1367,6 +1378,7 @@ fn make_blocks_for_method<'a, 'b>(
         class : &'a Context<'b, &'b ClassConstant>,
         method : &'a Context<'b, &'b MethodInfo>,
         sm : &StackManager,
+        max_locals : u16,
     ) -> GeneralResult<Vec<tenyr::BasicBlock>>
 {
     use std::iter::FromIterator;
@@ -1376,6 +1388,7 @@ fn make_blocks_for_method<'a, 'b>(
         method : &'a Context<'b, &'b MethodInfo>,
         rangemap : &'a BTreeMap<usize, Range<usize>>,
         ops : &'a BTreeMap<usize, Operation>,
+        max_locals : u16,
     }
 
     fn make_blocks(
@@ -1385,8 +1398,8 @@ fn make_blocks_for_method<'a, 'b>(
             which : &Range<usize>,
         ) -> GeneralResult<Vec<tenyr::BasicBlock>>
     {
-        let (class, method, rangemap, ops) =
-            (params.class, params.method, params.rangemap, params.ops);
+        let (class, method, rangemap, ops, max_locals) =
+            (params.class, params.method, params.rangemap, params.ops, params.max_locals);
         if seen.contains(&which.start) {
             return Ok(vec![]);
         }
@@ -1396,7 +1409,7 @@ fn make_blocks_for_method<'a, 'b>(
             ops .range(which.clone())
                 // TODO obviate clone by doing .remove() (no .drain on BTreeMap ?)
                 .map(|(&u, o)| (u, o.clone()))
-                .map(|x| make_instructions(&mut sm, x, &|y| make_label(class, method, y), class))
+                .map(|x| make_instructions(&mut sm, x, &|y| make_label(class, method, y), class, max_locals))
                 .collect();
         let (bb, ee) = make_basic_block(class, method, block?, which)?;
         let mut out = Vec::new();
@@ -1414,7 +1427,7 @@ fn make_blocks_for_method<'a, 'b>(
     let rangemap = &BTreeMap::from_iter(ranges.into_iter().map(|r| (r.start, r)));
     let ops = &ops;
 
-    let params = Params { class, method, rangemap, ops };
+    let params = Params { class, method, rangemap, ops, max_locals };
 
     let mut seen = HashSet::new();
 
@@ -1430,8 +1443,9 @@ fn test_stack_map_table(path : &Path) -> GeneralResult<()> {
         let sm = StackManager::new(5, STACK_PTR, STACK_REGS.to_owned());
         let get_constant = get_constant_getter(&class);
         let class = get_class(get_constant, class.this_class)?;
+        let max_locals = get_method_code(method)?.max_locals;
         let method = class.contextualize(method);
-        let bbs = make_blocks_for_method(&class, &method, &sm)?;
+        let bbs = make_blocks_for_method(&class, &method, &sm, max_locals)?;
         for bb in &bbs {
             eprintln!("{}", bb);
         }
@@ -1560,12 +1574,12 @@ fn translate_method<'a, 'b>(
 
     let sm = &StackManager::new(max_locals, STACK_PTR, STACK_REGS.to_owned());
     let sp = sm.get_stack_ptr();
-    let max_locals = i32::from(max_locals);
+    let max_locals_i32 = i32::from(max_locals);
 
     let prologue = {
         let name = "prologue";
-        let off = -(max_locals - i32::from(count_params(&descriptor)?) + i32::from(SAVE_SLOTS));
-        let base = index_local(sm, STACK_REGS[0], max_locals);
+        let off = -(max_locals_i32 - i32::from(count_params(&descriptor)?) + i32::from(SAVE_SLOTS));
+        let base = index_local(sm, STACK_REGS[0], max_locals_i32, max_locals);
         let insns = vec![
             // save return address in save-slot, one past the maximum number of locals
             tenyr_insn!( sp <-  sp + (off) )?,
@@ -1578,7 +1592,7 @@ fn translate_method<'a, 'b>(
     let epilogue = {
         let name = "epilogue";
         let off = i32::from(SAVE_SLOTS) + i32::from(total_locals) - i32::from(num_returns);
-        let down = i32::from(num_returns) - max_locals;
+        let down = i32::from(num_returns) - max_locals_i32;
         let rp = Register::P;
         let insns = {
             tenyr_insn_list!(
@@ -1590,7 +1604,7 @@ fn translate_method<'a, 'b>(
         tenyr::BasicBlock { label, insns }
     };
 
-    let blocks = make_blocks_for_method(class, method, sm)?;
+    let blocks = make_blocks_for_method(class, method, sm, max_locals)?;
     let name = mangle(&[ class, method ])?;
     Ok(Method { name, prologue, blocks, epilogue })
 }
