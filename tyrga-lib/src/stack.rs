@@ -86,7 +86,9 @@ impl Manager {
     }
 
     fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
-        let (prologue, spilling, loading, epilogue) = Self::unwrap(|| {
+        let (prologue, moving, epilogue) = Self::unwrap(|| {
+            use crate::tenyr::MemoryOpType::{LoadRight, StoreRight};
+
             let spilled_before = self.spilled_count();
     
             // pick point will never go negative
@@ -99,32 +101,25 @@ impl Manager {
 
             let sp = self.stack_ptr;
             let n = i32::from(spilled_before) - i32::from(spilled_after);
-            let (prologue, epilogue) = {
-                let update = vec![tenyr_insn!(sp <- sp + (n))?];
-                if n < 0        { (update, vec![]) }
-                else if n > 0   { (vec![], update) }
-                else            { (vec![], vec![]) }
-            };
             let reg = |off| self.regs[usize::from(off % self.register_count)];
-            let mover = |n : i32, dd| {
+            let mover = |dd| {
                 move |offset : u16| {
                     let r = reg(offset);
-                    let insn = tenyr_insn!(r <- [sp + (n - i32::from(offset))])?;
+                    let insn = tenyr_insn!(r <- [sp + (n.abs() - i32::from(offset))])?;
                     Ok(Instruction { dd, ..insn })
                 }
             };
-            let spiller = mover(-n, crate::tenyr::MemoryOpType::StoreRight);
-            let loader  = mover( n, crate::tenyr::MemoryOpType::LoadRight);
-            let spilling = (spilled_before..spilled_after).map(Self::unwrapper(spiller));
-            let loading  = (spilled_after..spilled_before).map(Self::unwrapper(loader));
-    
-            Ok((prologue, spilling, loading, epilogue))
+            let handle = |dd, from, to| (from..to).map(Self::unwrapper(mover(dd))).collect();
+            let update = vec![tenyr_insn!(sp <- sp + (n))?];
+
+            if n < 0        { Ok((update, handle(StoreRight, spilled_before, spilled_after ), vec![])) }
+            else if n > 0   { Ok((vec![], handle(LoadRight , spilled_after , spilled_before), update)) }
+            else            { Ok((vec![], vec![], vec![])) }
         });
 
         std::iter::empty()
             .chain(prologue)
-            .chain(spilling)
-            .chain(loading)
+            .chain(moving)
             .chain(epilogue)
             .collect()
     }
