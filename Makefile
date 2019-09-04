@@ -17,6 +17,8 @@ ALL_JAVA = $(foreach d,$(JAVA_SRC_DIRS),$(wildcard $d/*.java))
 
 classes: $(ALL_JAVA:%.java=%.class)
 
+tases: $(ALL_JAVA:%.java=%.tas)
+
 %.class: %.java
 	javac $(JAVAFLAGS) $<
 
