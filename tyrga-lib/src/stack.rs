@@ -80,14 +80,10 @@ impl Manager {
         f().unwrap()
     }
 
-    fn unwrapper<P, T>(f : impl Fn(P) -> Result<T, Box<dyn std::error::Error>>) -> impl Fn(P) -> T {
-        #[allow(clippy::result_unwrap_used)]
-        move |x| f(x).unwrap()
-    }
-
     fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
         let (prologue, moving, epilogue) = Self::unwrap(|| {
-            use crate::tenyr::MemoryOpType::{LoadRight, StoreRight};
+            use crate::tenyr::InstructionType::Type3;
+            use crate::tenyr::MemoryOpType::{NoLoad, LoadRight, StoreRight};
 
             let spilled_before = self.spilled_count();
     
@@ -104,13 +100,14 @@ impl Manager {
             let reg = |off| self.regs[usize::from(off % self.register_count)];
             let mover = |dd| {
                 move |offset : u16| {
-                    let r = reg(offset);
-                    let insn = tenyr_insn!(r <- [sp + (n.abs() - i32::from(offset))])?;
-                    Ok(Instruction { dd, ..insn })
+                    let off = n.abs() - i32::from(offset);
+                    let off = off.try_into().expect("immediate value is too large");
+                    Instruction { dd, z : reg(offset), x : sp, kind : Type3(off) }
                 }
             };
-            let handle = |dd, from, to| (from..to).map(Self::unwrapper(mover(dd))).collect();
-            let update = vec![tenyr_insn!(sp <- sp + (n))?];
+            let handle = |dd, from, to| (from..to).map(mover(dd)).collect();
+            let off = n.try_into().expect("immediate value is too large");
+            let update = vec![ Instruction { dd : NoLoad, z : sp, x : sp, kind : Type3(off) } ];
 
             if n < 0        { Ok((update, handle(StoreRight, spilled_before, spilled_after ), vec![])) }
             else if n > 0   { Ok((vec![], handle(LoadRight , spilled_after , spilled_before), update)) }
