@@ -157,14 +157,18 @@ impl Manager {
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn freeze(&mut self, count : u16) -> StackActions {
         let act = self.nudge(-i32::from(self.pick_point), 0);
-        let _ = self.release(count); // throw away actions
+        // discarding actions is correct because we are actually accounting for
+        // actions that will be taken by an ensuing function call
+        let _ = self.nudge(0, -i32::from(count));
         act
     }
 
     /// liberates all registers from memory, optionally reserving beforehand
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn thaw(&mut self, count : u16) -> StackActions {
-        self.stack_depth += count;
+        // discarding actions is correct because we are actually accounting for
+        // actions that have already been taken prior to this function's entry
+        let _ = self.nudge(0, i32::from(count));
         self.nudge(i32::from(self.stack_depth), 0)
     }
 
