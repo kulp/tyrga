@@ -3,6 +3,8 @@ JAVAFLAGS += -target 1.8 -source 1.8
 # avoid generating unused debugging information
 JAVAFLAGS += -g:none
 
+TYRGA_CLI := $(shell cargo with echo -- run --quiet --bin tyrga-cli --offline)
+
 JAVA_SRC_DIRS += test test/interesting/module/name
 JAVA_SRC_DIRS += tyrga-lib/java-lib/tyrga
 
@@ -23,5 +25,5 @@ tases: $(ALL_JAVA:%.java=%.tas)
 	javac $(JAVAFLAGS) $<
 
 %.tas: %.class
-	cargo run translate --output $@ $<
+	$(TYRGA_CLI) translate --output $@ $<
 

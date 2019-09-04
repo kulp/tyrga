@@ -5,6 +5,7 @@ rust:
   - nightly
 before_script:
   - rustup component add clippy
+  - cargo install cargo-with
 script:
   - cargo clippy --tests
   - cargo build
