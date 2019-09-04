@@ -106,11 +106,11 @@ impl Manager {
                 else            { (vec![], vec![]) }
             };
             let reg = |off| self.regs[usize::from(off % self.register_count)];
-            let mover = |n : i32, dir| {
+            let mover = |n : i32, dd| {
                 move |offset : u16| {
                     let r = reg(offset);
                     let insn = tenyr_insn!(r <- [sp + (n - i32::from(offset))])?;
-                    Ok(Instruction { dd : dir, ..insn })
+                    Ok(Instruction { dd, ..insn })
                 }
             };
             let spiller = mover(-n, crate::tenyr::MemoryOpType::StoreRight);
