@@ -99,18 +99,17 @@ impl Manager {
                 Instruction { dd, z : reg(offset), x : sp, kind : Type3(off) }
             }
         };
-        let handle = |dd, from, to| (from..to).map(mover(dd));
         let off = n.try_into().expect("immediate value is too large");
         let update = vec![ Instruction { dd : NoLoad, z : sp, x : sp, kind : Type3(off) } ];
 
         if n < 0 {
             std::iter::empty()
                 .chain(update)
-                .chain(handle(StoreRight, spilled_before, spilled_after))
+                .chain((spilled_before..spilled_after).map(mover(StoreRight)))
                 .collect()
         } else if n > 0 {
             std::iter::empty()
-                .chain(handle(LoadRight, spilled_after, spilled_before))
+                .chain((spilled_after..spilled_before).map(mover(LoadRight)))
                 .chain(update)
                 .collect()
         } else {
