@@ -76,44 +76,46 @@ impl Manager {
     }
 
     fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
-        let (prologue, moving, epilogue) = {
-            use crate::tenyr::InstructionType::Type3;
-            use crate::tenyr::MemoryOpType::{NoLoad, LoadRight, StoreRight};
+        use crate::tenyr::InstructionType::Type3;
+        use crate::tenyr::MemoryOpType::{NoLoad, LoadRight, StoreRight};
 
-            let spilled_before = self.spilled_count();
-    
-            // pick point will never go negative
-            self.pick_point = u16::try_from(0.max(i32::from(self.pick_point) + pick_movement))
-                .expect("overflow in pick_point");
-            self.stack_depth = u16::try_from(i32::from(self.stack_depth) + depth_movement)
-                .expect("overflow in stack_depth");
+        let spilled_before = self.spilled_count();
 
-            let spilled_after = self.spilled_count();
+        // pick point will never go negative
+        self.pick_point = u16::try_from(0.max(i32::from(self.pick_point) + pick_movement))
+            .expect("overflow in pick_point");
+        self.stack_depth = u16::try_from(i32::from(self.stack_depth) + depth_movement)
+            .expect("overflow in stack_depth");
 
-            let sp = self.stack_ptr;
-            let n = i32::from(spilled_before) - i32::from(spilled_after);
-            let reg = |off| self.regs[usize::from(off % self.register_count)];
-            let mover = |dd| {
-                move |offset : u16| {
-                    let off = n.abs() - i32::from(offset);
-                    let off = off.try_into().expect("immediate value is too large");
-                    Instruction { dd, z : reg(offset), x : sp, kind : Type3(off) }
-                }
-            };
-            let handle = |dd, from, to| (from..to).map(mover(dd)).collect();
-            let off = n.try_into().expect("immediate value is too large");
-            let update = vec![ Instruction { dd : NoLoad, z : sp, x : sp, kind : Type3(off) } ];
+        let spilled_after = self.spilled_count();
 
-            if n < 0        { (update, handle(StoreRight, spilled_before, spilled_after ), vec![]) }
-            else if n > 0   { (vec![], handle(LoadRight , spilled_after , spilled_before), update) }
-            else            { (vec![], vec![], vec![]) }
+        let sp = self.stack_ptr;
+        let n = i32::from(spilled_before) - i32::from(spilled_after);
+        let reg = |off| self.regs[usize::from(off % self.register_count)];
+        let mover = |dd| {
+            move |offset : u16| {
+                let off = n.abs() - i32::from(offset);
+                let off = off.try_into().expect("immediate value is too large");
+                Instruction { dd, z : reg(offset), x : sp, kind : Type3(off) }
+            }
         };
+        let handle = |dd, from, to| (from..to).map(mover(dd));
+        let off = n.try_into().expect("immediate value is too large");
+        let update = vec![ Instruction { dd : NoLoad, z : sp, x : sp, kind : Type3(off) } ];
 
-        std::iter::empty()
-            .chain(prologue)
-            .chain(moving)
-            .chain(epilogue)
-            .collect()
+        if n < 0 {
+            std::iter::empty()
+                .chain(update)
+                .chain(handle(StoreRight, spilled_before, spilled_after))
+                .collect()
+        } else if n > 0 {
+            std::iter::empty()
+                .chain(handle(LoadRight, spilled_after, spilled_before))
+                .chain(update)
+                .collect()
+        } else {
+            vec![]
+        }
     }
 
     /// increases pick-point up to a minimum value, if necessary
