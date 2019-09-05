@@ -75,13 +75,8 @@ impl Manager {
         count.try_into().expect("too many spilled registers")
     }
 
-    fn unwrap<T>(f : impl FnOnce() -> Result<T, Box<dyn std::error::Error>>) -> T {
-        #[allow(clippy::result_unwrap_used)]
-        f().unwrap()
-    }
-
     fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
-        let (prologue, moving, epilogue) = Self::unwrap(|| {
+        let (prologue, moving, epilogue) = {
             use crate::tenyr::InstructionType::Type3;
             use crate::tenyr::MemoryOpType::{NoLoad, LoadRight, StoreRight};
 
@@ -89,9 +84,9 @@ impl Manager {
     
             // pick point will never go negative
             self.pick_point = u16::try_from(0.max(i32::from(self.pick_point) + pick_movement))
-                .or(Err("overflow in pick_point"))?;
+                .expect("overflow in pick_point");
             self.stack_depth = u16::try_from(i32::from(self.stack_depth) + depth_movement)
-                .or(Err("overflow in stack_depth"))?;
+                .expect("overflow in stack_depth");
 
             let spilled_after = self.spilled_count();
 
@@ -109,10 +104,10 @@ impl Manager {
             let off = n.try_into().expect("immediate value is too large");
             let update = vec![ Instruction { dd : NoLoad, z : sp, x : sp, kind : Type3(off) } ];
 
-            if n < 0        { Ok((update, handle(StoreRight, spilled_before, spilled_after ), vec![])) }
-            else if n > 0   { Ok((vec![], handle(LoadRight , spilled_after , spilled_before), update)) }
-            else            { Ok((vec![], vec![], vec![])) }
-        });
+            if n < 0        { (update, handle(StoreRight, spilled_before, spilled_after ), vec![]) }
+            else if n > 0   { (vec![], handle(LoadRight , spilled_after , spilled_before), update) }
+            else            { (vec![], vec![], vec![]) }
+        };
 
         std::iter::empty()
             .chain(prologue)
@@ -241,6 +236,12 @@ fn get_mgr(num_regs : NumRegs) -> Manager {
 const POINTER_UPDATE_INSNS : u16 = 1;
 
 #[cfg(test)]
+fn unwrap<T>(f : impl FnOnce() -> Result<T, Box<dyn std::error::Error>>) -> T {
+    #[allow(clippy::result_unwrap_used)]
+    f().unwrap()
+}
+
+#[cfg(test)]
 quickcheck! {
     fn test_new(num_regs : NumRegs) -> () {
         let man = get_mgr(num_regs);
@@ -262,7 +263,7 @@ quickcheck! {
 
     fn test_small_spill_and_load(num_regs : NumRegs) -> TestResult {
         if num_regs.0 < 4 { return TestResult::discard(); }
-        Manager::unwrap(|| {
+        unwrap(|| {
             let mut man = get_mgr(num_regs);
             let act = man.reserve((num_regs.0 - 1).into());
             assert!(act.is_empty());
