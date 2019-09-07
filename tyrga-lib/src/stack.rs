@@ -99,7 +99,7 @@ impl Manager {
             }
         };
         let off = n.try_into().expect("immediate value is too large");
-        let update = vec![ Instruction { dd : NoLoad, z : sp, x : sp, kind : Type3(off) } ];
+        let update = std::iter::once(Instruction { dd : NoLoad, z : sp, x : sp, kind : Type3(off) });
 
         if n < 0 {
             std::iter::empty()
