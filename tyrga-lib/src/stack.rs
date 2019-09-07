@@ -93,9 +93,8 @@ impl Manager {
         let n = i32::from(spilled_before) - i32::from(spilled_after);
         let reg = |off| self.regs[usize::from(off % self.register_count)];
         let mover = |dd| {
-            move |offset : u16| {
-                let off = n.abs() - i32::from(offset);
-                let off = off.try_into().expect("immediate value is too large");
+            move |offset| {
+                let off = (n.abs() - i32::from(offset)).try_into().expect("immediate value is too large");
                 Instruction { dd, z : reg(offset), x : sp, kind : Type3(off) }
             }
         };
