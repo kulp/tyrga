@@ -213,19 +213,6 @@ impl quickcheck::Arbitrary for NumRegs {
 }
 
 #[cfg(test)]
-fn check_invariants(man : &Manager) {
-    // Allow "absurd" comparisons to allow us to write runtime assertions that are known to be
-    // infallible at compile time *with the the current types*.
-    #![allow(clippy::absurd_extreme_comparisons)]
-    #![allow(unused_comparisons)]
-
-    assert!(0 <= man.stack_depth);
-    assert!(man.stack_depth <= 255);
-    assert!(0 <= man.pick_point);
-    assert!(man.pick_point <= man.stack_depth);
-}
-
-#[cfg(test)]
 fn get_mgr(num_regs : NumRegs) -> Manager {
     use Register::*;
     let regs = [B, C, D, E, F, G, H, I, J, K, L, M, N, O];
@@ -246,14 +233,12 @@ fn unwrap<T>(f : impl FnOnce() -> Result<T, Box<dyn std::error::Error>>) -> T {
 quickcheck! {
     fn test_new(num_regs : NumRegs) -> () {
         let man = get_mgr(num_regs);
-        check_invariants(&man);
         assert_eq!(man.register_count, (num_regs.0 - 1).into());
     }
 
     fn test_trivial_reserve(n : NumRegs) -> () {
         let mut man = get_mgr(n);
         let act = man.reserve(1);
-        check_invariants(&man);
         assert!(act.is_empty());
     }
 
