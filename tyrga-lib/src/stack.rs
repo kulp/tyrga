@@ -102,15 +102,9 @@ impl Manager {
         let update = std::iter::once(Instruction { dd : NoLoad, z : sp, x : sp, kind : Type3(off) });
 
         if n < 0 {
-            std::iter::empty()
-                .chain(update)
-                .chain((spilled_before..spilled_after).map(mover(StoreRight)))
-                .collect()
+            update.chain((spilled_before..spilled_after).map(mover(StoreRight))).collect()
         } else if n > 0 {
-            std::iter::empty()
-                .chain((spilled_after..spilled_before).map(mover(LoadRight)))
-                .chain(update)
-                .collect()
+            (spilled_after..spilled_before).map(mover(LoadRight)).chain(update).collect()
         } else {
             vec![]
         }
