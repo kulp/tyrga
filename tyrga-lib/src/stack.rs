@@ -106,7 +106,7 @@ impl Manager {
         } else if n > 0 {
             (spilled_after..spilled_before).map(mover(LoadRight)).chain(update).collect()
         } else {
-            vec![]
+            std::iter::empty().collect()
         }
     }
 
