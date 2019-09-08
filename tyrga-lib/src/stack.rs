@@ -130,7 +130,7 @@ impl Manager {
     /// reserves (positive argument) or releases (negative input) a given number
     /// of slots (zero means no operation)
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
-    pub fn adjust(&mut self, n : i32) -> StackActions {
+    fn adjust(&mut self, n : i32) -> StackActions {
         self.nudge(n, n)
     }
 
