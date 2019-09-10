@@ -92,9 +92,9 @@ impl Manager {
         let sp = self.stack_ptr;
         let n = i32::from(spilled_before) - i32::from(spilled_after);
         let reg = |off| self.regs[usize::from(off % self.register_count)];
-        let mover = |dd| {
+        let mover = |dd, base| {
             move |offset| {
-                let off = (n.abs() - i32::from(offset)).try_into().expect("immediate value is too large");
+                let off = (n.abs() - i32::from(offset) + i32::from(base)).try_into().expect("immediate value is too large");
                 Instruction { dd, z : reg(offset), x : sp, kind : Type3(off) }
             }
         };
@@ -102,9 +102,9 @@ impl Manager {
         let update = std::iter::once(Instruction { dd : NoLoad, z : sp, x : sp, kind : Type3(off) });
 
         if n < 0 {
-            update.chain((spilled_before..spilled_after).map(mover(StoreRight))).collect()
+            update.chain((spilled_before..spilled_after).map(mover(StoreRight, spilled_before))).collect()
         } else if n > 0 {
-            (spilled_after..spilled_before).map(mover(LoadRight)).chain(update).collect()
+            (spilled_after..spilled_before).map(mover(LoadRight, spilled_after)).chain(update).collect()
         } else {
             std::iter::empty().collect()
         }
@@ -345,5 +345,33 @@ quickcheck! {
         let _ = man.nudge(-i32::from(n + 3), 0); // force underflow
         assert_eq!(man.pick_point, 0);
         TestResult::passed()
+    }
+
+    fn test_repeated_spills(num_regs : NumRegs) -> () {
+        use crate::tenyr::InstructionType::Type3;
+
+        unwrap(|| {
+            let n : u16 = num_regs.0.into();
+            let mut man = get_mgr(num_regs);
+            let sp = man.stack_ptr;
+
+            let _  = man.reserve(n - 1);
+            let act = man.reserve(1);
+            assert_eq!(act.len(), 2);
+            assert_eq!(act[0], tenyr_insn!( sp <- sp - 1 )?);
+            assert_eq!(act[1].kind, Type3(1i16.into()));
+
+            let act = man.reserve(1);
+            assert_eq!(act.len(), 2);
+            assert_eq!(act[0], tenyr_insn!( sp <- sp - 1 )?);
+            assert_eq!(act[1].kind, Type3(1i16.into()));
+
+            let act = man.reserve(1);
+            assert_eq!(act.len(), 2);
+            assert_eq!(act[0], tenyr_insn!( sp <- sp - 1 )?);
+            assert_eq!(act[1].kind, Type3(1i16.into()));
+
+            Ok(())
+        });
     }
 }
