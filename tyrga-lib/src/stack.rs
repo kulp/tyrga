@@ -333,7 +333,7 @@ quickcheck! {
         let free_regs : u16 = (num_regs.0 - 1).into();
         let act = man.reserve(free_regs * 2); // ensure we spill
         assert_eq!(act.len(), num_regs.0.into());
-    
+
         TestResult::must_fail(move || { let _ = man.get(free_regs); })
     }
 
