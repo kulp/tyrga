@@ -285,8 +285,8 @@ fn make_instructions<'a, T>(
             }
         };
 
-    let make_mov  = |to, from| Instruction { z : to, x : from, ..tenyr::NOOP_TYPE3 };
-    let make_load = |to, from| Instruction { dd : LoadRight , ..make_mov(to, from) };
+    let make_mov  = |z, x| Instruction { z, x, ..tenyr::NOOP_TYPE3 };
+    let make_load = |z, x| Instruction { dd : LoadRight , ..make_mov(z, x) };
 
     let make_jump = |target| {
         let result : GeneralResult<Instruction> = Ok(Instruction {
