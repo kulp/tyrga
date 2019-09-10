@@ -251,7 +251,8 @@ fn make_instructions<'a, T>(
         gc : &T,
         max_locals : u16,
     ) -> MakeInsnResult
-    where T : ContextConstantGetter<'a> + Contextualizer<'a>
+where
+    T : ContextConstantGetter<'a> + Contextualizer<'a>,
 {
     use jvmtypes::AllocationKind::*;
     use jvmtypes::Indirection::*;
@@ -1173,7 +1174,8 @@ mod util {
     }
 
     impl<T> Manglable for Context<'_, &T>
-        where T : Named + Described
+    where
+        T : Named + Described,
     {
         fn pieces(&self) -> GeneralResult<Vec<String>> {
             Ok(vec![
