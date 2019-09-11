@@ -24,6 +24,7 @@ tases: $(ALL_JAVA:%.java=%.tas)
 %.class: %.java
 	javac $(JAVAFLAGS) $<
 
-%.tas: %.class
+# Rebuild tases when the translator binary changes
+%.tas: %.class $(TYRGA_CLI)
 	$(TYRGA_CLI) translate --output $@ $<
 
