@@ -164,7 +164,7 @@ impl Manager {
     /// is greater than the number of registers that can be alive at once
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn get(&mut self, n : u16) -> (Register, StackActions) {
-        let act = self.require_minimum(n);
+        let act = self.require_minimum(n + 1); // convert register index into depth
         assert!(n < self.register_count);
         let len : usize = self.register_count.into();
         let n : usize = n.into();
