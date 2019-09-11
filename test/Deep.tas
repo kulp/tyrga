@@ -1,0 +1,148 @@
+.Lmethod_table:
+    .word @_4Deep02_3a3c4init04_3e3a28291V  - .Lmethod_table, 0x0001
+    .word @_4Deep01_3a3add02_3a282II01_291I - .Lmethod_table, 0x0009
+    .word @_4Deep01_3a7calling03_3a28291J   - .Lmethod_table, 0x0001
+.Lmethod_table_end:
+    .zero 0
+
+    .global _4Deep02_3a3c4init04_3e3a28291V01_3a5vslot
+    .set    _4Deep02_3a3c4init04_3e3a28291V01_3a5vslot, 0
+    .global _4Deep01_3a7calling03_3a28291J01_3a5vslot
+    .set    _4Deep01_3a7calling03_3a28291J01_3a5vslot , 1
+
+    .global _4Deep01_3a3sum01_3a1J01_3a12field_offset
+    .set    _4Deep01_3a3sum01_3a1J01_3a12field_offset, 0
+
+.global _4Deep02_3a3c4init04_3e3a28291V
+_4Deep02_3a3c4init04_3e3a28291V:
+.L_4Deep02_3a3c4init04_3e3a28291V01_3a10__prologue:
+     O  <-  O - 2
+     B  -> [O + 1]
+.L_4Deep02_3a3c4init04_3e3a28291V01_3a3__0:
+     B  <- [O + 2]
+     O  <-  O - 1
+     B  -> [O + 1]
+     B  <-  P + 1
+     P  <-  P + @+_4java01_2f4lang01_2f6Object02_3a3c4init04_3e3a28291V
+     B  <- [O + 1]
+     O  <-  O + 1
+     B  <- [O + 2]
+     C  <-  0
+     D  <-  0
+     D  -> [B + (@_4Deep01_3a3sum01_3a1J01_3a12field_offset + 1)]
+     C  -> [B + (@_4Deep01_3a3sum01_3a1J01_3a12field_offset + 0)]
+     P  <-  (.L_4Deep02_3a3c4init04_3e3a28291V01_3a10__epilogue - (. + 1))  +  P
+.L_4Deep02_3a3c4init04_3e3a28291V01_3a10__epilogue:
+     O  <-  O + 2
+     P  <- [O - 1]
+
+.global _4Deep01_3a3add02_3a282II01_291I
+_4Deep01_3a3add02_3a282II01_291I:
+.L_4Deep01_3a3add02_3a282II01_291I01_3a10__prologue:
+     O  <-  O - 1
+     B  -> [O + 1]
+.L_4Deep01_3a3add02_3a282II01_291I01_3a3__0:
+     B  <- [O + 3]
+     C  <- [O + 2]
+     B  <-  B  +  C
+     B  -> [O + 3]
+     P  <-  (.L_4Deep01_3a3add02_3a282II01_291I01_3a10__epilogue - (. + 1))  +  P
+.L_4Deep01_3a3add02_3a282II01_291I01_3a10__epilogue:
+     O  <-  O + 2
+     P  <- [O - 1]
+
+.global _4Deep01_3a7calling03_3a28291J
+_4Deep01_3a7calling03_3a28291J:
+.L_4Deep01_3a7calling03_3a28291J01_3a10__prologue:
+     O  <-  O - 3
+     B  -> [O + 1]
+.L_4Deep01_3a7calling03_3a28291J01_3a3__0:
+     B  <-  0
+     C  <-  1
+     D  <-  2
+     E  <-  3
+     F  <-  4
+     G  <-  5
+     H  <-  6
+     I  <-  7
+     J  <-  8
+     K  <-  9
+     L  <-  10
+     M  <-  11
+     N  <-  12
+     O  <-  O - 1
+     B  -> [O + 1]
+     B  <-  13
+     O  <-  O - 1
+     C  -> [O + 1]
+     C  <-  14
+     O  <-  O - 1
+     D  -> [O + 1]
+     D  <-  15
+     O  <-  O - 1
+     E  -> [O + 1]
+     E  <-  16
+     O  <-  O - 1
+     F  -> [O + 1]
+     F  <-  17
+     O  <-  O - 13
+     G  -> [O + 13]
+     H  -> [O + 12]
+     I  -> [O + 11]
+     J  -> [O + 10]
+     K  -> [O + 9]
+     L  -> [O + 8]
+     M  -> [O + 7]
+     N  -> [O + 6]
+     B  -> [O + 5]
+     C  -> [O + 4]
+     D  -> [O + 3]
+     E  -> [O + 2]
+     F  -> [O + 1]
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_4Deep01_3a3add02_3a282II01_291I
+     B  <-  P + 1
+     P  <-  P + @+_5tyrga01_2f7Builtin01_3a6into_J02_3a281I01_291J
+     C  <- [O + 1]
+     O  <-  O + 1
+     C  -> [O + 4]
+     B  <- [O + 1]
+     O  <-  O + 1
+     B  -> [O + 2]
+     P  <-  (.L_4Deep01_3a7calling03_3a28291J01_3a10__epilogue - (. + 1))  +  P
+.L_4Deep01_3a7calling03_3a28291J01_3a10__epilogue:
+     O  <-  O
+     P  <- [O]
+
