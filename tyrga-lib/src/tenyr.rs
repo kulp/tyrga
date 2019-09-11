@@ -408,7 +408,6 @@ impl fmt::Display for Opcode {
 pub enum MemoryOpType {
     NoLoad,     //  Z  <-  ...
     StoreRight, //  Z  -> [...]
-    #[allow(dead_code)] // StoreLeft does not get used very often
     StoreLeft,  // [Z] <-  ...
     LoadRight,  //  Z  <- [...]
 }

@@ -20,12 +20,11 @@
 _8Allocate02_3a3c4init04_3e3a28291V:
 .L_8Allocate02_3a3c4init04_3e3a28291V01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Allocate02_3a3c4init04_3e3a28291V01_3a3__0:
      B  <- [O + 2]
      O  <-  O - 1
      B  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3a3c4init04_3e3a28291V
      B  <- [O + 1]
      O  <-  O + 1
@@ -38,12 +37,11 @@ _8Allocate02_3a3c4init04_3e3a28291V:
 _8Allocate01_3a22array_allocate_boolean04_3a28295b1Z:
 .L_8Allocate01_3a22array_allocate_boolean04_3a28295b1Z01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Allocate01_3a22array_allocate_boolean04_3a28295b1Z01_3a3__0:
      B  <-  10
      O  <-  O - 1
      B  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a5alloc02_3a281I01_295Ljava01_2e4lang01_2e6Object01_3b
      B  <- [O + 1]
      O  <-  O + 1
@@ -57,12 +55,11 @@ _8Allocate01_3a22array_allocate_boolean04_3a28295b1Z:
 _8Allocate01_3a19array_allocate_char04_3a28295b1C:
 .L_8Allocate01_3a19array_allocate_char04_3a28295b1C01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Allocate01_3a19array_allocate_char04_3a28295b1C01_3a3__0:
      B  <-  10
      O  <-  O - 1
      B  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a5alloc02_3a281I01_295Ljava01_2e4lang01_2e6Object01_3b
      B  <- [O + 1]
      O  <-  O + 1
@@ -76,12 +73,11 @@ _8Allocate01_3a19array_allocate_char04_3a28295b1C:
 _8Allocate01_3a20array_allocate_float04_3a28295b1F:
 .L_8Allocate01_3a20array_allocate_float04_3a28295b1F01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Allocate01_3a20array_allocate_float04_3a28295b1F01_3a3__0:
      B  <-  10
      O  <-  O - 1
      B  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a5alloc02_3a281I01_295Ljava01_2e4lang01_2e6Object01_3b
      B  <- [O + 1]
      O  <-  O + 1
@@ -95,13 +91,12 @@ _8Allocate01_3a20array_allocate_float04_3a28295b1F:
 _8Allocate01_3a21array_allocate_double04_3a28295b1D:
 .L_8Allocate01_3a21array_allocate_double04_3a28295b1D01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Allocate01_3a21array_allocate_double04_3a28295b1D01_3a3__0:
      B  <-  5
      B  <-  B  +  B
      O  <-  O - 1
      B  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a5alloc02_3a281I01_295Ljava01_2e4lang01_2e6Object01_3b
      B  <- [O + 1]
      O  <-  O + 1
@@ -115,12 +110,11 @@ _8Allocate01_3a21array_allocate_double04_3a28295b1D:
 _8Allocate01_3a19array_allocate_byte04_3a28295b1B:
 .L_8Allocate01_3a19array_allocate_byte04_3a28295b1B01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Allocate01_3a19array_allocate_byte04_3a28295b1B01_3a3__0:
      B  <-  10
      O  <-  O - 1
      B  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a5alloc02_3a281I01_295Ljava01_2e4lang01_2e6Object01_3b
      B  <- [O + 1]
      O  <-  O + 1
@@ -134,12 +128,11 @@ _8Allocate01_3a19array_allocate_byte04_3a28295b1B:
 _8Allocate01_3a20array_allocate_short04_3a28295b1S:
 .L_8Allocate01_3a20array_allocate_short04_3a28295b1S01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Allocate01_3a20array_allocate_short04_3a28295b1S01_3a3__0:
      B  <-  10
      O  <-  O - 1
      B  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a5alloc02_3a281I01_295Ljava01_2e4lang01_2e6Object01_3b
      B  <- [O + 1]
      O  <-  O + 1
@@ -153,12 +146,11 @@ _8Allocate01_3a20array_allocate_short04_3a28295b1S:
 _8Allocate01_3a18array_allocate_int04_3a28295b1I:
 .L_8Allocate01_3a18array_allocate_int04_3a28295b1I01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Allocate01_3a18array_allocate_int04_3a28295b1I01_3a3__0:
      B  <-  10
      O  <-  O - 1
      B  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a5alloc02_3a281I01_295Ljava01_2e4lang01_2e6Object01_3b
      B  <- [O + 1]
      O  <-  O + 1
@@ -172,13 +164,12 @@ _8Allocate01_3a18array_allocate_int04_3a28295b1I:
 _8Allocate01_3a19array_allocate_long04_3a28295b1J:
 .L_8Allocate01_3a19array_allocate_long04_3a28295b1J01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Allocate01_3a19array_allocate_long04_3a28295b1J01_3a3__0:
      B  <-  5
      B  <-  B  +  B
      O  <-  O - 1
      B  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a5alloc02_3a281I01_295Ljava01_2e4lang01_2e6Object01_3b
      B  <- [O + 1]
      O  <-  O + 1
@@ -192,9 +183,8 @@ _8Allocate01_3a19array_allocate_long04_3a28295b1J:
 _8Allocate01_3a21array_allocate_object03_3a28295Ljava01_2f4lang01_2f6Object01_3b:
 .L_8Allocate01_3a21array_allocate_object03_3a28295Ljava01_2f4lang01_2f6Object02_3b3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Allocate01_3a21array_allocate_object03_3a28295Ljava01_2f4lang01_2f6Object02_3b3a3__0:
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_4java01_2f4lang01_2f6Object01_3a3new
      B  <- [O + 1]
      O  <-  O + 1
@@ -202,7 +192,7 @@ _8Allocate01_3a21array_allocate_object03_3a28295Ljava01_2f4lang01_2f6Object01_3b
      O  <-  O - 2
      B  -> [O + 2]
      C  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3a3c4init04_3e3a28291V
      C  <- [O + 1]
      O  <-  O + 1
@@ -218,12 +208,11 @@ _8Allocate01_3a21array_allocate_object03_3a28295Ljava01_2f4lang01_2f6Object01_3b
 _8Allocate01_3a22array_allocate_objects04_3a28295b5Ljava01_2f4lang01_2f6Object01_3b:
 .L_8Allocate01_3a22array_allocate_objects04_3a28295b5Ljava01_2f4lang01_2f6Object02_3b3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Allocate01_3a22array_allocate_objects04_3a28295b5Ljava01_2f4lang01_2f6Object02_3b3a3__0:
      B  <-  10
      O  <-  O - 1
      B  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a5alloc02_3a281I01_295Ljava01_2e4lang01_2e6Object01_3b
      B  <- [O + 1]
      O  <-  O + 1

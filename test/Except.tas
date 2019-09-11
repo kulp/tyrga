@@ -12,12 +12,11 @@
 _6Except02_3a3c4init04_3e3a28291V:
 .L_6Except02_3a3c4init04_3e3a28291V01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_6Except02_3a3c4init04_3e3a28291V01_3a3__0:
      B  <- [O + 2]
      O  <-  O - 1
      B  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3a3c4init04_3e3a28291V
      B  <- [O + 1]
      O  <-  O + 1
@@ -30,14 +29,13 @@ _6Except02_3a3c4init04_3e3a28291V:
 _6Except01_3a3sub02_3a281I01_291I:
 .L_6Except01_3a3sub02_3a281I01_291I01_3a10__prologue:
      O  <-  O - 1
-     B  -> [O + 1]
 .L_6Except01_3a3sub02_3a281I01_291I01_3a3__0:
      B  <-  10
      C  <- [O + 2]
      O  <-  O - 2
      B  -> [O + 2]
      C  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3a3div02_3a282II01_291I
      B  <- [O + 1]
      O  <-  O + 1
@@ -51,12 +49,11 @@ _6Except01_3a3sub02_3a281I01_291I:
 _6Except01_3a6except02_3a281I01_291I:
 .L_6Except01_3a6except02_3a281I01_291I01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_6Except01_3a6except02_3a281I01_291I01_3a3__0:
      B  <- [O + 3]
      O  <-  O - 1
      B  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_6Except01_3a3sub02_3a281I01_291I
      B  <- [O + 1]
      O  <-  O + 1

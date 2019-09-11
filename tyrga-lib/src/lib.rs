@@ -303,12 +303,13 @@ where
         let mut insns = Vec::new();
         insns.extend(sm.freeze(count_params(descriptor)?.into()));
 
-        // Save return address into bottom of register-based stack
-        let bottom = STACK_REGS[0];
+        // Save return address through current stack pointer (callee will
+        // decrement stack pointer)
+        let sp = sm.get_stack_ptr();
         let far = format!("@+{}", target);
         let off : tenyr::Immediate20 = tenyr::Immediate::Expr(exprtree::Atom::Variable(far));
         insns.extend(tenyr_insn_list!(
-            bottom <- P + 1 ;
+            [sp] <- P + 1   ;
             P <- P + (off)  ;
         ));
 
@@ -713,8 +714,9 @@ where
                 use Register::P;
 
                 let mut insns = Vec::new();
-                // Save return address into bottom of register-based stack
-                let bottom = STACK_REGS[0];
+                // Save return address through current stack pointer (callee will
+                // decrement stack pointer)
+                let sp = sm.get_stack_ptr();
                 let descriptor = &get_method_parts(gc, index)?[2];
                 let param_count = u16::from(count_params(descriptor)?);
                 let (obj, gets) = sm.get(param_count);
@@ -731,7 +733,7 @@ where
 
                 insns.extend(tenyr_insn_list!(
                     temp <- [obj - 1]   ;
-                    bottom <- P + 1     ;
+                    [sp] <- P + 1       ;
                     P <- [temp + (off)] ;
                 ));
                 insns.extend(sm.release(1));
@@ -1549,12 +1551,7 @@ fn translate_method<'a, 'b>(
     let prologue = {
         let name = "prologue";
         let off = -(max_locals_i32 - i32::from(count_params(&descriptor)?) + i32::from(SAVE_SLOTS));
-        let base = index_local(sm, STACK_REGS[0], max_locals_i32, max_locals);
-        let insns = vec![
-            // save return address in save-slot, one past the maximum number of locals
-            tenyr_insn!( sp <-  sp + (off) )?,
-            Instruction{ dd : tenyr::MemoryOpType::StoreRight, ..base },
-        ];
+        let insns = vec![ tenyr_insn!( sp <-  sp + (off) )? ];
         let label = make_label(class, method, &name)?;
         tenyr::BasicBlock { label, insns }
     };

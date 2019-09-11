@@ -12,12 +12,11 @@
 _6Native02_3a3c4init04_3e3a28291V:
 .L_6Native02_3a3c4init04_3e3a28291V01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_6Native02_3a3c4init04_3e3a28291V01_3a3__0:
      B  <- [O + 2]
      O  <-  O - 1
      B  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3a3c4init04_3e3a28291V
      B  <- [O + 1]
      O  <-  O + 1
@@ -30,9 +29,8 @@ _6Native02_3a3c4init04_3e3a28291V:
 _6Native01_3a6caller03_3a28291V:
 .L_6Native01_3a6caller03_3a28291V01_3a10__prologue:
      O  <-  O - 1
-     B  -> [O + 1]
 .L_6Native01_3a6caller03_3a28291V01_3a3__0:
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_6Native01_3a10nativeCall03_3a28291V
      P  <-  (.L_6Native01_3a6caller03_3a28291V01_3a10__epilogue - (. + 1))  +  P
 .L_6Native01_3a6caller03_3a28291V01_3a10__epilogue:

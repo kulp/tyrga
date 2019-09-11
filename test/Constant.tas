@@ -22,12 +22,11 @@
 _8Constant02_3a3c4init04_3e3a28291V:
 .L_8Constant02_3a3c4init04_3e3a28291V01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Constant02_3a3c4init04_3e3a28291V01_3a3__0:
      B  <- [O + 2]
      O  <-  O - 1
      B  -> [O + 1]
-     B  <-  P + 1
+    [O] <-  P + 1
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3a3c4init04_3e3a28291V
      B  <- [O + 1]
      O  <-  O + 1
@@ -40,7 +39,6 @@ _8Constant02_3a3c4init04_3e3a28291V:
 _8Constant01_3a12constant_int03_3a28291I:
 .L_8Constant01_3a12constant_int03_3a28291I01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Constant01_3a12constant_int03_3a28291I01_3a3__0:
      B  <-  1
      B  -> [O + 2]
@@ -53,7 +51,6 @@ _8Constant01_3a12constant_int03_3a28291I:
 _8Constant01_3a13constant_long03_3a28291J:
 .L_8Constant01_3a13constant_long03_3a28291J01_3a10__prologue:
      O  <-  O - 3
-     B  -> [O + 1]
 .L_8Constant01_3a13constant_long03_3a28291J01_3a3__0:
      B  <-  0
      C  <-  1
@@ -68,7 +65,6 @@ _8Constant01_3a13constant_long03_3a28291J:
 _8Constant01_3a14constant_float03_3a28291F:
 .L_8Constant01_3a14constant_float03_3a28291F01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Constant01_3a14constant_float03_3a28291F01_3a3__0:
      C  <-  260096
      C  <-  C ^^  0
@@ -84,7 +80,6 @@ _8Constant01_3a14constant_float03_3a28291F:
 _8Constant01_3a15constant_double03_3a28291D:
 .L_8Constant01_3a15constant_double03_3a28291D01_3a10__prologue:
      O  <-  O - 3
-     B  -> [O + 1]
 .L_8Constant01_3a15constant_double03_3a28291D01_3a3__0:
      C  <-  261888
      C  <-  C ^^  0
@@ -102,7 +97,6 @@ _8Constant01_3a15constant_double03_3a28291D:
 _8Constant01_3a15constant_Object03_3a28295Ljava01_2f4lang01_2f6Object01_3b:
 .L_8Constant01_3a15constant_Object03_3a28295Ljava01_2f4lang01_2f6Object02_3b3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Constant01_3a15constant_Object03_3a28295Ljava01_2f4lang01_2f6Object02_3b3a3__0:
      B  <-  0
      B  -> [O + 2]
@@ -115,7 +109,6 @@ _8Constant01_3a15constant_Object03_3a28295Ljava01_2f4lang01_2f6Object01_3b:
 _8Constant01_3a9large_int03_3a28291I:
 .L_8Constant01_3a9large_int03_3a28291I01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Constant01_3a9large_int03_3a28291I01_3a3__0:
      B  <-  123456
      B  -> [O + 2]
@@ -128,7 +121,6 @@ _8Constant01_3a9large_int03_3a28291I:
 _8Constant01_3a10large_long03_3a28291J:
 .L_8Constant01_3a10large_long03_3a28291J01_3a10__prologue:
      O  <-  O - 3
-     B  -> [O + 1]
 .L_8Constant01_3a10large_long03_3a28291J01_3a3__0:
      B  <-  0
      C  <-  123456
@@ -143,7 +135,6 @@ _8Constant01_3a10large_long03_3a28291J:
 _8Constant01_3a11large_float03_3a28291F:
 .L_8Constant01_3a11large_float03_3a28291F01_3a10__prologue:
      O  <-  O - 2
-     B  -> [O + 1]
 .L_8Constant01_3a11large_float03_3a28291F01_3a3__0:
      C  <-  294674
      C  <-  C ^^  0
@@ -159,7 +150,6 @@ _8Constant01_3a11large_float03_3a28291F:
 _8Constant01_3a12large_double03_3a28291D:
 .L_8Constant01_3a12large_double03_3a28291D01_3a10__prologue:
      O  <-  O - 3
-     B  -> [O + 1]
 .L_8Constant01_3a12large_double03_3a28291D01_3a3__0:
      C  <-  266210
      C  <-  C ^^  1024
