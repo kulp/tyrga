@@ -156,7 +156,8 @@ impl Manager {
     /// removes all items from the stack
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn empty(&mut self) -> StackActions {
-        self.nudge(-i32::from(self.pick_point), -i32::from(self.stack_depth))
+        let all = self.nudge(-i32::from(self.pick_point), -i32::from(self.stack_depth));
+        all.last().into_iter().cloned().collect() // preserve only the stack-update instruction
     }
 
     /// gets a register at depth from top of stack, panicking if requested depth
