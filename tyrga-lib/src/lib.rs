@@ -951,7 +951,7 @@ fn test_make_instruction() -> GeneralResult<()> {
     }
     impl<'a> Contextualizer<'a> for Useless {
         fn contextualize<U>(&self, _ : U) -> Context<'a, U> {
-            unreachable!("this code is for testing only")
+            unimplemented!("this code is for testing only")
         }
     }
 
