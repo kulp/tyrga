@@ -150,7 +150,9 @@ impl Manager {
         // discarding actions is correct because we are actually accounting for
         // actions that have already been taken prior to this function's entry
         let _ = self.nudge(0, i32::from(count));
-        self.nudge(i32::from(self.stack_depth), 0)
+        // lazily avoid calling nudge, so that actually thawing is deferred
+        // until needed
+        vec![]
     }
 
     /// removes all items from the stack
