@@ -9,6 +9,7 @@
 #![deny(clippy::result_unwrap_used)]
 #![deny(unconditional_recursion)]
 #![deny(clippy::unreadable_literal)]
+#![deny(clippy::just_underscores_and_digits)]
 
 // make macros visible to later modules
 #[macro_use]
