@@ -496,11 +496,13 @@ where
             };
 
             let opper = move |sm : &mut StackManager| {
+                use OperandCount::{_1, _2};
+
                 let mut v = Vec::new();
                 let count = ops as u16;
                 let (lhs, gets) = sm.get(count - 1);
                 v.extend(gets);
-                let (rhs, gets) = if ops == OperandCount::_2 { sm.get(0) } else { (Register::A, vec![]) };
+                let (rhs, gets) = match ops { _1 => (Register::A, vec![]), _2 => sm.get(0) };
                 v.extend(gets);
                 let temp_reg = lhs;
                 let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
