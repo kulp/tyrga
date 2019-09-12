@@ -41,7 +41,7 @@ use classfile_parser::method_info::MethodAccessFlags;
 use classfile_parser::method_info::MethodInfo;
 use classfile_parser::ClassFile;
 
-use args::*;
+use args::{count_params, count_returns};
 use jvmtypes::*;
 use tenyr::{Instruction, Register, SmallestImmediate};
 use util::*;
@@ -64,7 +64,7 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
 {
     use tenyr::InsnGeneral as Gen;
     use tenyr::InstructionType::*;
-    use tenyr::MemoryOpType::*;
+    use tenyr::MemoryOpType::NoLoad;
     use SmallestImmediate::*;
 
     fn make_imm(temp_reg : Register, imm : SmallestImmediate) -> GeneralResult<Vec<Instruction>> {
@@ -96,7 +96,7 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
 
         (kind, imm) => {
             use std::iter::once;
-            use tenyr::Opcode::*;
+            use tenyr::Opcode::{Add, BitwiseOr};
 
             let adder  = Gen { y : Register::A, op : Add , imm : 0_u8.into() };
             let reserve = sm.reserve(1).into_iter();
@@ -131,9 +131,9 @@ fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
 
 #[test]
 fn test_expand() -> GeneralResult<()> {
-    use tenyr::*;
-    use InstructionType::*;
-    use Register::*;
+    use tenyr::{Instruction, InstructionType, Register};
+    use InstructionType::Type0;
+    use Register::{A, B, C, D, E, F, G};
 
     let v = vec![C, D, E, F, G];
     let mut sm = StackManager::new(v.clone());
@@ -206,7 +206,7 @@ type MakeInsnResult = GeneralResult<InsnTriple>;
 fn make_target(target : &dyn std::string::ToString) -> GeneralResult<exprtree::Atom> {
     use exprtree::Atom::*;
     use exprtree::Expr;
-    use exprtree::Operation::*;
+    use exprtree::Operation::{Add, Sub};
     use std::rc::Rc;
 
     let a = Variable(target.to_string());
@@ -223,7 +223,7 @@ fn make_int_branch(
         mut comp : impl FnMut(&mut StackManager) -> GeneralResult<(Register, Vec<Instruction>)>
     ) -> MakeInsnResult
 {
-    use tenyr::*;
+    use tenyr::{Instruction, Register};
     use Register::P;
 
     let o = make_target(&target_namer(&target)?)?;
@@ -255,12 +255,12 @@ fn make_instructions<'a, T>(
 where
     T : ContextConstantGetter<'a> + Contextualizer<'a>,
 {
-    use jvmtypes::AllocationKind::*;
-    use jvmtypes::Indirection::*;
-    use jvmtypes::SwitchParams::*;
+    use jvmtypes::AllocationKind::{Array, Element};
+    use jvmtypes::Indirection::{Explicit, Indirect};
+    use jvmtypes::SwitchParams::{Lookup, Table};
     use std::convert::TryInto;
-    use tenyr::InstructionType::*;
-    use tenyr::MemoryOpType::*;
+    use tenyr::InstructionType::{Type0, Type1, Type3};
+    use tenyr::MemoryOpType::{LoadRight, StoreRight};
     use Operation::*;
 
     // We need to track destinations and return them so that the caller can track stack state
@@ -420,7 +420,7 @@ where
             Ok((addr, v, vec![])) // leaving the method is not a Destination we care about
         },
         Arithmetic { kind : JType::Int, op : ArithmeticOperation::Neg } => {
-            use tenyr::*;
+            use tenyr::{Instruction, Register};
             use Register::A;
             let mut v = Vec::new();
             let (y, gets) = sm.get(0);
@@ -429,7 +429,7 @@ where
             Ok((addr, v, default_dest))
         },
         Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some() => {
-            use tenyr::*;
+            use tenyr::{InsnGeneral, Instruction, MemoryOpType};
             let mut v = Vec::new();
             let (x, gets) = sm.get(1);
             v.extend(gets);
@@ -468,7 +468,7 @@ where
             Ok((addr, v, default_dest))
         },
         Increment { index, value } => {
-            use tenyr::*;
+            use tenyr::{Instruction, MemoryOpType};
             // This reserving of a stack slot may exceed the "maximum depth" statistic on the
             // method, but we should try to avoid dedicated temporary registers.
             let mut v = Vec::new();
@@ -527,7 +527,7 @@ where
         },
         Branch { .. } => Err("encountered impossible Branch configuration".into()),
         Switch(Lookup { default, pairs }) => {
-            use tenyr::*;
+            use tenyr::Instruction;
 
             let here = addr as i32;
             let far = (default + here) as u16;
@@ -576,7 +576,7 @@ where
         },
         Switch(Table { default, low, high, offsets }) => {
             use tenyr::*;
-            use tenyr::InstructionType::*;
+            use tenyr::InstructionType::{Type1, Type2};
             type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
 
             let here = addr as i32;
@@ -648,7 +648,7 @@ where
         Jump { target } =>
             Ok((addr, vec![ make_jump(target)? ], vec![ Destination::Address(target as usize) ])),
         LoadArray(kind) | StoreArray(kind) => {
-            use tenyr::*;
+            use tenyr::{InsnGeneral, Instruction, Opcode, Register};
 
             let mut v = Vec::new();
             let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
@@ -855,11 +855,11 @@ where
             make_call(sm, &make_builtin_name(&name, &desc)?, &desc)
         },
         VarAction  { op, kind, index } => {
-            use classfile_parser::constant_info::ConstantInfo::*;
+            use classfile_parser::constant_info::ConstantInfo::FieldRef;
 
             if let FieldRef(fr) = gc.get_constant(index) {
                 use exprtree::Atom;
-                use tenyr::MemoryOpType::*;
+                use tenyr::MemoryOpType::{LoadRight, StoreRight};
 
                 let fr = gc.contextualize(fr);
                 let mut insns = Vec::new();
@@ -1030,13 +1030,13 @@ mod util {
     use super::jvmtypes::JType;
     use super::mangling;
     use super::tenyr::Instruction;
-    use super::tenyr::MemoryOpType::*;
+    use super::tenyr::MemoryOpType::{LoadRight, StoreRight};
     use super::tenyr::Register;
     use super::GeneralResult;
     use super::StackManager;
     use classfile_parser::constant_info::ConstantInfo;
     use classfile_parser::constant_info::FieldRefConstant;
-    use classfile_parser::constant_info::*;
+    use classfile_parser::constant_info::{ClassConstant, MethodRefConstant, NameAndTypeConstant};
     use classfile_parser::field_info::FieldInfo;
     use classfile_parser::method_info::MethodInfo;
     use classfile_parser::ClassFile;
@@ -1076,7 +1076,7 @@ mod util {
 
     impl Manglable for Context<'_, &FieldRefConstant> {
         fn pieces(&self) -> GeneralResult<Vec<std::string::String>> {
-            use classfile_parser::constant_info::ConstantInfo::*;
+            use classfile_parser::constant_info::ConstantInfo::{Class, NameAndType};
 
             let fr = self.as_ref();
             if let Class(ni) = self.get_constant(fr.class_index) {
@@ -1097,7 +1097,7 @@ mod util {
     // TODO deduplicate code with FieldRefConstant above
     impl Manglable for Context<'_, &MethodRefConstant> {
         fn pieces(&self) -> GeneralResult<Vec<std::string::String>> {
-            use classfile_parser::constant_info::ConstantInfo::*;
+            use classfile_parser::constant_info::ConstantInfo::{Class, NameAndType};
 
             let fr = self.as_ref();
             if let Class(ni) = self.get_constant(fr.class_index) {
@@ -1263,7 +1263,7 @@ fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
 fn get_method_parts(g : &dyn ContextConstantGetter, pool_index : u16)
     -> GeneralResult<[String ; 3]>
 {
-    use classfile_parser::constant_info::ConstantInfo::*;
+    use classfile_parser::constant_info::ConstantInfo::{Class, MethodRef, NameAndType};
 
     let get_string = |n| get_string(g, n);
 
@@ -1315,7 +1315,7 @@ fn make_basic_block(
         range : &Range<usize>
     ) -> GeneralResult<(tenyr::BasicBlock, BTreeSet<usize>)>
 {
-    use Destination::*;
+    use Destination::{Address, Successor};
     use tenyr::BasicBlock;
 
     let mut insns = Vec::with_capacity(range.len() * 2); // heuristic
