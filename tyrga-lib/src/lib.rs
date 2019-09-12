@@ -407,7 +407,7 @@ where
         Yield { kind } => {
             use Register::P;
             let mut v = Vec::new();
-            for i in 0 .. kind.size() {
+            for i in (0 .. kind.size()).rev() { // get deepest first
                 let (reg, gets) = sm.get(i.into());
                 v.extend(gets);
                 v.push(store_local(sm, reg, i.into(), max_locals));
@@ -430,9 +430,9 @@ where
         Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some() => {
             use tenyr::*;
             let mut v = Vec::new();
-            let (y, gets) = sm.get(0);
-            v.extend(gets);
             let (x, gets) = sm.get(1);
+            v.extend(gets);
+            let (y, gets) = sm.get(0);
             v.extend(gets);
             let z = x;
             let op = translate_arithmetic_op(op).ok_or("no op for this opcode")?;
@@ -448,7 +448,7 @@ where
             let mut v = Vec::new();
             let size = kind.size().into();
             v.extend(sm.reserve(size));
-            for i in 0 .. size {
+            for i in (0 .. size).rev() {
                 let (reg, gets) = sm.get(i);
                 v.extend(gets);
                 v.push(load_local(sm, reg, (index + i).into(), max_locals));
@@ -458,7 +458,7 @@ where
         StoreLocal { kind, index } => {
             let mut v = Vec::new();
             let size = kind.size().into();
-            for i in 0 .. size {
+            for i in (0 .. size).rev() {
                 let (reg, gets) = sm.get(i);
                 v.extend(gets);
                 v.push(store_local(sm, reg, (index + i).into(), max_locals));
@@ -649,9 +649,9 @@ where
 
             let mut v = Vec::new();
             let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
-                let (idx, gets) = sm.get(0);
-                v.extend(gets);
                 let (arr, gets) = sm.get(1);
+                v.extend(gets);
+                let (idx, gets) = sm.get(0);
                 v.extend(gets);
                 v.extend(sm.release(2));
                 Ok((idx, arr)) as GeneralResult<(Register, Register)>

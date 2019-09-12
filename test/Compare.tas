@@ -220,10 +220,10 @@ _7Compare01_3a2lt02_3a282DD01_291Z:
 .L_7Compare01_3a2lt02_3a282DD01_291Z01_3a10__prologue:
      O  <-  O - 1
 .L_7Compare01_3a2lt02_3a282DD01_291Z01_3a3__0:
-     C  <- [O + 5]
      B  <- [O + 4]
-     E  <- [O + 3]
+     C  <- [O + 5]
      D  <- [O + 2]
+     E  <- [O + 3]
      F  <-  1
      O  <-  O - 5
      B  -> [O + 5]
@@ -253,10 +253,10 @@ _7Compare01_3a2le02_3a282DD01_291Z:
 .L_7Compare01_3a2le02_3a282DD01_291Z01_3a10__prologue:
      O  <-  O - 1
 .L_7Compare01_3a2le02_3a282DD01_291Z01_3a3__0:
-     C  <- [O + 5]
      B  <- [O + 4]
-     E  <- [O + 3]
+     C  <- [O + 5]
      D  <- [O + 2]
+     E  <- [O + 3]
      F  <-  1
      O  <-  O - 5
      B  -> [O + 5]
@@ -286,10 +286,10 @@ _7Compare01_3a2eq02_3a282DD01_291Z:
 .L_7Compare01_3a2eq02_3a282DD01_291Z01_3a10__prologue:
      O  <-  O - 1
 .L_7Compare01_3a2eq02_3a282DD01_291Z01_3a3__0:
-     C  <- [O + 5]
      B  <- [O + 4]
-     E  <- [O + 3]
+     C  <- [O + 5]
      D  <- [O + 2]
+     E  <- [O + 3]
      F  <-  -1
      O  <-  O - 5
      B  -> [O + 5]
@@ -319,10 +319,10 @@ _7Compare01_3a2gt02_3a282DD01_291Z:
 .L_7Compare01_3a2gt02_3a282DD01_291Z01_3a10__prologue:
      O  <-  O - 1
 .L_7Compare01_3a2gt02_3a282DD01_291Z01_3a3__0:
-     C  <- [O + 5]
      B  <- [O + 4]
-     E  <- [O + 3]
+     C  <- [O + 5]
      D  <- [O + 2]
+     E  <- [O + 3]
      F  <-  -1
      O  <-  O - 5
      B  -> [O + 5]
@@ -352,10 +352,10 @@ _7Compare01_3a2ge02_3a282DD01_291Z:
 .L_7Compare01_3a2ge02_3a282DD01_291Z01_3a10__prologue:
      O  <-  O - 1
 .L_7Compare01_3a2ge02_3a282DD01_291Z01_3a3__0:
-     C  <- [O + 5]
      B  <- [O + 4]
-     E  <- [O + 3]
+     C  <- [O + 5]
      D  <- [O + 2]
+     E  <- [O + 3]
      F  <-  -1
      O  <-  O - 5
      B  -> [O + 5]
@@ -385,10 +385,10 @@ _7Compare01_3a2ne02_3a282DD01_291Z:
 .L_7Compare01_3a2ne02_3a282DD01_291Z01_3a10__prologue:
      O  <-  O - 1
 .L_7Compare01_3a2ne02_3a282DD01_291Z01_3a3__0:
-     C  <- [O + 5]
      B  <- [O + 4]
-     E  <- [O + 3]
+     C  <- [O + 5]
      D  <- [O + 2]
+     E  <- [O + 3]
      F  <-  -1
      O  <-  O - 5
      B  -> [O + 5]
@@ -418,10 +418,10 @@ _7Compare01_3a2lt02_3a282JJ01_291Z:
 .L_7Compare01_3a2lt02_3a282JJ01_291Z01_3a10__prologue:
      O  <-  O - 1
 .L_7Compare01_3a2lt02_3a282JJ01_291Z01_3a3__0:
-     C  <- [O + 5]
      B  <- [O + 4]
-     E  <- [O + 3]
+     C  <- [O + 5]
      D  <- [O + 2]
+     E  <- [O + 3]
      F  <-  0
      O  <-  O - 5
      B  -> [O + 5]
@@ -451,10 +451,10 @@ _7Compare01_3a2le02_3a282JJ01_291Z:
 .L_7Compare01_3a2le02_3a282JJ01_291Z01_3a10__prologue:
      O  <-  O - 1
 .L_7Compare01_3a2le02_3a282JJ01_291Z01_3a3__0:
-     C  <- [O + 5]
      B  <- [O + 4]
-     E  <- [O + 3]
+     C  <- [O + 5]
      D  <- [O + 2]
+     E  <- [O + 3]
      F  <-  0
      O  <-  O - 5
      B  -> [O + 5]
@@ -484,10 +484,10 @@ _7Compare01_3a2eq02_3a282JJ01_291Z:
 .L_7Compare01_3a2eq02_3a282JJ01_291Z01_3a10__prologue:
      O  <-  O - 1
 .L_7Compare01_3a2eq02_3a282JJ01_291Z01_3a3__0:
-     C  <- [O + 5]
      B  <- [O + 4]
-     E  <- [O + 3]
+     C  <- [O + 5]
      D  <- [O + 2]
+     E  <- [O + 3]
      F  <-  0
      O  <-  O - 5
      B  -> [O + 5]
@@ -517,10 +517,10 @@ _7Compare01_3a2gt02_3a282JJ01_291Z:
 .L_7Compare01_3a2gt02_3a282JJ01_291Z01_3a10__prologue:
      O  <-  O - 1
 .L_7Compare01_3a2gt02_3a282JJ01_291Z01_3a3__0:
-     C  <- [O + 5]
      B  <- [O + 4]
-     E  <- [O + 3]
+     C  <- [O + 5]
      D  <- [O + 2]
+     E  <- [O + 3]
      F  <-  0
      O  <-  O - 5
      B  -> [O + 5]
@@ -550,10 +550,10 @@ _7Compare01_3a2ge02_3a282JJ01_291Z:
 .L_7Compare01_3a2ge02_3a282JJ01_291Z01_3a10__prologue:
      O  <-  O - 1
 .L_7Compare01_3a2ge02_3a282JJ01_291Z01_3a3__0:
-     C  <- [O + 5]
      B  <- [O + 4]
-     E  <- [O + 3]
+     C  <- [O + 5]
      D  <- [O + 2]
+     E  <- [O + 3]
      F  <-  0
      O  <-  O - 5
      B  -> [O + 5]
@@ -583,10 +583,10 @@ _7Compare01_3a2ne02_3a282JJ01_291Z:
 .L_7Compare01_3a2ne02_3a282JJ01_291Z01_3a10__prologue:
      O  <-  O - 1
 .L_7Compare01_3a2ne02_3a282JJ01_291Z01_3a3__0:
-     C  <- [O + 5]
      B  <- [O + 4]
-     E  <- [O + 3]
+     C  <- [O + 5]
      D  <- [O + 2]
+     E  <- [O + 3]
      F  <-  0
      O  <-  O - 5
      B  -> [O + 5]
