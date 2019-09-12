@@ -124,8 +124,8 @@ pub enum NanComparisons {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum OperandCount {
-    _1 = 1,
-    _2 = 2,
+    Single = 1,
+    Double = 2,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -345,15 +345,15 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Castore => StoreArray(Char),
         Sastore => StoreArray(Short),
 
-        Pop     => StackOp { op : StackOperation::Pop  , size : OperandCount::_1 },
-        Pop2    => StackOp { op : StackOperation::Pop  , size : OperandCount::_2 },
-        Dup     => StackOp { op : StackOperation::Dup  , size : OperandCount::_1 },
-        Dupx1   => StackOp { op : StackOperation::DupX1, size : OperandCount::_1 },
-        Dupx2   => StackOp { op : StackOperation::DupX2, size : OperandCount::_1 },
-        Dup2    => StackOp { op : StackOperation::Dup  , size : OperandCount::_2 },
-        Dup2x1  => StackOp { op : StackOperation::DupX1, size : OperandCount::_2 },
-        Dup2x2  => StackOp { op : StackOperation::DupX2, size : OperandCount::_2 },
-        Swap    => StackOp { op : StackOperation::Swap , size : OperandCount::_2 },
+        Pop     => StackOp { op : StackOperation::Pop  , size : OperandCount::Single },
+        Pop2    => StackOp { op : StackOperation::Pop  , size : OperandCount::Double },
+        Dup     => StackOp { op : StackOperation::Dup  , size : OperandCount::Single },
+        Dupx1   => StackOp { op : StackOperation::DupX1, size : OperandCount::Single },
+        Dupx2   => StackOp { op : StackOperation::DupX2, size : OperandCount::Single },
+        Dup2    => StackOp { op : StackOperation::Dup  , size : OperandCount::Double },
+        Dup2x1  => StackOp { op : StackOperation::DupX1, size : OperandCount::Double },
+        Dup2x2  => StackOp { op : StackOperation::DupX2, size : OperandCount::Double },
+        Swap    => StackOp { op : StackOperation::Swap , size : OperandCount::Double },
 
         Iadd | Ladd | Fadd | Dadd
             | Isub | Lsub | Fsub | Dsub
@@ -433,11 +433,11 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
                 let ops = match insn {
                     Ifeq(_) | Ifne(_) | Iflt(_) | Ifge(_) | Ifgt(_) | Ifle(_)
                         | Ifnull(_) | Ifnonnull(_)
-                        => OperandCount::_1,
+                        => OperandCount::Single,
                     IfIcmpeq(_) | IfIcmpne(_)
                         | IfIcmplt(_) | IfIcmpge(_) | IfIcmpgt(_) | IfIcmple(_)
                         | IfAcmpeq(_) | IfAcmpne(_)
-                        => OperandCount::_2,
+                        => OperandCount::Double,
                     _ => unreachable!(),
                 };
 
