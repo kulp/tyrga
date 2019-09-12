@@ -258,10 +258,10 @@ where
     use jvmtypes::AllocationKind::{Array, Element};
     use jvmtypes::Indirection::{Explicit, Indirect};
     use jvmtypes::SwitchParams::{Lookup, Table};
+    use Operation::*;
     use std::convert::TryInto;
     use tenyr::InstructionType::{Type0, Type1, Type3};
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
-    use Operation::*;
     use util::{get_string, index_local, load_local, store_local};
 
     // We need to track destinations and return them so that the caller can track stack state
