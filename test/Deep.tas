@@ -140,6 +140,5 @@ _4Deep01_3a7calling03_3a28291J:
      B  -> [O + 2]
      P  <-  (.L_4Deep01_3a7calling03_3a28291J01_3a10__epilogue - (. + 1))  +  P
 .L_4Deep01_3a7calling03_3a28291J01_3a10__epilogue:
-     O  <-  O
      P  <- [O]
 

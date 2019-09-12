@@ -1561,12 +1561,8 @@ fn translate_method<'a, 'b>(
         let off = i32::from(SAVE_SLOTS) + i32::from(total_locals) - i32::from(num_returns);
         let down = i32::from(num_returns) - max_locals_i32;
         let rp = Register::P;
-        let insns = {
-            tenyr_insn_list!(
-                sp <-  sp + (off)   ;
-                rp <- [sp + (down)] ;
-            ).collect()
-        };
+        let mv = if off != 0 { Some(tenyr_insn!( sp <-  sp + (off) )?) } else { None };
+        let insns = mv.into_iter().chain(std::iter::once(tenyr_insn!( rp <- [sp + (down)] )?)).collect();
         let label = make_label(class, method, &name)?;
         tenyr::BasicBlock { label, insns }
     };
