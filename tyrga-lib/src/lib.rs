@@ -45,7 +45,7 @@ use classfile_parser::ClassFile;
 use args::{count_params, count_returns};
 use jvmtypes::*;
 use tenyr::{Instruction, Register, SmallestImmediate};
-use util::*;
+use util::{Context, ContextConstantGetter, Contextualizer, Manglable};
 
 type StackManager = stack::Manager;
 
@@ -262,6 +262,7 @@ where
     use tenyr::InstructionType::{Type0, Type1, Type3};
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
     use Operation::*;
+    use util::{get_string, index_local, load_local, store_local};
 
     // We need to track destinations and return them so that the caller can track stack state
     // through the chain of control flow, possibly cloning the StackManager state along the way to
@@ -1260,6 +1261,7 @@ fn get_method_parts(g : &dyn ContextConstantGetter, pool_index : u16)
     -> GeneralResult<[String ; 3]>
 {
     use classfile_parser::constant_info::ConstantInfo::{Class, MethodRef, NameAndType};
+    use util::get_string;
 
     let get_string = |n| get_string(g, n);
 
@@ -1408,6 +1410,8 @@ fn make_blocks_for_method<'a, 'b>(
 
 #[cfg(test)]
 fn test_stack_map_table(path : &Path) -> GeneralResult<()> {
+    use util::get_constant_getter;
+
     let class = parse_class(path)?;
     let methods = class.methods.iter();
     for method in methods.filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
@@ -1535,6 +1539,8 @@ fn translate_method<'a, 'b>(
         method : &'a Context<'b, &'b MethodInfo>,
     ) -> GeneralResult<Method>
 {
+    use util::get_string;
+
     let mr = method.as_ref();
     let total_locals = get_method_code(mr)?.max_locals;
     let descriptor = get_string(class, mr.descriptor_index).ok_or("method descriptor missing")?;
@@ -1642,6 +1648,8 @@ fn write_field_list(
         generator : impl Fn(&mut dyn Write, &str, usize, usize, usize) -> GeneralResult<()>,
     ) -> GeneralResult<()>
 {
+    use util::get_string;
+
     let tuples = fields.iter().filter(selector).map(|f| {
         let s = get_string(class, f.descriptor_index).ok_or("missing descriptor")?;
         let desc = s.chars().next().ok_or("empty descriptor")?;
@@ -1666,6 +1674,8 @@ fn write_field_list(
 
 /// Emits tenyr assembly language corresponding to the given input class.
 pub fn translate_class(class : ClassFile, outfile : &mut dyn Write) -> GeneralResult<()> {
+    use util::get_constant_getter;
+
     if class.major_version < 50 {
         return Err("need classfile version ≥50.0 for StackMapTable attributes".into());
     }
