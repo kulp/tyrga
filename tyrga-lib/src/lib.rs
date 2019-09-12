@@ -10,6 +10,7 @@
 #![deny(unconditional_recursion)]
 #![deny(clippy::unreadable_literal)]
 #![deny(clippy::just_underscores_and_digits)]
+#![deny(unused_imports)]
 
 // make macros visible to later modules
 #[macro_use]
@@ -223,7 +224,6 @@ fn make_int_branch(
         mut comp : impl FnMut(&mut StackManager) -> GeneralResult<(Register, Vec<Instruction>)>
     ) -> MakeInsnResult
 {
-    use tenyr::{Instruction, Register};
     use Register::P;
 
     let o = make_target(&target_namer(&target)?)?;
@@ -420,7 +420,6 @@ where
             Ok((addr, v, vec![])) // leaving the method is not a Destination we care about
         },
         Arithmetic { kind : JType::Int, op : ArithmeticOperation::Neg } => {
-            use tenyr::{Instruction, Register};
             use Register::A;
             let mut v = Vec::new();
             let (y, gets) = sm.get(0);
@@ -429,7 +428,7 @@ where
             Ok((addr, v, default_dest))
         },
         Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some() => {
-            use tenyr::{InsnGeneral, Instruction, MemoryOpType};
+            use tenyr::{InsnGeneral, MemoryOpType};
             let mut v = Vec::new();
             let (x, gets) = sm.get(1);
             v.extend(gets);
@@ -468,7 +467,7 @@ where
             Ok((addr, v, default_dest))
         },
         Increment { index, value } => {
-            use tenyr::{Instruction, MemoryOpType};
+            use tenyr::MemoryOpType;
             // This reserving of a stack slot may exceed the "maximum depth" statistic on the
             // method, but we should try to avoid dedicated temporary registers.
             let mut v = Vec::new();
@@ -527,8 +526,6 @@ where
         },
         Branch { .. } => Err("encountered impossible Branch configuration".into()),
         Switch(Lookup { default, pairs }) => {
-            use tenyr::Instruction;
-
             let here = addr as i32;
             let far = (default + here) as u16;
 
@@ -576,7 +573,7 @@ where
         },
         Switch(Table { default, low, high, offsets }) => {
             use tenyr::*;
-            use tenyr::InstructionType::{Type1, Type2};
+            use tenyr::InstructionType::Type2;
             type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
 
             let here = addr as i32;
@@ -648,7 +645,7 @@ where
         Jump { target } =>
             Ok((addr, vec![ make_jump(target)? ], vec![ Destination::Address(target as usize) ])),
         LoadArray(kind) | StoreArray(kind) => {
-            use tenyr::{InsnGeneral, Instruction, Opcode, Register};
+            use tenyr::{InsnGeneral, Opcode};
 
             let mut v = Vec::new();
             let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
@@ -859,7 +856,6 @@ where
 
             if let FieldRef(fr) = gc.get_constant(index) {
                 use exprtree::Atom;
-                use tenyr::MemoryOpType::{LoadRight, StoreRight};
 
                 let fr = gc.contextualize(fr);
                 let mut insns = Vec::new();
