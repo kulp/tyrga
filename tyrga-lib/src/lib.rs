@@ -980,11 +980,11 @@ fn parse_class(path : &Path) -> GeneralResult<ClassFile> {
 
 type RangeMap<T> = (Vec<Range<usize>>, BTreeMap<usize, T>);
 
-fn derive_ranges<T>(body : Vec<(usize, T)>, table : &[StackMapFrame])
+fn derive_ranges<'a, T>(body : Vec<(usize, T)>, table : impl IntoIterator<Item=&'a StackMapFrame>)
     -> GeneralResult<RangeMap<T>>
 {
     use classfile_parser::attribute_info::StackMapFrame::*;
-    let mut deltas = table.iter().map(|f| match *f {
+    let mut deltas = table.into_iter().map(|f| match *f {
         SameFrame                           { frame_type }       => frame_type.into(),
 
         SameLocals1StackItemFrame           { frame_type, .. }   => u16::from(frame_type) - 64,
