@@ -984,7 +984,7 @@ fn derive_ranges<T>(body : Vec<(usize, T)>, table : &[StackMapFrame])
     -> GeneralResult<RangeMap<T>>
 {
     use classfile_parser::attribute_info::StackMapFrame::*;
-    let deltas : Vec<u16> = table.iter().map(|f| match *f {
+    let mut deltas = table.iter().map(|f| match *f {
         SameFrame                           { frame_type }       => frame_type.into(),
 
         SameLocals1StackItemFrame           { frame_type, .. }   => u16::from(frame_type) - 64,
@@ -994,17 +994,15 @@ fn derive_ranges<T>(body : Vec<(usize, T)>, table : &[StackMapFrame])
             | SameFrameExtended             { offset_delta, .. }
             | AppendFrame                   { offset_delta, .. }
             | FullFrame                     { offset_delta, .. } => offset_delta,
-    }).collect();
+    });
 
-    let before = deltas.iter().take(1);
-    let after  = deltas.iter().skip(1);
     let max = body.last().ok_or("body unexpectedly empty")?.0 + 1;
 
     #[allow(clippy::len_zero)] // is_empty is ambiguous for Range at the time of this writing
     let ranges =
         std::iter::once(0)
-            .chain(before.cloned())
-            .chain(std::iter::once(0)).chain(after.map(|&n| n + 1))
+            .chain(deltas.next())
+            .chain(std::iter::once(0)).chain(deltas.map(|n| n + 1))
             .scan(0, |state, x| { *state += x; Some(usize::from(*state)) })
             .chain(std::iter::once(max))
             .collect::<Vec<_>>()
