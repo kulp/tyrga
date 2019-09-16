@@ -998,7 +998,6 @@ fn derive_ranges<'a, T>(body : Vec<(usize, T)>, table : impl IntoIterator<Item=&
 
     let max = body.last().ok_or("body unexpectedly empty")?.0 + 1;
 
-    #[allow(clippy::len_zero)] // is_empty is ambiguous for Range at the time of this writing
     let ranges =
         std::iter::once(0)
             .chain(deltas.next())
@@ -1007,8 +1006,8 @@ fn derive_ranges<'a, T>(body : Vec<(usize, T)>, table : impl IntoIterator<Item=&
             .chain(std::iter::once(max))
             .collect::<Vec<_>>()
             .windows(2)
+            .filter(|x| x[1] > x[0])
             .map(|x| x[0]..x[1])
-            .filter(|x| x.len() > 0)
             .collect::<Vec<_>>();
 
     let tree = body.into_iter().collect();
