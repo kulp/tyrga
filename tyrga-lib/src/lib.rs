@@ -1002,7 +1002,7 @@ fn derive_ranges<'a, T>(body : Vec<(usize, T)>, table : impl IntoIterator<Item=&
     let ranges =
         std::iter::once(0)
             .chain(deltas.next())
-            .chain(std::iter::once(0)).chain(deltas.map(|n| n + 1))
+            .chain(deltas.map(|n| n + 1))
             .scan(0, |state, x| { *state += x; Some(usize::from(*state)) })
             .chain(std::iter::once(max))
             .collect::<Vec<_>>()
