@@ -1033,19 +1033,23 @@ mod util {
     use std::convert::TryFrom;
     use std::rc::Rc;
 
-    pub(in super) trait Named     { fn name_index(&self)       -> u16; }
-    pub(in super) trait Described { fn descriptor_index(&self) -> u16; }
-
-    impl Named     for MethodInfo { fn name_index(&self)       -> u16 { self.name_index } }
-    impl Described for MethodInfo { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
-
-    impl Named     for FieldInfo  { fn name_index(&self)       -> u16 { self.name_index } }
-    impl Described for FieldInfo  { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
-
-    impl Named for NameAndTypeConstant {
-        fn name_index(&self) -> u16 { self.name_index }
+    pub(in super) trait Described {
+        fn name_index(&self)       -> u16;
+        fn descriptor_index(&self) -> u16;
     }
+
+    impl Described for MethodInfo {
+        fn name_index(&self)       -> u16 { self.name_index }
+        fn descriptor_index(&self) -> u16 { self.descriptor_index }
+    }
+
+    impl Described for FieldInfo  {
+        fn name_index(&self)       -> u16 { self.name_index }
+        fn descriptor_index(&self) -> u16 { self.descriptor_index }
+    }
+
     impl Described for NameAndTypeConstant {
+        fn name_index(&self)       -> u16 { self.name_index }
         fn descriptor_index(&self) -> u16 { self.descriptor_index }
     }
 
@@ -1165,10 +1169,7 @@ mod util {
         }
     }
 
-    impl<T> Manglable for Context<'_, &T>
-    where
-        T : Named + Described,
-    {
+    impl<T : Described> Manglable for Context<'_, &T> {
         fn pieces(&self) -> GeneralResult<Vec<String>> {
             Ok(vec![
                 get_string(self, self.as_ref().name_index()      ).ok_or("no name")?,
