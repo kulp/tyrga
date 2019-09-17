@@ -1008,7 +1008,7 @@ fn derive_ranges<'a, T>(body : Vec<(usize, T)>, table : impl IntoIterator<Item=&
             .windows(2)
             .filter(|x| x[1] > x[0])
             .map(|x| x[0]..x[1])
-            .collect::<Vec<_>>();
+            .collect();
 
     let tree = body.into_iter().collect();
     Ok((ranges, tree))
@@ -1249,7 +1249,7 @@ fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
 
     let vec = code_parser(&code.code).map_err(generic_error)?.1;
     let (ranges, map) = derive_ranges(vec, table)?;
-    let ops = map.into_iter().map(decode_insn).collect::<BTreeMap<_, _>>();
+    let ops = map.into_iter().map(decode_insn).collect();
     Ok((ranges, ops))
 }
 
