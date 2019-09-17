@@ -1065,44 +1065,32 @@ mod util {
         fn pieces(&self) -> GeneralResult<Vec<String>> { Ok(vec![ self.to_string() ]) }
     }
 
-    impl Manglable for Context<'_, &FieldRefConstant> {
-        fn pieces(&self) -> GeneralResult<Vec<std::string::String>> {
-            use classfile_parser::constant_info::ConstantInfo::{Class, NameAndType};
+    fn from_nat<T>(gc : &Context<'_, &T>, ci : u16, nat : u16) -> GeneralResult<Vec<String>> {
+        use classfile_parser::constant_info::ConstantInfo::{Class, NameAndType};
 
-            let fr = self.as_ref();
-            if let Class(ni) = self.get_constant(fr.class_index) {
-                let ni = ni.name_index;
-                let ss = get_string(self, ni).ok_or("no such name")?;
-                if let NameAndType(nt) = self.get_constant(fr.name_and_type_index) {
-                    let nt = self.contextualize(nt);
-                    Ok(std::iter::once(ss).chain(nt.pieces()?.into_iter()).collect())
-                } else {
-                    Err("invalid ConstantInfo kind".into())
-                }
+        if let Class(ni) = gc.get_constant(ci) {
+            let ni = ni.name_index;
+            let ss = get_string(gc, ni).ok_or("no such name")?;
+            if let NameAndType(nt) = gc.get_constant(nat) {
+                let nt = gc.contextualize(nt);
+                Ok(std::iter::once(ss).chain(nt.pieces()?.into_iter()).collect())
             } else {
                 Err("invalid ConstantInfo kind".into())
             }
+        } else {
+            Err("invalid ConstantInfo kind".into())
         }
     }
 
-    // TODO deduplicate code with FieldRefConstant above
-    impl Manglable for Context<'_, &MethodRefConstant> {
-        fn pieces(&self) -> GeneralResult<Vec<std::string::String>> {
-            use classfile_parser::constant_info::ConstantInfo::{Class, NameAndType};
+    impl Manglable for Context<'_, &FieldRefConstant> {
+        fn pieces(&self) -> GeneralResult<Vec<String>> {
+            from_nat(self, self.as_ref().class_index, self.as_ref().name_and_type_index)
+        }
+    }
 
-            let fr = self.as_ref();
-            if let Class(ni) = self.get_constant(fr.class_index) {
-                let ni = ni.name_index;
-                let ss = get_string(self, ni).ok_or("no such name")?;
-                if let NameAndType(nt) = self.get_constant(fr.name_and_type_index) {
-                    let nt = self.contextualize(nt);
-                    Ok(std::iter::once(ss).chain(nt.pieces()?.into_iter()).collect())
-                } else {
-                    Err("invalid ConstantInfo kind".into())
-                }
-            } else {
-                Err("invalid ConstantInfo kind".into())
-            }
+    impl Manglable for Context<'_, &MethodRefConstant> {
+        fn pieces(&self) -> GeneralResult<Vec<String>> {
+            from_nat(self, self.as_ref().class_index, self.as_ref().name_and_type_index)
         }
     }
 
