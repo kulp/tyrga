@@ -262,7 +262,7 @@ where
     use std::convert::TryInto;
     use tenyr::InstructionType::{Type0, Type1, Type3};
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
-    use util::{get_string, index_local, load_local, store_local};
+    use util::{get_string, index_local, store_local};
 
     // We need to track destinations and return them so that the caller can track stack state
     // through the chain of control flow, possibly cloning the StackManager state along the way to
@@ -447,26 +447,22 @@ where
                 _ => make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)?),
             }
         },
-        LoadLocal { kind, index } => {
-            let mut v = Vec::new();
-            let size = kind.size().into();
-            v.extend(sm.reserve(size));
-            for i in (0 .. size).rev() {
-                let (reg, gets) = sm.get(i);
-                v.extend(gets);
-                v.push(load_local(sm, reg, (index + i).into(), max_locals));
-            }
-            Ok((addr, v, default_dest))
-        },
+        LoadLocal { kind, index } |
         StoreLocal { kind, index } => {
-            let mut v = Vec::new();
             let size = kind.size().into();
+            let (before, dd, after) = match op {
+                LoadLocal  { .. } => (size, LoadRight, 0),
+                StoreLocal { .. } => (0, StoreRight, size),
+                _ => unreachable!(),
+            };
+            let mut v = Vec::new();
+            v.extend(sm.reserve(before));
             for i in (0 .. size).rev() {
                 let (reg, gets) = sm.get(i);
                 v.extend(gets);
-                v.push(store_local(sm, reg, (index + i).into(), max_locals));
+                v.push(Instruction { dd, ..index_local(sm, reg, (index + i).into(), max_locals) })
             }
-            v.extend(sm.release(size));
+            v.extend(sm.release(after));
             Ok((addr, v, default_dest))
         },
         Increment { index, value } => {
