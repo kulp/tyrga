@@ -262,7 +262,7 @@ where
     use std::convert::TryInto;
     use tenyr::InstructionType::{Type0, Type1, Type3};
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
-    use util::{get_string, index_local, store_local};
+    use util::{get_string, index_local};
 
     // We need to track destinations and return them so that the caller can track stack state
     // through the chain of control flow, possibly cloning the StackManager state along the way to
@@ -412,7 +412,7 @@ where
             for i in (0 .. kind.size()).rev() { // get deepest first
                 let (reg, gets) = sm.get(i.into());
                 v.extend(gets);
-                v.push(store_local(sm, reg, i.into(), max_locals));
+                v.push(Instruction { dd : StoreRight, ..index_local(sm, reg, i.into(), max_locals) })
             }
             v.extend(sm.empty());
             let ex = tenyr::Immediate::Expr(make_target(&target_namer(&"epilogue")?)?);
@@ -1021,7 +1021,6 @@ mod util {
     use super::jvmtypes::JType;
     use super::mangling;
     use super::tenyr::Instruction;
-    use super::tenyr::MemoryOpType::StoreRight;
     use super::tenyr::Register;
     use super::GeneralResult;
     use super::StackManager;
@@ -1210,9 +1209,6 @@ mod util {
     pub(in super) fn index_local(sm : &StackManager, reg : Register, idx : i32, max_locals : u16) -> Instruction {
         let saved : u16 = super::SAVE_SLOTS.into();
         sm.get_frame_offset(reg, idx - i32::from(saved + max_locals))
-    }
-    pub(in super) fn store_local(sm : &StackManager, reg : Register, idx : i32, max_locals : u16) -> Instruction {
-        Instruction { dd : StoreRight, ..index_local(sm, reg, idx, max_locals) }
     }
 }
 
