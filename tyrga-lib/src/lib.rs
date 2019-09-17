@@ -1021,7 +1021,7 @@ mod util {
     use super::jvmtypes::JType;
     use super::mangling;
     use super::tenyr::Instruction;
-    use super::tenyr::MemoryOpType::{LoadRight, StoreRight};
+    use super::tenyr::MemoryOpType::StoreRight;
     use super::tenyr::Register;
     use super::GeneralResult;
     use super::StackManager;
@@ -1210,9 +1210,6 @@ mod util {
     pub(in super) fn index_local(sm : &StackManager, reg : Register, idx : i32, max_locals : u16) -> Instruction {
         let saved : u16 = super::SAVE_SLOTS.into();
         sm.get_frame_offset(reg, idx - i32::from(saved + max_locals))
-    }
-    pub(in super) fn load_local(sm : &StackManager, reg : Register, idx : i32, max_locals : u16) -> Instruction {
-        Instruction { dd : LoadRight, ..index_local(sm, reg, idx, max_locals) }
     }
     pub(in super) fn store_local(sm : &StackManager, reg : Register, idx : i32, max_locals : u16) -> Instruction {
         Instruction { dd : StoreRight, ..index_local(sm, reg, idx, max_locals) }
