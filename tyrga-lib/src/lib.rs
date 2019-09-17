@@ -1042,8 +1042,6 @@ mod util {
     impl Named     for FieldInfo  { fn name_index(&self)       -> u16 { self.name_index } }
     impl Described for FieldInfo  { fn descriptor_index(&self) -> u16 { self.descriptor_index } }
 
-    impl Named for ClassConstant { fn name_index(&self) -> u16 { self.name_index } }
-
     impl Named for NameAndTypeConstant {
         fn name_index(&self) -> u16 { self.name_index }
     }
@@ -1054,7 +1052,7 @@ mod util {
     impl Manglable for Context<'_, &ClassConstant> {
         fn pieces(&self) -> GeneralResult<Vec<String>> {
             let r : GeneralResult<String> =
-                get_string(self, self.as_ref().name_index()).ok_or_else(|| "no name".into());
+                get_string(self, self.as_ref().name_index).ok_or_else(|| "no name".into());
             Ok(vec![ r? ])
         }
     }
