@@ -428,23 +428,25 @@ where
             v.push(tenyr_insn!( y <- A - y )?);
             Ok((addr, v, default_dest))
         },
-        Arithmetic { kind : JType::Int, op } if translate_arithmetic_op(op).is_some() => {
-            use tenyr::{InsnGeneral, MemoryOpType};
-            let mut v = Vec::new();
-            let (x, gets) = sm.get(1);
-            v.extend(gets);
-            let (y, gets) = sm.get(0);
-            v.extend(gets);
-            let z = x;
-            let op = translate_arithmetic_op(op).ok_or("no op for this opcode")?;
-            let dd = MemoryOpType::NoLoad;
-            let imm = 0_u8.into();
-            v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
-            v.extend(sm.release(1));
-            Ok((addr, v, default_dest))
+        Arithmetic { kind, op } => {
+            match (kind, translate_arithmetic_op(op)) {
+                (JType::Int, Some(op)) => {
+                    use tenyr::{InsnGeneral, MemoryOpType};
+                    let mut v = Vec::new();
+                    let (x, gets) = sm.get(1);
+                    v.extend(gets);
+                    let (y, gets) = sm.get(0);
+                    v.extend(gets);
+                    let z = x;
+                    let dd = MemoryOpType::NoLoad;
+                    let imm = 0_u8.into();
+                    v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
+                    v.extend(sm.release(1));
+                    Ok((addr, v, default_dest))
+                }
+                _ => make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)?),
+            }
         },
-        Arithmetic { kind, op } =>
-            make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)?),
         LoadLocal { kind, index } => {
             let mut v = Vec::new();
             let size = kind.size().into();
