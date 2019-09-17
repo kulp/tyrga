@@ -1051,7 +1051,6 @@ mod util {
         fn descriptor_index(&self) -> u16 { self.descriptor_index }
     }
 
-    // TODO deduplicate this implementation with the one for &dyn Named
     impl Manglable for Context<'_, &ClassConstant> {
         fn pieces(&self) -> GeneralResult<Vec<String>> {
             let r : GeneralResult<String> =
@@ -1177,14 +1176,6 @@ mod util {
                 get_string(self, self.as_ref().name_index()      ).ok_or("no name")?,
                 get_string(self, self.as_ref().descriptor_index()).ok_or("no desc")?,
             ])
-        }
-    }
-
-    impl Manglable for Context<'_, &dyn Named> {
-        fn pieces(&self) -> GeneralResult<Vec<String>> {
-            let r : GeneralResult<String> =
-                get_string(self, self.as_ref().name_index()).ok_or_else(|| "no name".into());
-            Ok(vec![r?])
         }
     }
 
