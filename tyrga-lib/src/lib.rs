@@ -271,7 +271,7 @@ where
     // same depth of the operand stack every time that instance is executed.
     let default_dest = vec![Destination::Successor];
 
-    let translate_arithmetic_op =
+    let make_arithmetic_op =
         |x| {
             use tenyr::Opcode::*;
             match x {
@@ -319,7 +319,7 @@ where
         Ok((addr, insns, default_dest.clone()))
     };
 
-    let name_op = |op| {
+    let make_op_name = |op| {
         use ArithmeticOperation::*;
         match op {
             Add  => "Add",
@@ -353,7 +353,7 @@ where
         move |proc : &str, descriptor : &str| mangle(&[&"tyrga/Builtin", &proc, &descriptor]);
     let make_arithmetic_name = |kind, op| {
         let descriptor = make_arithmetic_descriptor(kind, op)?;
-        let proc = name_op(op).to_lowercase();
+        let proc = make_op_name(op).to_lowercase();
         make_builtin_name(&proc, &descriptor)
     };
 
@@ -429,7 +429,7 @@ where
             Ok((addr, v, default_dest))
         },
         Arithmetic { kind, op } => {
-            match (kind, translate_arithmetic_op(op)) {
+            match (kind, make_arithmetic_op(op)) {
                 (JType::Int, Some(op)) => {
                     use tenyr::{InsnGeneral, MemoryOpType};
                     let mut v = Vec::new();
