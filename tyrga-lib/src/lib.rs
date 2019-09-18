@@ -290,13 +290,12 @@ where
 
     let make_jump = |target| {
         use Register::P;
-        let result : GeneralResult<Instruction> = Ok(Instruction {
+        <GeneralResult<Instruction>>::Ok(Instruction {
             kind : Type3(tenyr::Immediate::Expr(make_target(&target_namer(&target)?)?)),
             z : P,
             x : P,
             ..tenyr::NOOP_TYPE3
-        });
-        result
+        })
     };
 
     let make_call = |sm : &mut StackManager, target : &str, descriptor| {
