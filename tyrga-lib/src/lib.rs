@@ -374,7 +374,7 @@ where
     match op {
         Constant(Explicit(ExplicitConstant { kind, value })) => {
             match kind {
-                JType::Object |
+                JType::Object => make_constant(&[ 0 ]), // all Object constants are nulls
                 JType::Int    => make_constant(&[ value.into() ]),
                 JType::Long   => make_constant(&[ 0, value.into() ]),
                 JType::Float  => make_constant(&[ f32::from(value).to_bits() as i32 ]),
