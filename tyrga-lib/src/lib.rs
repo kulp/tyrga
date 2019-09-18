@@ -357,7 +357,7 @@ where
         make_builtin_name(&proc, &descriptor)
     };
 
-    let mut make_constant = |slice : &[i32]| {
+    let make_constant = |sm : &mut StackManager, slice : &[i32]| {
         let f = |v : GeneralResult<Vec<_>>, &value| {
             let mut v = v?;
             v.extend(sm.reserve(1));
@@ -374,13 +374,13 @@ where
     match op {
         Constant(Explicit(ExplicitConstant { kind, value })) => {
             match kind {
-                JType::Object => make_constant(&[ 0 ]), // all Object constants are nulls
-                JType::Int    => make_constant(&[ value.into() ]),
-                JType::Long   => make_constant(&[ 0, value.into() ]),
-                JType::Float  => make_constant(&[ f32::from(value).to_bits() as i32 ]),
+                JType::Object => make_constant(sm, &[ 0 ]), // all Object constants are nulls
+                JType::Int    => make_constant(sm, &[ value.into() ]),
+                JType::Long   => make_constant(sm, &[ 0, value.into() ]),
+                JType::Float  => make_constant(sm, &[ f32::from(value).to_bits() as i32 ]),
                 JType::Double => {
                     let bits = f64::from(value).to_bits();
-                    make_constant(&[ (bits >> 32) as i32, bits as i32 ])
+                    make_constant(sm, &[ (bits >> 32) as i32, bits as i32 ])
                 },
                 _ => Err("encountered impossible Constant configuration".into()),
             }
@@ -388,14 +388,14 @@ where
         Constant(Indirect(index)) => {
             use ConstantInfo::*;
             let c = gc.get_constant(index);
-            let mut m = make_constant;
+            let m = make_constant;
             match c {
-                Integer(IntegerConstant { value }) => m(&[ *value ]),
-                Long   (   LongConstant { value }) => m(&[ (*value >> 32) as i32, *value as i32 ]),
-                Float  (  FloatConstant { value }) => m(&[ value.to_bits() as i32 ]),
+                Integer(IntegerConstant { value }) => m(sm, &[ *value ]),
+                Long   (   LongConstant { value }) => m(sm, &[ (*value >> 32) as i32, *value as i32 ]),
+                Float  (  FloatConstant { value }) => m(sm, &[ value.to_bits() as i32 ]),
                 Double ( DoubleConstant { value }) => {
                     let bits = value.to_bits();
-                    m(&[ (bits >> 32) as i32, bits as i32 ])
+                    m(sm, &[ (bits >> 32) as i32, bits as i32 ])
                 },
                 Class       (       ClassConstant { .. }) |
                 String      (      StringConstant { .. }) |
