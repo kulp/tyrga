@@ -288,8 +288,7 @@ where
             }
         };
 
-    let make_mov  = |z, x| Instruction { z, x, ..tenyr::NOOP_TYPE3 };
-    let make_load = |z, x| Instruction { dd : LoadRight , ..make_mov(z, x) };
+    let make_mov = |z, x| Instruction { z, x, ..tenyr::NOOP_TYPE3 };
 
     let make_jump = |target| {
         let result : GeneralResult<Instruction> = Ok(Instruction {
@@ -693,7 +692,7 @@ where
             let mut v = Vec::new();
             let (top, gets) = sm.get(0);
             v.extend(gets);
-            let insn = Instruction { kind : Type3((-1_i8).into()), ..make_load(top, top) };
+            let insn = Instruction { kind : Type3((-1_i8).into()), dd : LoadRight, z : top, x : top };
             v.push(insn);
             Ok((addr, v, default_dest))
         },
