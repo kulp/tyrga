@@ -288,12 +288,13 @@ where
             }
         };
 
-    let make_mov = |z, x| Instruction { z, x, ..tenyr::NOOP_TYPE3 };
-
     let make_jump = |target| {
+        use Register::P;
         let result : GeneralResult<Instruction> = Ok(Instruction {
             kind : Type3(tenyr::Immediate::Expr(make_target(&target_namer(&target)?)?)),
-            ..make_mov(Register::P, Register::P)
+            z : P,
+            x : P,
+            ..tenyr::NOOP_TYPE3
         });
         result
     };
@@ -358,11 +359,13 @@ where
 
     let make_constant = |sm : &mut StackManager, slice : &[i32]| {
         let f = |v : GeneralResult<Vec<_>>, &value| {
+            use Register::A;
+
             let mut v = v?;
             v.extend(sm.reserve(1));
             let (reg, gets) = sm.get(0);
             v.extend(gets);
-            let insn = make_mov(reg, Register::A);
+            let insn = Instruction { z : reg, x : A, ..tenyr::NOOP_TYPE3 };
             v.extend(expand_immediate_load(sm, insn, value)?);
             Ok(v)
         };
