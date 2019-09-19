@@ -424,11 +424,13 @@ where
     // same depth of the operand stack every time that instance is executed.
     let default_dest = vec![Destination::Successor];
 
+    let no_branch = |x| Ok((addr, x, default_dest.clone()));
+
     match op {
         Constant(Explicit(ExplicitConstant { kind, value })) =>
-            Ok((addr, make_constant_explicit(sm, kind, value)?, default_dest.clone())),
+            no_branch(make_constant_explicit(sm, kind, value)?),
         Constant(Indirect(index)) =>
-            Ok((addr, make_constant_indirect(sm, gc, index)?, default_dest.clone())),
+            no_branch(make_constant_indirect(sm, gc, index)?),
         Yield { kind } => {
             use Register::P;
             let mut v = Vec::new();
