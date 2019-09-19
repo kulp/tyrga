@@ -398,6 +398,31 @@ fn make_arithmetic_op(x : ArithmeticOperation) -> Option<tenyr::Opcode> {
     }
 }
 
+fn make_yield(
+    sm : &mut StackManager,
+    kind : JType,
+    target_namer : &Namer,
+    addr : usize,
+    max_locals : u16,
+) -> MakeInsnResult
+{
+    use tenyr::MemoryOpType::StoreRight;
+    use util::index_local;
+    use Register::P;
+
+    let mut v = Vec::new();
+    for i in (0 .. kind.size()).rev() { // get deepest first
+        let (reg, gets) = sm.get(i.into());
+        v.extend(gets);
+        v.push(Instruction { dd : StoreRight, ..index_local(sm, reg, i.into(), max_locals) })
+    }
+    v.extend(sm.empty());
+    let ex = tenyr::Immediate::Expr(make_target(&target_namer(&"epilogue")?)?);
+    v.push(tenyr_insn!( P <- (ex) + P )?);
+
+    Ok((addr, v, vec![])) // leaving the method is not a Destination we care about
+}
+
 fn make_instructions<'a, T>(
         sm : &mut StackManager,
         (addr, op) : (usize, Operation),
@@ -431,20 +456,8 @@ where
             no_branch(make_constant_explicit(sm, kind, value)?),
         Constant(Indirect(index)) =>
             no_branch(make_constant_indirect(sm, gc, index)?),
-        Yield { kind } => {
-            use Register::P;
-            let mut v = Vec::new();
-            for i in (0 .. kind.size()).rev() { // get deepest first
-                let (reg, gets) = sm.get(i.into());
-                v.extend(gets);
-                v.push(Instruction { dd : StoreRight, ..index_local(sm, reg, i.into(), max_locals) })
-            }
-            v.extend(sm.empty());
-            let ex = tenyr::Immediate::Expr(make_target(&target_namer(&"epilogue")?)?);
-            v.push(tenyr_insn!( P <- (ex) + P )?);
-
-            Ok((addr, v, vec![])) // leaving the method is not a Destination we care about
-        },
+        Yield { kind } =>
+            make_yield(sm, kind, target_namer, addr, max_locals),
         Arithmetic { kind : JType::Int, op : ArithmeticOperation::Neg } => {
             use Register::A;
             let mut v = Vec::new();
