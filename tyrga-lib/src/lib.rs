@@ -260,6 +260,54 @@ fn make_constant(sm : &mut StackManager, slice : &[i32]) -> GeneralResult<Vec<In
     slice.iter().fold(Ok(vec![]), f)
 }
 
+fn make_constant_explicit(
+    sm : &mut StackManager,
+    kind : JType,
+    value : i16,
+) -> GeneralResult<Vec<Instruction>>
+{
+    match kind {
+        JType::Object => make_constant(sm, &[ 0 ]), // all Object constants are nulls
+        JType::Int    => make_constant(sm, &[ value.into() ]),
+        JType::Long   => make_constant(sm, &[ 0, value.into() ]),
+        JType::Float  => make_constant(sm, &[ f32::from(value).to_bits() as i32 ]),
+        JType::Double => {
+            let bits = f64::from(value).to_bits();
+            make_constant(sm, &[ (bits >> 32) as i32, bits as i32 ])
+        },
+        _ => Err("encountered impossible Constant configuration".into()),
+    }
+}
+
+fn make_constant_indirect<'a, T>(
+    sm : &mut StackManager,
+    gc : &T,
+    index : u16,
+) -> GeneralResult<Vec<Instruction>>
+where
+    T : ContextConstantGetter<'a>
+{
+    use ConstantInfo::*;
+    let c = gc.get_constant(index);
+    let m = make_constant;
+    match c {
+        Integer(IntegerConstant { value }) => m(sm, &[ *value ]),
+        Long   (   LongConstant { value }) => m(sm, &[ (*value >> 32) as i32, *value as i32 ]),
+        Float  (  FloatConstant { value }) => m(sm, &[ value.to_bits() as i32 ]),
+        Double ( DoubleConstant { value }) => {
+            let bits = value.to_bits();
+            m(sm, &[ (bits >> 32) as i32, bits as i32 ])
+        },
+        Class       (       ClassConstant { .. }) |
+        String      (      StringConstant { .. }) |
+        MethodHandle(MethodHandleConstant { .. }) |
+        MethodType  (MethodTypeConstant   { .. }) =>
+            Err("unhandled Constant configuration".into()),
+
+        _ => Err("encountered impossible Constant configuration".into()),
+    }
+}
+
 fn make_builtin_name(proc : &str, descriptor : &str) -> GeneralResult<String> {
     mangle(&[&"tyrga/Builtin", &proc, &descriptor])
 }
@@ -377,42 +425,10 @@ where
     let default_dest = vec![Destination::Successor];
 
     match op {
-        Constant(Explicit(ExplicitConstant { kind, value })) => {
-            let v = match kind {
-                JType::Object => make_constant(sm, &[ 0 ]), // all Object constants are nulls
-                JType::Int    => make_constant(sm, &[ value.into() ]),
-                JType::Long   => make_constant(sm, &[ 0, value.into() ]),
-                JType::Float  => make_constant(sm, &[ f32::from(value).to_bits() as i32 ]),
-                JType::Double => {
-                    let bits = f64::from(value).to_bits();
-                    make_constant(sm, &[ (bits >> 32) as i32, bits as i32 ])
-                },
-                _ => Err("encountered impossible Constant configuration".into()),
-            };
-            Ok((addr, v?, default_dest.clone()))
-        },
-        Constant(Indirect(index)) => {
-            use ConstantInfo::*;
-            let c = gc.get_constant(index);
-            let m = make_constant;
-            let v = match c {
-                Integer(IntegerConstant { value }) => m(sm, &[ *value ]),
-                Long   (   LongConstant { value }) => m(sm, &[ (*value >> 32) as i32, *value as i32 ]),
-                Float  (  FloatConstant { value }) => m(sm, &[ value.to_bits() as i32 ]),
-                Double ( DoubleConstant { value }) => {
-                    let bits = value.to_bits();
-                    m(sm, &[ (bits >> 32) as i32, bits as i32 ])
-                },
-                Class       (       ClassConstant { .. }) |
-                String      (      StringConstant { .. }) |
-                MethodHandle(MethodHandleConstant { .. }) |
-                MethodType  (MethodTypeConstant   { .. }) =>
-                    Err("unhandled Constant configuration".into()),
-
-                _ => Err("encountered impossible Constant configuration".into()),
-            };
-            Ok((addr, v?, default_dest.clone()))
-        },
+        Constant(Explicit(ExplicitConstant { kind, value })) =>
+            Ok((addr, make_constant_explicit(sm, kind, value)?, default_dest.clone())),
+        Constant(Indirect(index)) =>
+            Ok((addr, make_constant_indirect(sm, gc, index)?, default_dest.clone())),
         Yield { kind } => {
             use Register::P;
             let mut v = Vec::new();
