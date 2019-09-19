@@ -245,6 +245,111 @@ fn make_int_branch(
 // number of slots of data we will save between locals and stack
 const SAVE_SLOTS : u8 = 1;
 
+fn make_constant(sm : &mut StackManager, slice : &[i32]) -> GeneralResult<Vec<Instruction>> {
+    let f = |v : GeneralResult<Vec<_>>, &value| {
+        use Register::A;
+
+        let mut v = v?;
+        v.extend(sm.reserve(1));
+        let (reg, gets) = sm.get(0);
+        v.extend(gets);
+        let insn = Instruction { z : reg, x : A, ..tenyr::NOOP_TYPE3 };
+        v.extend(expand_immediate_load(sm, insn, value)?);
+        Ok(v)
+    };
+    slice.iter().fold(Ok(vec![]), f)
+}
+
+fn make_builtin_name(proc : &str, descriptor : &str) -> GeneralResult<String> {
+    mangle(&[&"tyrga/Builtin", &proc, &descriptor])
+}
+
+fn make_arithmetic_descriptor(kind : JType, op : ArithmeticOperation) -> GeneralResult<String> {
+    use std::convert::TryInto;
+
+    let ch : char = kind.try_into()?;
+
+    let nargs = {
+        use ArithmeticOperation::*;
+        match op {
+            Add | Sub | Mul | Div | Rem | Shl | Shr | Ushr | And | Or | Xor => 2,
+            Neg => 1,
+        }
+    };
+    Ok(format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch))
+}
+
+fn make_op_name(op : ArithmeticOperation) -> &'static str {
+    use ArithmeticOperation::*;
+    match op {
+        Add  => "Add",
+        Sub  => "Sub",
+        Mul  => "Mul",
+        Div  => "Div",
+        Rem  => "Rem",
+        Neg  => "Neg",
+        Shl  => "Shl",
+        Shr  => "Shr",
+        Ushr => "Ushr",
+        And  => "And",
+        Or   => "Or",
+        Xor  => "Xor",
+    }
+}
+
+fn make_arithmetic_name(kind : JType, op : ArithmeticOperation) -> GeneralResult<String> {
+    let descriptor = make_arithmetic_descriptor(kind, op)?;
+    let proc = make_op_name(op).to_lowercase();
+    make_builtin_name(&proc, &descriptor)
+}
+
+fn make_jump(target : u16, target_namer : &Namer) -> GeneralResult<Instruction> {
+    use crate::tenyr::InstructionType::Type3;
+    use Register::P;
+    Ok(Instruction {
+        kind : Type3(tenyr::Immediate::Expr(make_target(&target_namer(&target)?)?)),
+        z : P,
+        x : P,
+        ..tenyr::NOOP_TYPE3
+    })
+}
+
+fn make_call(sm : &mut StackManager, target : &str, descriptor : &str) -> GeneralResult<Vec<Instruction>> {
+    use Register::P;
+
+    let mut insns = Vec::new();
+    insns.extend(sm.freeze(count_params(descriptor)?.into()));
+
+    // Save return address through current stack pointer (callee will
+    // decrement stack pointer)
+    let sp = sm.get_stack_ptr();
+    let far = format!("@+{}", target);
+    let off : tenyr::Immediate20 = tenyr::Immediate::Expr(exprtree::Atom::Variable(far));
+    insns.extend(tenyr_insn_list!(
+        [sp] <- P + 1   ;
+        P <- P + (off)  ;
+    ));
+
+    insns.extend(sm.thaw(count_returns(descriptor)?.into()));
+    Ok(insns)
+}
+
+fn make_arithmetic_op(x : ArithmeticOperation) -> Option<tenyr::Opcode> {
+    use tenyr::Opcode::*;
+    match x {
+        ArithmeticOperation::Add  => Some(Add),
+        ArithmeticOperation::Sub  => Some(Subtract),
+        ArithmeticOperation::Mul  => Some(Multiply),
+        ArithmeticOperation::Shl  => Some(ShiftLeft),
+        ArithmeticOperation::Shr  => Some(ShiftRightArith),
+        ArithmeticOperation::Ushr => Some(ShiftRightLogic),
+        ArithmeticOperation::And  => Some(BitwiseAnd),
+        ArithmeticOperation::Or   => Some(BitwiseOr),
+        ArithmeticOperation::Xor  => Some(BitwiseXor),
+        _ => None,
+    }
+}
+
 fn make_instructions<'a, T>(
         sm : &mut StackManager,
         (addr, op) : (usize, Operation),
@@ -271,110 +376,9 @@ where
     // same depth of the operand stack every time that instance is executed.
     let default_dest = vec![Destination::Successor];
 
-    let make_arithmetic_op =
-        |x| {
-            use tenyr::Opcode::*;
-            match x {
-                ArithmeticOperation::Add  => Some(Add),
-                ArithmeticOperation::Sub  => Some(Subtract),
-                ArithmeticOperation::Mul  => Some(Multiply),
-                ArithmeticOperation::Shl  => Some(ShiftLeft),
-                ArithmeticOperation::Shr  => Some(ShiftRightArith),
-                ArithmeticOperation::Ushr => Some(ShiftRightLogic),
-                ArithmeticOperation::And  => Some(BitwiseAnd),
-                ArithmeticOperation::Or   => Some(BitwiseOr),
-                ArithmeticOperation::Xor  => Some(BitwiseXor),
-                _ => None,
-            }
-        };
-
-    let make_jump = |target| {
-        use Register::P;
-        <GeneralResult<Instruction>>::Ok(Instruction {
-            kind : Type3(tenyr::Immediate::Expr(make_target(&target_namer(&target)?)?)),
-            z : P,
-            x : P,
-            ..tenyr::NOOP_TYPE3
-        })
-    };
-
-    let make_call = |sm : &mut StackManager, target : &str, descriptor| {
-        use Register::P;
-
-        let mut insns = Vec::new();
-        insns.extend(sm.freeze(count_params(descriptor)?.into()));
-
-        // Save return address through current stack pointer (callee will
-        // decrement stack pointer)
-        let sp = sm.get_stack_ptr();
-        let far = format!("@+{}", target);
-        let off : tenyr::Immediate20 = tenyr::Immediate::Expr(exprtree::Atom::Variable(far));
-        insns.extend(tenyr_insn_list!(
-            [sp] <- P + 1   ;
-            P <- P + (off)  ;
-        ));
-
-        insns.extend(sm.thaw(count_returns(descriptor)?.into()));
-        Ok((addr, insns, default_dest.clone()))
-    };
-
-    let make_op_name = |op| {
-        use ArithmeticOperation::*;
-        match op {
-            Add  => "Add",
-            Sub  => "Sub",
-            Mul  => "Mul",
-            Div  => "Div",
-            Rem  => "Rem",
-            Neg  => "Neg",
-            Shl  => "Shl",
-            Shr  => "Shr",
-            Ushr => "Ushr",
-            And  => "And",
-            Or   => "Or",
-            Xor  => "Xor",
-        }
-    };
-    let make_arithmetic_descriptor = |kind : JType, op| {
-        let ch : char = kind.try_into()?;
-
-        let nargs = {
-            use ArithmeticOperation::*;
-            match op {
-                Add | Sub | Mul | Div | Rem | Shl | Shr | Ushr | And | Or | Xor => 2,
-                Neg => 1,
-            }
-        };
-        let result = format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch);
-        Ok(result) as GeneralResult<String>
-    };
-    let make_builtin_name =
-        move |proc : &str, descriptor : &str| mangle(&[&"tyrga/Builtin", &proc, &descriptor]);
-    let make_arithmetic_name = |kind, op| {
-        let descriptor = make_arithmetic_descriptor(kind, op)?;
-        let proc = make_op_name(op).to_lowercase();
-        make_builtin_name(&proc, &descriptor)
-    };
-
-    let make_constant = |sm : &mut StackManager, slice : &[i32]| {
-        let f = |v : GeneralResult<Vec<_>>, &value| {
-            use Register::A;
-
-            let mut v = v?;
-            v.extend(sm.reserve(1));
-            let (reg, gets) = sm.get(0);
-            v.extend(gets);
-            let insn = Instruction { z : reg, x : A, ..tenyr::NOOP_TYPE3 };
-            v.extend(expand_immediate_load(sm, insn, value)?);
-            Ok(v)
-        };
-        let v = slice.iter().fold(Ok(vec![]), f)?;
-        Ok((addr, v, default_dest.clone()))
-    };
-
     match op {
         Constant(Explicit(ExplicitConstant { kind, value })) => {
-            match kind {
+            let v = match kind {
                 JType::Object => make_constant(sm, &[ 0 ]), // all Object constants are nulls
                 JType::Int    => make_constant(sm, &[ value.into() ]),
                 JType::Long   => make_constant(sm, &[ 0, value.into() ]),
@@ -384,13 +388,14 @@ where
                     make_constant(sm, &[ (bits >> 32) as i32, bits as i32 ])
                 },
                 _ => Err("encountered impossible Constant configuration".into()),
-            }
+            };
+            Ok((addr, v?, default_dest.clone()))
         },
         Constant(Indirect(index)) => {
             use ConstantInfo::*;
             let c = gc.get_constant(index);
             let m = make_constant;
-            match c {
+            let v = match c {
                 Integer(IntegerConstant { value }) => m(sm, &[ *value ]),
                 Long   (   LongConstant { value }) => m(sm, &[ (*value >> 32) as i32, *value as i32 ]),
                 Float  (  FloatConstant { value }) => m(sm, &[ value.to_bits() as i32 ]),
@@ -405,7 +410,8 @@ where
                     Err("unhandled Constant configuration".into()),
 
                 _ => Err("encountered impossible Constant configuration".into()),
-            }
+            };
+            Ok((addr, v?, default_dest.clone()))
         },
         Yield { kind } => {
             use Register::P;
@@ -445,7 +451,7 @@ where
                     v.extend(sm.release(1));
                     Ok((addr, v, default_dest))
                 }
-                _ => make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)?),
+                _ => Ok((addr, make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)?)?, default_dest.clone())),
             }
         },
         LoadLocal { kind, index } |
@@ -566,7 +572,7 @@ where
             insns.extend(i);
             dests.extend(d);
 
-            insns.push(make_jump(far)?);
+            insns.push(make_jump(far, target_namer)?);
             dests.push(Destination::Address(far.into()));
 
             Ok((addr, insns, dests))
@@ -622,7 +628,7 @@ where
             insns.extend(expand_immediate_load(sm, insn?, low)?);
 
             let make_pairs = |n|
-                Ok((make_jump((n + here) as u16)?, Destination::Address((n + here) as usize)))
+                Ok((make_jump((n + here) as u16, target_namer)?, Destination::Address((n + here) as usize)))
                     as GeneralResult<_>;
             let (i, d) : (Vec<_>, Vec<_>) =
                 offsets
@@ -643,7 +649,7 @@ where
             Ok((addr, insns, dests))
         },
         Jump { target } =>
-            Ok((addr, vec![ make_jump(target)? ], vec![ Destination::Address(target as usize) ])),
+            Ok((addr, vec![ make_jump(target, target_namer)? ], vec![ Destination::Address(target as usize) ])),
         LoadArray(kind) | StoreArray(kind) => {
             use tenyr::{InsnGeneral, Opcode};
 
@@ -700,13 +706,13 @@ where
         },
         // TODO fully handle Special (this is dumb partial handling)
         Invocation { kind : InvokeKind::Special, index } => {
-            let (addr, mut insns, dest) =
+            let mut insns =
                 make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2])?;
             insns.extend(sm.release(1));
-            Ok((addr, insns, dest))
+            Ok((addr, insns, default_dest.clone()))
         },
         Invocation { kind : InvokeKind::Static, index } =>
-            make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2]),
+            Ok((addr, make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2])?, default_dest.clone())),
         // TODO vet handling of Virtual against JVM spec
         Invocation { kind : InvokeKind::Virtual, index } => {
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
@@ -788,9 +794,9 @@ where
                         },
                         _ => Err("impossible size"),
                     }?;
-                    let (addr, v, dest) = make_call(sm, &name, descriptor)?;
+                    let v = make_call(sm, &name, descriptor)?;
                     pre.extend(v);
-                    Ok((addr, pre, dest))
+                    Ok((addr, pre, default_dest.clone()))
                 },
                 _ => Err("not implemented".into()),
             }
@@ -810,9 +816,9 @@ where
             v.push(tenyr_insn!( gc <- (n) )?);
 
             let desc = format!("({}{}I)I", ch, ch);
-            let (addr, insns, dests) = make_call(sm, &make_builtin_name(name, &desc)?, &desc)?;
+            let insns = make_call(sm, &make_builtin_name(name, &desc)?, &desc)?;
             v.extend(insns);
-            Ok((addr, v, dests))
+            Ok((addr, v, default_dest.clone()))
         },
         Conversion { from : JType::Int, to : JType::Byte } => {
             let mut v = Vec::new();
@@ -849,7 +855,7 @@ where
             let ch_to   : char = to  .try_into()?;
             let name = format!("into_{}", ch_to); // TODO improve naming
             let desc = format!("({}){}", ch_from, ch_to);
-            make_call(sm, &make_builtin_name(&name, &desc)?, &desc)
+            Ok((addr, make_call(sm, &make_builtin_name(&name, &desc)?, &desc)?, default_dest.clone()))
         },
         VarAction  { op, kind, index } => {
             use classfile_parser::constant_info::ConstantInfo::FieldRef;
@@ -922,7 +928,7 @@ where
                 let name = get_string(gc, cc.name_index).ok_or("no class name")?;
                 let desc = format!("()L{};", name);
                 let call = mangle(&[&&*name, &"new"])?;
-                make_call(sm, &call, &desc)
+                Ok((addr, make_call(sm, &call, &desc)?, default_dest.clone()))
             } else {
                 Err("invalid ConstantInfo kind".into())
             }
