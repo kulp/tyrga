@@ -1,39 +1,39 @@
 .Lmethod_table:
-    .word @_6Native02_3a3c4init04_3e3a28291V    - .Lmethod_table, 0x0001
-    .word @_6Native01_3a6caller03_3a28291V      - .Lmethod_table, 0x0009
-    .word @_6Native01_3a10nativeCall03_3a28291V - .Lmethod_table, 0x0109
+    .word @_6Native02_3b3c4init04_3e3b28291V    - .Lmethod_table, 0x0001
+    .word @_6Native01_3b6caller03_3b28291V      - .Lmethod_table, 0x0009
+    .word @_6Native01_3b10nativeCall03_3b28291V - .Lmethod_table, 0x0109
 .Lmethod_table_end:
     .zero 0
 
-    .global _6Native02_3a3c4init04_3e3a28291V01_3a5vslot
-    .set    _6Native02_3a3c4init04_3e3a28291V01_3a5vslot, 0
+    .global _6Native02_3b3c4init04_3e3b28291V01_3b5vslot
+    .set    _6Native02_3b3c4init04_3e3b28291V01_3b5vslot, 0
 
-.global _6Native02_3a3c4init04_3e3a28291V
-_6Native02_3a3c4init04_3e3a28291V:
-.L_6Native02_3a3c4init04_3e3a28291V01_3a10__prologue:
+.global _6Native02_3b3c4init04_3e3b28291V
+_6Native02_3b3c4init04_3e3b28291V:
+.L_6Native02_3b3c4init04_3e3b28291V01_3b10__prologue:
      O  <-  O - 2
-.L_6Native02_3a3c4init04_3e3a28291V01_3a3__0:
+.L_6Native02_3b3c4init04_3e3b28291V01_3b3__0:
      B  <- [O + 2]
      O  <-  O - 1
      B  -> [O + 1]
     [O] <-  P + 1
-     P  <-  P + @+_4java01_2f4lang01_2f6Object02_3a3c4init04_3e3a28291V
+     P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
-     P  <-  (.L_6Native02_3a3c4init04_3e3a28291V01_3a10__epilogue - (. + 1))  +  P
-.L_6Native02_3a3c4init04_3e3a28291V01_3a10__epilogue:
+     P  <-  (.L_6Native02_3b3c4init04_3e3b28291V01_3b10__epilogue - (. + 1))  +  P
+.L_6Native02_3b3c4init04_3e3b28291V01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
 
-.global _6Native01_3a6caller03_3a28291V
-_6Native01_3a6caller03_3a28291V:
-.L_6Native01_3a6caller03_3a28291V01_3a10__prologue:
+.global _6Native01_3b6caller03_3b28291V
+_6Native01_3b6caller03_3b28291V:
+.L_6Native01_3b6caller03_3b28291V01_3b10__prologue:
      O  <-  O - 1
-.L_6Native01_3a6caller03_3a28291V01_3a3__0:
+.L_6Native01_3b6caller03_3b28291V01_3b3__0:
     [O] <-  P + 1
-     P  <-  P + @+_6Native01_3a10nativeCall03_3a28291V
-     P  <-  (.L_6Native01_3a6caller03_3a28291V01_3a10__epilogue - (. + 1))  +  P
-.L_6Native01_3a6caller03_3a28291V01_3a10__epilogue:
+     P  <-  P + @+_6Native01_3b10nativeCall03_3b28291V
+     P  <-  (.L_6Native01_3b6caller03_3b28291V01_3b10__epilogue - (. + 1))  +  P
+.L_6Native01_3b6caller03_3b28291V01_3b10__epilogue:
      O  <-  O + 1
      P  <- [O]
 

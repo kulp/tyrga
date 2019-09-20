@@ -1115,7 +1115,9 @@ mod util {
     use std::convert::TryFrom;
     use std::rc::Rc;
 
-    const NAME_SEPARATOR : &str = ":";
+    // Previously, NAME_SEPARATOR was a colon, but in the JVM a colon is
+    // technically a valid character in a method name.
+    const NAME_SEPARATOR : &str = ";";
 
     pub(in super) trait Described {
         fn name_index(&self)       -> u16;

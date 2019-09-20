@@ -1,39 +1,39 @@
 .Lmethod_table:
-    .word @_7Varargs02_3a3c4init04_3e3a28291V                                         - .Lmethod_table, 0x0001
-    .word @_7Varargs01_3a12takesVarargs03_3a285b5Ljava01_2f4lang01_2f6Object02_3b291I - .Lmethod_table, 0x0089
+    .word @_7Varargs02_3b3c4init04_3e3b28291V                                         - .Lmethod_table, 0x0001
+    .word @_7Varargs01_3b12takesVarargs03_3b285b5Ljava01_2f4lang01_2f6Object02_3b291I - .Lmethod_table, 0x0089
 .Lmethod_table_end:
     .zero 0
 
-    .global _7Varargs02_3a3c4init04_3e3a28291V01_3a5vslot
-    .set    _7Varargs02_3a3c4init04_3e3a28291V01_3a5vslot, 0
+    .global _7Varargs02_3b3c4init04_3e3b28291V01_3b5vslot
+    .set    _7Varargs02_3b3c4init04_3e3b28291V01_3b5vslot, 0
 
-.global _7Varargs02_3a3c4init04_3e3a28291V
-_7Varargs02_3a3c4init04_3e3a28291V:
-.L_7Varargs02_3a3c4init04_3e3a28291V01_3a10__prologue:
+.global _7Varargs02_3b3c4init04_3e3b28291V
+_7Varargs02_3b3c4init04_3e3b28291V:
+.L_7Varargs02_3b3c4init04_3e3b28291V01_3b10__prologue:
      O  <-  O - 2
-.L_7Varargs02_3a3c4init04_3e3a28291V01_3a3__0:
+.L_7Varargs02_3b3c4init04_3e3b28291V01_3b3__0:
      B  <- [O + 2]
      O  <-  O - 1
      B  -> [O + 1]
     [O] <-  P + 1
-     P  <-  P + @+_4java01_2f4lang01_2f6Object02_3a3c4init04_3e3a28291V
+     P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
-     P  <-  (.L_7Varargs02_3a3c4init04_3e3a28291V01_3a10__epilogue - (. + 1))  +  P
-.L_7Varargs02_3a3c4init04_3e3a28291V01_3a10__epilogue:
+     P  <-  (.L_7Varargs02_3b3c4init04_3e3b28291V01_3b10__epilogue - (. + 1))  +  P
+.L_7Varargs02_3b3c4init04_3e3b28291V01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
 
-.global _7Varargs01_3a12takesVarargs03_3a285b5Ljava01_2f4lang01_2f6Object02_3b291I
-_7Varargs01_3a12takesVarargs03_3a285b5Ljava01_2f4lang01_2f6Object02_3b291I:
-.L_7Varargs01_3a12takesVarargs03_3a285b5Ljava01_2f4lang01_2f6Object02_3b291I01_3a10__prologue:
+.global _7Varargs01_3b12takesVarargs03_3b285b5Ljava01_2f4lang01_2f6Object02_3b291I
+_7Varargs01_3b12takesVarargs03_3b285b5Ljava01_2f4lang01_2f6Object02_3b291I:
+.L_7Varargs01_3b12takesVarargs03_3b285b5Ljava01_2f4lang01_2f6Object02_3b291I01_3b10__prologue:
      O  <-  O - 1
-.L_7Varargs01_3a12takesVarargs03_3a285b5Ljava01_2f4lang01_2f6Object02_3b291I01_3a3__0:
+.L_7Varargs01_3b12takesVarargs03_3b285b5Ljava01_2f4lang01_2f6Object02_3b291I01_3b3__0:
      B  <- [O + 2]
      B  <- [B - 1]
      B  -> [O + 2]
-     P  <-  (.L_7Varargs01_3a12takesVarargs03_3a285b5Ljava01_2f4lang01_2f6Object02_3b291I01_3a10__epilogue - (. + 1))  +  P
-.L_7Varargs01_3a12takesVarargs03_3a285b5Ljava01_2f4lang01_2f6Object02_3b291I01_3a10__epilogue:
+     P  <-  (.L_7Varargs01_3b12takesVarargs03_3b285b5Ljava01_2f4lang01_2f6Object02_3b291I01_3b10__epilogue - (. + 1))  +  P
+.L_7Varargs01_3b12takesVarargs03_3b285b5Ljava01_2f4lang01_2f6Object02_3b291I01_3b10__epilogue:
      O  <-  O + 1
      P  <- [O]
 
