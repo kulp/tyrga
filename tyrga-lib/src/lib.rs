@@ -368,7 +368,7 @@ where
     }
 }
 
-fn make_arithmetic_instruction(
+fn make_arithmetic(
     sm : &mut StackManager,
     kind : JType,
     op : ArithmeticOperation
@@ -376,7 +376,7 @@ fn make_arithmetic_instruction(
 {
     use tenyr::InstructionType::Type0;
 
-    fn make_arithmetic_descriptor(kind : JType, op : ArithmeticOperation) -> GeneralResult<String> {
+    fn make_descriptor(kind : JType, op : ArithmeticOperation) -> GeneralResult<String> {
         use std::convert::TryInto;
     
         let ch : char = kind.try_into()?;
@@ -410,13 +410,13 @@ fn make_arithmetic_instruction(
         }
     }
 
-    let make_arithmetic_name = |kind, op| {
-        let descriptor = make_arithmetic_descriptor(kind, op)?;
+    let make_name = |kind, op| {
+        let descriptor = make_descriptor(kind, op)?;
         let proc = make_op_name(op).to_lowercase();
         make_builtin_name(&proc, &descriptor)
     };
 
-    let make_arithmetic_op = |x| {
+    let make_op = |x| {
         use tenyr::Opcode::*;
         match x {
             ArithmeticOperation::Add  => Some(Add),
@@ -432,7 +432,7 @@ fn make_arithmetic_instruction(
         }
     };
 
-    match (kind, op, make_arithmetic_op(op)) {
+    match (kind, op, make_op(op)) {
         (JType::Int, ArithmeticOperation::Neg, _) => {
             use Register::A;
             let mut v = Vec::new();
@@ -455,7 +455,7 @@ fn make_arithmetic_instruction(
             v.extend(sm.release(1));
             Ok(v)
         }
-        _ => make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)?),
+        _ => make_call(sm, &make_name(kind, op)?, &make_descriptor(kind, op)?),
     }
 }
 
@@ -492,7 +492,7 @@ where
         Yield { kind } =>
             make_yield(sm, kind, target_namer, addr, max_locals),
         Arithmetic { kind, op } =>
-            no_branch(make_arithmetic_instruction(sm, kind, op)?),
+            no_branch(make_arithmetic(sm, kind, op)?),
         LoadLocal { kind, index } |
         StoreLocal { kind, index } => {
             let size = kind.size().into();
