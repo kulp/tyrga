@@ -423,6 +423,41 @@ fn make_yield(
     Ok((addr, v, vec![])) // leaving the method is not a Destination we care about
 }
 
+fn make_arithmetic_instruction(
+    sm : &mut StackManager,
+    kind : JType,
+    op : ArithmeticOperation
+) -> GeneralResult<Vec<Instruction>>
+{
+    use tenyr::InstructionType::Type0;
+
+    match (kind, op, make_arithmetic_op(op)) {
+        (JType::Int, ArithmeticOperation::Neg, _) => {
+            use Register::A;
+            let mut v = Vec::new();
+            let (y, gets) = sm.get(0);
+            v.extend(gets);
+            v.push(tenyr_insn!( y <- A - y )?);
+            Ok(v)
+        },
+        (JType::Int, _, Some(op)) => {
+            use tenyr::{InsnGeneral, MemoryOpType};
+            let mut v = Vec::new();
+            let (x, gets) = sm.get(1);
+            v.extend(gets);
+            let (y, gets) = sm.get(0);
+            v.extend(gets);
+            let z = x;
+            let dd = MemoryOpType::NoLoad;
+            let imm = 0_u8.into();
+            v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
+            v.extend(sm.release(1));
+            Ok(v)
+        }
+        _ => make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)?),
+    }
+}
+
 fn make_instructions<'a, T>(
         sm : &mut StackManager,
         (addr, op) : (usize, Operation),
@@ -438,7 +473,7 @@ where
     use jvmtypes::SwitchParams::{Lookup, Table};
     use Operation::*;
     use std::convert::TryInto;
-    use tenyr::InstructionType::{Type0, Type1, Type3};
+    use tenyr::InstructionType::{Type1, Type3};
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
     use util::{get_string, index_local};
 
@@ -458,33 +493,8 @@ where
             no_branch(make_constant_indirect(sm, gc, index)?),
         Yield { kind } =>
             make_yield(sm, kind, target_namer, addr, max_locals),
-        Arithmetic { kind : JType::Int, op : ArithmeticOperation::Neg } => {
-            use Register::A;
-            let mut v = Vec::new();
-            let (y, gets) = sm.get(0);
-            v.extend(gets);
-            v.push(tenyr_insn!( y <- A - y )?);
-            Ok((addr, v, default_dest))
-        },
-        Arithmetic { kind, op } => {
-            match (kind, make_arithmetic_op(op)) {
-                (JType::Int, Some(op)) => {
-                    use tenyr::{InsnGeneral, MemoryOpType};
-                    let mut v = Vec::new();
-                    let (x, gets) = sm.get(1);
-                    v.extend(gets);
-                    let (y, gets) = sm.get(0);
-                    v.extend(gets);
-                    let z = x;
-                    let dd = MemoryOpType::NoLoad;
-                    let imm = 0_u8.into();
-                    v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
-                    v.extend(sm.release(1));
-                    Ok((addr, v, default_dest))
-                }
-                _ => Ok((addr, make_call(sm, &make_arithmetic_name(kind, op)?, &make_arithmetic_descriptor(kind, op)?)?, default_dest.clone())),
-            }
-        },
+        Arithmetic { kind, op } =>
+            no_branch(make_arithmetic_instruction(sm, kind, op)?),
         LoadLocal { kind, index } |
         StoreLocal { kind, index } => {
             let size = kind.size().into();
