@@ -305,7 +305,7 @@ fn make_yield(
     Ok((addr, v, vec![])) // leaving the method is not a Destination we care about
 }
 
-fn make_constant_all<'a, T>(
+fn make_constant<'a, T>(
     sm : &mut StackManager,
     gc : &T,
     details : Indirection<ExplicitConstant>,
@@ -315,7 +315,7 @@ where
 {
     use jvmtypes::Indirection::{Explicit, Indirect};
 
-    let mut make_constant = |slice : &[_]| {
+    let mut make = |slice : &[_]| {
         slice.iter().fold(
             Ok(vec![]),
             |v : GeneralResult<Vec<_>>, &value| {
@@ -334,27 +334,26 @@ where
     match details {
         Explicit(ExplicitConstant { kind, value }) =>
             match kind {
-                JType::Object => make_constant(&[ 0 ]), // all Object constants are nulls
-                JType::Int    => make_constant(&[ value.into() ]),
-                JType::Long   => make_constant(&[ 0, value.into() ]),
-                JType::Float  => make_constant(&[ f32::from(value).to_bits() as i32 ]),
+                JType::Object => make(&[ 0 ]), // all Object constants are nulls
+                JType::Int    => make(&[ value.into() ]),
+                JType::Long   => make(&[ 0, value.into() ]),
+                JType::Float  => make(&[ f32::from(value).to_bits() as i32 ]),
                 JType::Double => {
                     let bits = f64::from(value).to_bits();
-                    make_constant(&[ (bits >> 32) as i32, bits as i32 ])
+                    make(&[ (bits >> 32) as i32, bits as i32 ])
                 },
                 _ => Err("encountered impossible Constant configuration".into()),
             },
         Indirect(index) => {
             use ConstantInfo::*;
             let c = gc.get_constant(index);
-            let mut m = make_constant;
             match c {
-                Integer(IntegerConstant { value }) => m(&[ *value ]),
-                Long   (   LongConstant { value }) => m(&[ (*value >> 32) as i32, *value as i32 ]),
-                Float  (  FloatConstant { value }) => m(&[ value.to_bits() as i32 ]),
+                Integer(IntegerConstant { value }) => make(&[ *value ]),
+                Long   (   LongConstant { value }) => make(&[ (*value >> 32) as i32, *value as i32 ]),
+                Float  (  FloatConstant { value }) => make(&[ value.to_bits() as i32 ]),
                 Double ( DoubleConstant { value }) => {
                     let bits = value.to_bits();
-                    m(&[ (bits >> 32) as i32, bits as i32 ])
+                    make(&[ (bits >> 32) as i32, bits as i32 ])
                 },
                 Class       (       ClassConstant { .. }) |
                 String      (      StringConstant { .. }) |
@@ -488,7 +487,7 @@ where
 
     match op {
         Constant(details) =>
-            no_branch(make_constant_all(sm, gc, details)?),
+            no_branch(make_constant(sm, gc, details)?),
         Yield { kind } =>
             make_yield(sm, kind, target_namer, addr, max_locals),
         Arithmetic { kind, op } =>
