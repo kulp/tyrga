@@ -980,7 +980,7 @@ where
             if let ConstantInfo::Class(cc) = class {
                 let name = get_string(gc, cc.name_index).ok_or("no class name")?;
                 let desc = format!("()L{};", name);
-                let call = mangle(&[&&*name, &"new"])?;
+                let call = mangle(&[&name, &"new"])?;
                 Ok((addr, make_call(sm, &call, &desc)?, default_dest.clone()))
             } else {
                 Err("invalid ConstantInfo kind".into())
@@ -1123,6 +1123,10 @@ mod util {
 
     impl Manglable for &str {
         fn pieces(&self) -> GeneralResult<Vec<String>> { Ok(vec![ self.to_string() ]) }
+    }
+
+    impl Manglable for String {
+        fn pieces(&self) -> GeneralResult<Vec<String>> { (self.as_ref() as &str).pieces() }
     }
 
     fn from_nat<T>(gc : &Context<'_, &T>, ci : u16, nat : u16) -> GeneralResult<Vec<String>> {
@@ -1328,7 +1332,7 @@ fn make_label(
         suffix : &dyn Display,
     ) -> GeneralResult<String>
 {
-    Ok(format!(".L{}", mangle(&[ class, method, &&*format!("__{}", &suffix) ])?))
+    Ok(format!(".L{}", mangle(&[ class, method, &format!("__{}", &suffix) ])?))
 }
 
 fn make_basic_block(
