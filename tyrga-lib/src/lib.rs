@@ -245,21 +245,6 @@ fn make_int_branch(
 // number of slots of data we will save between locals and stack
 const SAVE_SLOTS : u8 = 1;
 
-fn make_constant(sm : &mut StackManager, slice : &[i32]) -> GeneralResult<Vec<Instruction>> {
-    let f = |v : GeneralResult<Vec<_>>, &value| {
-        use Register::A;
-
-        let mut v = v?;
-        v.extend(sm.reserve(1));
-        let (reg, gets) = sm.get(0);
-        v.extend(gets);
-        let insn = Instruction { z : reg, x : A, ..tenyr::NOOP_TYPE3 };
-        v.extend(expand_immediate_load(sm, insn, value)?);
-        Ok(v)
-    };
-    slice.iter().fold(Ok(vec![]), f)
-}
-
 fn make_builtin_name(proc : &str, descriptor : &str) -> GeneralResult<String> {
     mangle(&[&"tyrga/Builtin", &proc, &descriptor])
 }
@@ -329,6 +314,22 @@ where
     T : ContextConstantGetter<'a>
 {
     use jvmtypes::Indirection::{Explicit, Indirect};
+
+    let make_constant = |sm : &mut StackManager, slice : &[_]| {
+        slice.iter().fold(
+            Ok(vec![]),
+            |v : GeneralResult<Vec<_>>, &value| {
+                use Register::A;
+
+                let mut v = v?;
+                v.extend(sm.reserve(1));
+                let (reg, gets) = sm.get(0);
+                v.extend(gets);
+                let insn = Instruction { z : reg, x : A, ..tenyr::NOOP_TYPE3 };
+                v.extend(expand_immediate_load(sm, insn, value)?);
+                Ok(v)
+            })
+    };
 
     match details {
         Explicit(ExplicitConstant { kind, value }) =>
