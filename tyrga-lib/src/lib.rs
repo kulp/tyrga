@@ -1093,6 +1093,8 @@ mod util {
     use std::convert::TryFrom;
     use std::rc::Rc;
 
+    const NAME_SEPARATOR : &str = ":";
+
     pub(in super) trait Described {
         fn name_index(&self)       -> u16;
         fn descriptor_index(&self) -> u16;
@@ -1214,7 +1216,7 @@ mod util {
     pub(in super) trait Manglable {
         fn pieces(&self) -> GeneralResult<Vec<String>>;
         fn stringify(&self) -> GeneralResult<String> {
-            Ok(self.pieces()?.join(":"))
+            Ok(self.pieces()?.join(NAME_SEPARATOR))
         }
         fn mangle(&self) -> GeneralResult<String> {
             mangling::mangle(self.stringify()?.bytes())
