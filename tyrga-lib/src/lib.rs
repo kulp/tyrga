@@ -1311,8 +1311,8 @@ fn get_method_parts(g : &dyn ContextConstantGetter, pool_index : u16)
 
 fn make_callable_name(g : &dyn ContextConstantGetter, pool_index : u16) -> GeneralResult<String> {
     let parts = get_method_parts(g, pool_index)?;
-    let joined = parts.join(":");
-    mangling::mangle(joined.bytes())
+    // TODO do this generically, without explicit indexing
+    mangle(&[ &parts[0], &parts[1], &parts[2] ])
 }
 
 fn mangle(list : &[&dyn Manglable]) -> GeneralResult<String> { list.mangle() }
