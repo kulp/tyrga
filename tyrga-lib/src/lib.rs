@@ -312,45 +312,6 @@ fn make_builtin_name(proc : &str, descriptor : &str) -> GeneralResult<String> {
     mangle(&[&"tyrga/Builtin", &proc, &descriptor])
 }
 
-fn make_arithmetic_descriptor(kind : JType, op : ArithmeticOperation) -> GeneralResult<String> {
-    use std::convert::TryInto;
-
-    let ch : char = kind.try_into()?;
-
-    let nargs = {
-        use ArithmeticOperation::*;
-        match op {
-            Add | Sub | Mul | Div | Rem | Shl | Shr | Ushr | And | Or | Xor => 2,
-            Neg => 1,
-        }
-    };
-    Ok(format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch))
-}
-
-fn make_op_name(op : ArithmeticOperation) -> &'static str {
-    use ArithmeticOperation::*;
-    match op {
-        Add  => "Add",
-        Sub  => "Sub",
-        Mul  => "Mul",
-        Div  => "Div",
-        Rem  => "Rem",
-        Neg  => "Neg",
-        Shl  => "Shl",
-        Shr  => "Shr",
-        Ushr => "Ushr",
-        And  => "And",
-        Or   => "Or",
-        Xor  => "Xor",
-    }
-}
-
-fn make_arithmetic_name(kind : JType, op : ArithmeticOperation) -> GeneralResult<String> {
-    let descriptor = make_arithmetic_descriptor(kind, op)?;
-    let proc = make_op_name(op).to_lowercase();
-    make_builtin_name(&proc, &descriptor)
-}
-
 fn make_jump(target : u16, target_namer : &Namer) -> GeneralResult<Instruction> {
     use crate::tenyr::InstructionType::Type3;
     use Register::P;
@@ -380,22 +341,6 @@ fn make_call(sm : &mut StackManager, target : &str, descriptor : &str) -> Genera
 
     insns.extend(sm.thaw(count_returns(descriptor)?.into()));
     Ok(insns)
-}
-
-fn make_arithmetic_op(x : ArithmeticOperation) -> Option<tenyr::Opcode> {
-    use tenyr::Opcode::*;
-    match x {
-        ArithmeticOperation::Add  => Some(Add),
-        ArithmeticOperation::Sub  => Some(Subtract),
-        ArithmeticOperation::Mul  => Some(Multiply),
-        ArithmeticOperation::Shl  => Some(ShiftLeft),
-        ArithmeticOperation::Shr  => Some(ShiftRightArith),
-        ArithmeticOperation::Ushr => Some(ShiftRightLogic),
-        ArithmeticOperation::And  => Some(BitwiseAnd),
-        ArithmeticOperation::Or   => Some(BitwiseOr),
-        ArithmeticOperation::Xor  => Some(BitwiseXor),
-        _ => None,
-    }
 }
 
 fn make_yield(
@@ -430,6 +375,62 @@ fn make_arithmetic_instruction(
 ) -> GeneralResult<Vec<Instruction>>
 {
     use tenyr::InstructionType::Type0;
+
+    fn make_arithmetic_descriptor(kind : JType, op : ArithmeticOperation) -> GeneralResult<String> {
+        use std::convert::TryInto;
+    
+        let ch : char = kind.try_into()?;
+    
+        let nargs = {
+            use ArithmeticOperation::*;
+            match op {
+                Add | Sub | Mul | Div | Rem | Shl | Shr | Ushr | And | Or | Xor => 2,
+                Neg => 1,
+            }
+        };
+        Ok(format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch))
+    }
+
+    // TODO replace make_op_name with some automatic namer
+    fn make_op_name(op : ArithmeticOperation) -> &'static str {
+        use ArithmeticOperation::*;
+        match op {
+            Add  => "Add",
+            Sub  => "Sub",
+            Mul  => "Mul",
+            Div  => "Div",
+            Rem  => "Rem",
+            Neg  => "Neg",
+            Shl  => "Shl",
+            Shr  => "Shr",
+            Ushr => "Ushr",
+            And  => "And",
+            Or   => "Or",
+            Xor  => "Xor",
+        }
+    }
+
+    let make_arithmetic_name = |kind, op| {
+        let descriptor = make_arithmetic_descriptor(kind, op)?;
+        let proc = make_op_name(op).to_lowercase();
+        make_builtin_name(&proc, &descriptor)
+    };
+
+    let make_arithmetic_op = |x| {
+        use tenyr::Opcode::*;
+        match x {
+            ArithmeticOperation::Add  => Some(Add),
+            ArithmeticOperation::Sub  => Some(Subtract),
+            ArithmeticOperation::Mul  => Some(Multiply),
+            ArithmeticOperation::Shl  => Some(ShiftLeft),
+            ArithmeticOperation::Shr  => Some(ShiftRightArith),
+            ArithmeticOperation::Ushr => Some(ShiftRightLogic),
+            ArithmeticOperation::And  => Some(BitwiseAnd),
+            ArithmeticOperation::Or   => Some(BitwiseOr),
+            ArithmeticOperation::Xor  => Some(BitwiseXor),
+            _ => None,
+        }
+    };
 
     match (kind, op, make_arithmetic_op(op)) {
         (JType::Int, ArithmeticOperation::Neg, _) => {
