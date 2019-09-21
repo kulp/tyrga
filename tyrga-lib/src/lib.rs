@@ -561,7 +561,7 @@ where
                 jvmtypes::Comparison::Le => (Opcode::CompareGe, true , false),
             };
 
-            let opper = move |sm : &mut StackManager| {
+            let opper = |sm : &mut StackManager| {
                 use OperandCount::{Single, Double};
 
                 let mut v = Vec::new();
