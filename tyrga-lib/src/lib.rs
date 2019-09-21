@@ -603,16 +603,13 @@ where
             let (temp_reg, gets) = sm.get(0);
             insns.extend(gets);
 
-            let maker = |imm : i32| {
-                move |sm : &mut StackManager| {
+            let brancher = |(imm, target)| {
+                let m = |sm : &mut StackManager| {
                     let insn = tenyr_insn!( temp_reg <- top == 0 );
                     let insns = expand_immediate_load(sm, insn?, imm)?;
                     Ok((temp_reg, insns))
-                }
-            };
+                };
 
-            let brancher = |(compare, target)| {
-                let m = maker(compare);
                 let result =
                     make_int_branch(sm, addr, false, (target + here) as u16, target_namer, m);
                 let (_, insns, dests) = result?;
