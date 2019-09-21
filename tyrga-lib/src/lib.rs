@@ -479,6 +479,29 @@ fn make_mem_op(
     Ok(v)
 }
 
+fn make_increment(
+    sm : &mut StackManager,
+    index : u16,
+    value : i16,
+    max_locals : u16,
+) -> GeneralResult<Vec<Instruction>>
+{
+    use tenyr::MemoryOpType;
+    use util::index_local;
+
+    let mut v = Vec::new();
+    v.extend(sm.reserve(1));
+    let (temp_reg, gets) = sm.get(0);
+    v.extend(gets);
+    let insn = index_local(sm, temp_reg, index.into(), max_locals);
+    v.push(Instruction { dd : MemoryOpType::LoadRight, ..insn.clone() });
+    v.push(tenyr_insn!( temp_reg <- temp_reg + (value) )?);
+    v.push(Instruction { dd : MemoryOpType::StoreRight, ..insn });
+    v.extend(sm.release(1));
+
+    Ok(v)
+}
+
 fn make_instructions<'a, T>(
         sm : &mut StackManager,
         (addr, op) : (usize, Operation),
@@ -495,7 +518,7 @@ where
     use std::convert::TryInto;
     use tenyr::InstructionType::{Type1, Type3};
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
-    use util::{get_string, index_local};
+    use util::get_string;
 
     // We need to track destinations and return them so that the caller can track stack state
     // through the chain of control flow, possibly cloning the StackManager state along the way to
@@ -523,22 +546,8 @@ where
             };
             no_branch(make_mem_op(sm, index, before, dd, after, max_locals)?)
         },
-        Increment { index, value } => {
-            use tenyr::MemoryOpType;
-            // This reserving of a stack slot may exceed the "maximum depth" statistic on the
-            // method, but we should try to avoid dedicated temporary registers.
-            let mut v = Vec::new();
-            v.extend(sm.reserve(1));
-            let (temp_reg, gets) = sm.get(0);
-            v.extend(gets);
-            let insn = index_local(sm, temp_reg, index.into(), max_locals);
-            v.push(Instruction { dd : MemoryOpType::LoadRight, ..insn.clone() });
-            v.push(tenyr_insn!( temp_reg <- temp_reg + (value) )?);
-            v.push(Instruction { dd : MemoryOpType::StoreRight, ..insn });
-            v.extend(sm.release(1));
-
-            Ok((addr, v, default_dest))
-        },
+        Increment { index, value } =>
+            no_branch(make_increment(sm, index, value, max_locals)?),
         Branch { kind : JType::Object, ops, way, target } |
         Branch { kind : JType::Int   , ops, way, target } => {
             use tenyr::*;
