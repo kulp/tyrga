@@ -676,13 +676,13 @@ where
             };
             insns.extend(expand_immediate_load(sm, insn?, low)?);
 
-            let make_pairs = |n|
-                Ok((make_jump((n + here) as u16, target_namer)?, Destination::Address((n + here) as usize)))
-                    as GeneralResult<_>;
             let (i, d) : (Vec<_>, Vec<_>) =
                 offsets
                     .into_iter()
-                    .map(make_pairs)
+                    .map(|n| Ok((
+                        make_jump((n + here) as u16, target_namer)?,
+                        Destination::Address((n + here) as usize))
+                    ) as GeneralResult<_>)
                     .collect::<Result<Vec<_>,_>>()?
                     .into_iter()
                     .unzip();
