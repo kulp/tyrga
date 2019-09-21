@@ -603,31 +603,23 @@ where
             let (temp_reg, gets) = sm.get(0);
             insns.extend(gets);
 
-            let brancher = |(imm, target)| {
-                let m = |sm : &mut StackManager| {
-                    let insn = tenyr_insn!( temp_reg <- top == 0 );
-                    let insns = expand_immediate_load(sm, insn?, imm)?;
-                    Ok((temp_reg, insns))
-                };
-
-                let result =
-                    make_int_branch(sm, addr, false, (target + here) as u16, target_namer, m);
-                let (_, insns, dests) = result?;
-                Ok((insns, dests)) as GeneralResult<(_, _)>
-            };
             let (i, d) : (Vec<_>, Vec<_>) =
                 pairs
                     .into_iter()
-                    .map(brancher)
+                    .map(|(imm, target)|
+                        make_int_branch(sm, addr, false, (target + here) as u16, target_namer,
+                            |sm| Ok((
+                                temp_reg,
+                                expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0)?, imm)?
+                            ))
+                        ))
                     .collect::<Result<Vec<_>,_>>()?
                     .into_iter()
+                    .map(|(_, insn, dest)| (insn, dest))
                     .unzip();
 
-            let i = i.concat();
-            let d = d.concat();
-
-            insns.extend(i);
-            dests.extend(d);
+            insns.extend(i.concat());
+            dests.extend(d.concat());
 
             insns.push(make_jump(far, target_namer)?);
             dests.push(Destination::Address(far.into()));
