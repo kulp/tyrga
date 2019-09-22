@@ -502,6 +502,55 @@ fn make_increment(
     Ok(v)
 }
 
+fn make_branch(
+    sm : &mut StackManager,
+    ops : OperandCount,
+    way : Comparison,
+    target : u16,
+    target_namer : &Namer,
+    addr : usize,
+) -> MakeInsnResult {
+    use tenyr::*;
+
+    let (op, swap, invert) = match way {
+        jvmtypes::Comparison::Eq => (Opcode::CompareEq, false, false),
+        jvmtypes::Comparison::Ne => (Opcode::CompareEq, false, true ),
+        jvmtypes::Comparison::Lt => (Opcode::CompareLt, false, false),
+        jvmtypes::Comparison::Ge => (Opcode::CompareGe, false, false),
+        jvmtypes::Comparison::Gt => (Opcode::CompareLt, true , false),
+        jvmtypes::Comparison::Le => (Opcode::CompareGe, true , false),
+    };
+
+    let opper = |sm : &mut StackManager| {
+        use OperandCount::{Single, Double};
+
+        let mut v = Vec::new();
+        let count = ops as u16;
+        let (lhs, gets) = sm.get(count - 1);
+        v.extend(gets);
+        let (rhs, gets) = match ops { Single => (Register::A, vec![]), Double => sm.get(0) };
+        v.extend(gets);
+        let temp_reg = lhs;
+        let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
+
+        v.extend(sm.release(count));
+        v.push(Instruction {
+            kind : InstructionType::Type0(
+                InsnGeneral {
+                    y : rhs,
+                    op,
+                    imm : 0_u8.into(),
+                }),
+            z : temp_reg,
+            x : lhs,
+            dd : MemoryOpType::NoLoad,
+        });
+        Ok((temp_reg, v))
+    };
+
+    make_int_branch(sm, addr, invert, target, target_namer, opper)
+}
+
 fn make_instructions<'a, T>(
         sm : &mut StackManager,
         (addr, op) : (usize, Operation),
@@ -549,47 +598,8 @@ where
         Increment { index, value } =>
             no_branch(make_increment(sm, index, value, max_locals)?),
         Branch { kind : JType::Object, ops, way, target } |
-        Branch { kind : JType::Int   , ops, way, target } => {
-            use tenyr::*;
-
-            let (op, swap, invert) = match way {
-                jvmtypes::Comparison::Eq => (Opcode::CompareEq, false, false),
-                jvmtypes::Comparison::Ne => (Opcode::CompareEq, false, true ),
-                jvmtypes::Comparison::Lt => (Opcode::CompareLt, false, false),
-                jvmtypes::Comparison::Ge => (Opcode::CompareGe, false, false),
-                jvmtypes::Comparison::Gt => (Opcode::CompareLt, true , false),
-                jvmtypes::Comparison::Le => (Opcode::CompareGe, true , false),
-            };
-
-            let opper = |sm : &mut StackManager| {
-                use OperandCount::{Single, Double};
-
-                let mut v = Vec::new();
-                let count = ops as u16;
-                let (lhs, gets) = sm.get(count - 1);
-                v.extend(gets);
-                let (rhs, gets) = match ops { Single => (Register::A, vec![]), Double => sm.get(0) };
-                v.extend(gets);
-                let temp_reg = lhs;
-                let (rhs, lhs) = if swap { (lhs, rhs) } else { (rhs, lhs) };
-
-                v.extend(sm.release(count));
-                v.push(Instruction {
-                    kind : InstructionType::Type0(
-                        InsnGeneral {
-                           y : rhs,
-                           op,
-                           imm : 0_u8.into(),
-                        }),
-                    z : temp_reg,
-                    x : lhs,
-                    dd : MemoryOpType::NoLoad,
-                });
-                Ok((temp_reg, v))
-            };
-
-            make_int_branch(sm, addr, invert, target, target_namer, opper)
-        },
+        Branch { kind : JType::Int   , ops, way, target } =>
+            make_branch(sm, ops, way, target, target_namer, addr),
         Branch { .. } => Err("encountered impossible Branch configuration".into()),
         Switch(Lookup { default, pairs }) => {
             let here = addr as i32;
