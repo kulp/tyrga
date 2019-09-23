@@ -270,7 +270,7 @@ fn make_call(sm : &mut StackManager, target : &str, descriptor : &str) -> Genera
     // decrement stack pointer)
     let sp = sm.get_stack_ptr();
     let far = format!("@+{}", target);
-    let off : tenyr::Immediate20 = tenyr::Immediate::Expr(exprtree::Atom::Variable(far));
+    let off = tenyr::Immediate20::Expr(exprtree::Atom::Variable(far));
     insns.extend(tenyr_insn_list!(
         [sp] <- P + 1   ;
         P <- P + (off)  ;
@@ -789,7 +789,7 @@ where
         // TODO vet handling of Virtual against JVM spec
         Invocation { kind : InvokeKind::Virtual, index } => {
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
-                use tenyr::{Immediate, Immediate20};
+                use tenyr::Immediate20;
                 use Register::P;
 
                 let mut insns = Vec::new();
@@ -808,7 +808,7 @@ where
                 let (temp, gets) = sm.get(0);
                 insns.extend(gets);
                 let far = format!("@{}", mangle(&[&gc.contextualize(mr), &"vslot"])?);
-                let off : Immediate20 = Immediate::Expr(exprtree::Atom::Variable(far));
+                let off = Immediate20::Expr(exprtree::Atom::Variable(far));
 
                 insns.extend(tenyr_insn_list!(
                     temp <- [obj - 1]   ;
@@ -946,11 +946,10 @@ where
                 let make_off = |base, i| {
                     use exprtree::Operation::Add;
                     use std::rc::Rc;
-                    use tenyr::Immediate;
-                    use tenyr::TwentyBit;
+                    use tenyr::Immediate20;
 
                     let e = exprtree::Expr { a : base, b : Atom::Immediate(i), op : Add };
-                    Immediate::Expr(Atom::Expression(Rc::new(e))) as Immediate<TwentyBit>
+                    Immediate20::Expr(Atom::Expression(Rc::new(e)))
                 };
 
                 let op_depth = match op { VarOp::Get => 0, VarOp::Put => 1 };
