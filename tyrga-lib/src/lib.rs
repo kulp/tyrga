@@ -1711,7 +1711,7 @@ fn write_field_list(
         Ok((size, f, name))
     });
 
-    let tuples : Vec<_> = tuples.flat_map(<GeneralResult<_>>::into_iter).collect();
+    let tuples : Vec<_> = tuples.flat_map(GeneralResult::into_iter).collect();
     let sums = tuples.iter().scan(0, |off, tup| { let old = *off; *off += tup.0; Some(old) });
     let width = tuples.iter().map(|t| t.2.len()).fold(0, usize::max);
 
