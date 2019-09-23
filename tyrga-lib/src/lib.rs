@@ -649,10 +649,10 @@ fn make_switch(
             let (i, d) : (Vec<_>, Vec<_>) =
                 offsets
                     .into_iter()
-                    .map(|n| Ok((
+                    .map(|n| GeneralResult::Ok((
                         make_jump((n + here) as u16, target_namer)?,
                         Destination::Address((n + here) as usize))
-                    ) as GeneralResult<_>)
+                    ))
                     .collect::<Result<Vec<_>,_>>()?
                     .into_iter()
                     .unzip();
@@ -733,7 +733,7 @@ where
                 let (idx, gets) = sm.get(0);
                 v.extend(gets);
                 v.extend(sm.release(2));
-                Ok((idx, arr)) as GeneralResult<(Register, Register)>
+                GeneralResult::Ok((idx, arr))
             };
             let (x, y, z, dd) = match op {
                 LoadArray(_) => {
@@ -955,8 +955,7 @@ where
                 let op_depth = match op { VarOp::Get => 0, VarOp::Put => 1 };
 
                 let format = |suff|
-                    Ok(format!("@{}", mangle(&[ &fr, &suff ])?))
-                        as GeneralResult<std::string::String>;
+                    GeneralResult::Ok(format!("@{}", mangle(&[ &fr, &suff ])?));
 
                 let ((reg, gets), base) = match kind {
                     VarKind::Static =>

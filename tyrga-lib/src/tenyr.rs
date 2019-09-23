@@ -233,7 +233,7 @@ fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
         Instruction { kind : ctor(InsnGeneral { y, op, imm : imm.into() }), z, x, dd };
 
     let make3 = |imm : i32, z, x, dd|
-        Ok(Instruction { kind : Type3(imm.try_into()?), z, x, dd }) as InsnResult;
+        InsnResult::Ok(Instruction { kind : Type3(imm.try_into()?), z, x, dd });
 
     assert_eq!(tenyr_insn!( B  <-  C  |~ D + 3      )?, make(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ));
     assert_eq!(tenyr_insn!( B  <-  C >>> D + 3      )?, make(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ));
