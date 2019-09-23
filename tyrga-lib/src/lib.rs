@@ -551,57 +551,17 @@ fn make_branch(
     make_int_branch(sm, addr, invert, target, target_namer, opper)
 }
 
-fn make_instructions<'a, T>(
-        sm : &mut StackManager,
-        (addr, op) : (usize, Operation),
-        target_namer : &Namer,
-        gc : &T,
-        max_locals : u16,
-    ) -> MakeInsnResult
-where
-    T : ContextConstantGetter<'a> + Contextualizer<'a>,
+fn make_switch(
+    sm : &mut StackManager,
+    params : SwitchParams,
+    target_namer : &Namer,
+    addr : usize,
+) -> MakeInsnResult
 {
-    use jvmtypes::AllocationKind::{Array, Element};
     use jvmtypes::SwitchParams::{Lookup, Table};
-    use Operation::*;
-    use std::convert::TryInto;
-    use tenyr::InstructionType::{Type1, Type3};
-    use tenyr::MemoryOpType::{LoadRight, StoreRight};
-    use util::get_string;
 
-    // We need to track destinations and return them so that the caller can track stack state
-    // through the chain of control flow, possibly cloning the StackManager state along the way to
-    // follow multiple destinations. Each basic block needs to be visited only once, however, since
-    // the JVM guarantees that every instance of every instruction within a method always sees the
-    // same depth of the operand stack every time that instance is executed.
-    let default_dest = vec![Destination::Successor];
-
-    let no_branch = |x| Ok((addr, x, default_dest.clone()));
-
-    match op {
-        Constant(details) =>
-            no_branch(make_constant(sm, gc, details)?),
-        Yield { kind } =>
-            make_yield(sm, kind, target_namer, addr, max_locals),
-        Arithmetic { kind, op } =>
-            no_branch(make_arithmetic(sm, kind, op)?),
-        LoadLocal { kind, index } |
-        StoreLocal { kind, index } => {
-            let size = kind.size().into();
-            let (before, dd, after) = match op {
-                LoadLocal  { .. } => (Some(size), LoadRight, None),
-                StoreLocal { .. } => (None, StoreRight, Some(size)),
-                _ => unreachable!(),
-            };
-            no_branch(make_mem_op(sm, index, before, dd, after, max_locals)?)
-        },
-        Increment { index, value } =>
-            no_branch(make_increment(sm, index, value, max_locals)?),
-        Branch { kind : JType::Object, ops, way, target } |
-        Branch { kind : JType::Int   , ops, way, target } =>
-            make_branch(sm, ops, way, target, target_namer, addr),
-        Branch { .. } => Err("encountered impossible Branch configuration".into()),
-        Switch(Lookup { default, pairs }) => {
+    match params {
+        Lookup { default, pairs } => {
             let here = addr as i32;
             let far = (default + here) as u16;
 
@@ -636,9 +596,9 @@ where
 
             Ok((addr, insns, dests))
         },
-        Switch(Table { default, low, high, offsets }) => {
+        Table { default, low, high, offsets } => {
             use tenyr::*;
-            use tenyr::InstructionType::Type2;
+            use tenyr::InstructionType::{Type1, Type2};
             type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
 
             let here = addr as i32;
@@ -657,9 +617,9 @@ where
                     let insn = Instruction {
                         kind : kind(
                             InsnGeneral {
-                               y : Register::A,
-                               op : Opcode::CompareLt,
-                               imm : 0_u8.into(), // placeholder
+                            y : Register::A,
+                            op : Opcode::CompareLt,
+                            imm : 0_u8.into(), // placeholder
                             }),
                         z : temp_reg,
                         x : top,
@@ -707,6 +667,60 @@ where
 
             Ok((addr, insns, dests))
         },
+    }
+}
+
+fn make_instructions<'a, T>(
+        sm : &mut StackManager,
+        (addr, op) : (usize, Operation),
+        target_namer : &Namer,
+        gc : &T,
+        max_locals : u16,
+    ) -> MakeInsnResult
+where
+    T : ContextConstantGetter<'a> + Contextualizer<'a>,
+{
+    use jvmtypes::AllocationKind::{Array, Element};
+    use Operation::*;
+    use std::convert::TryInto;
+    use tenyr::InstructionType::{Type1, Type3};
+    use tenyr::MemoryOpType::{LoadRight, StoreRight};
+    use util::get_string;
+
+    // We need to track destinations and return them so that the caller can track stack state
+    // through the chain of control flow, possibly cloning the StackManager state along the way to
+    // follow multiple destinations. Each basic block needs to be visited only once, however, since
+    // the JVM guarantees that every instance of every instruction within a method always sees the
+    // same depth of the operand stack every time that instance is executed.
+    let default_dest = vec![Destination::Successor];
+
+    let no_branch = |x| Ok((addr, x, default_dest.clone()));
+
+    match op {
+        Constant(details) =>
+            no_branch(make_constant(sm, gc, details)?),
+        Yield { kind } =>
+            make_yield(sm, kind, target_namer, addr, max_locals),
+        Arithmetic { kind, op } =>
+            no_branch(make_arithmetic(sm, kind, op)?),
+        LoadLocal { kind, index } |
+        StoreLocal { kind, index } => {
+            let size = kind.size().into();
+            let (before, dd, after) = match op {
+                LoadLocal  { .. } => (Some(size), LoadRight, None),
+                StoreLocal { .. } => (None, StoreRight, Some(size)),
+                _ => unreachable!(),
+            };
+            no_branch(make_mem_op(sm, index, before, dd, after, max_locals)?)
+        },
+        Increment { index, value } =>
+            no_branch(make_increment(sm, index, value, max_locals)?),
+        Branch { kind : JType::Object, ops, way, target } |
+        Branch { kind : JType::Int   , ops, way, target } =>
+            make_branch(sm, ops, way, target, target_namer, addr),
+        Branch { .. } => Err("encountered impossible Branch configuration".into()),
+        Switch(params) =>
+            make_switch(sm, params, target_namer, addr),
         Jump { target } =>
             Ok((addr, vec![ make_jump(target, target_namer)? ], vec![ Destination::Address(target as usize) ])),
         LoadArray(kind) | StoreArray(kind) => {
