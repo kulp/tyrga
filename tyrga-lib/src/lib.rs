@@ -460,22 +460,29 @@ fn make_arithmetic(
 
 fn make_mem_op(
     sm : &mut StackManager,
-    index : u16,
-    before : Option<u16>,
-    dd : tenyr::MemoryOpType,
-    after : Option<u16>,
+    op : Operation,
     max_locals : u16,
 ) -> GeneralResult<Vec<Instruction>>
 {
+    use Operation::{LoadLocal, StoreLocal};
+    use tenyr::MemoryOpType::{LoadRight, StoreRight};
+
+    let idx;
+    let (before, dd, after) = match op {
+        LoadLocal  { kind, index } => { idx = index; (Some(kind.size()), LoadRight, None) },
+        StoreLocal { kind, index } => { idx = index; (None, StoreRight, Some(kind.size())) },
+        _ => return Err("invalid Operation passed".into()),
+    };
+
     let mut v = Vec::new();
-    let size = before.xor(after).unwrap_or(0);
-    v.extend(sm.reserve(before.unwrap_or(0)));
+    let size = before.xor(after).unwrap_or(0).into();
+    v.extend(sm.reserve(before.unwrap_or(0).into()));
     for i in (0 .. size).rev() {
         let (reg, gets) = sm.get(i);
         v.extend(gets);
-        v.push(Instruction { dd, ..util::index_local(sm, reg, (index + i).into(), max_locals) })
+        v.push(Instruction { dd, ..util::index_local(sm, reg, (idx + i).into(), max_locals) })
     }
-    v.extend(sm.release(after.unwrap_or(0)));
+    v.extend(sm.release(after.unwrap_or(0).into()));
     Ok(v)
 }
 
@@ -756,16 +763,9 @@ where
             make_yield(sm, kind, target_namer, addr, max_locals),
         Arithmetic { kind, op } =>
             no_branch(make_arithmetic(sm, kind, op)?),
-        LoadLocal { kind, index } |
-        StoreLocal { kind, index } => {
-            let size = kind.size().into();
-            let (before, dd, after) = match op {
-                LoadLocal  { .. } => (Some(size), LoadRight, None),
-                StoreLocal { .. } => (None, StoreRight, Some(size)),
-                _ => unreachable!(),
-            };
-            no_branch(make_mem_op(sm, index, before, dd, after, max_locals)?)
-        },
+        LoadLocal { .. } |
+        StoreLocal { .. } =>
+            no_branch(make_mem_op(sm, op, max_locals)?),
         Increment { index, value } =>
             no_branch(make_increment(sm, index, value, max_locals)?),
         Branch { kind : JType::Object, ops, way, target } |
