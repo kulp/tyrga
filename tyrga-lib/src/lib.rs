@@ -670,6 +670,59 @@ fn make_switch(
     }
 }
 
+fn make_array_access(
+    sm : &mut StackManager,
+    op : Operation,
+) -> GeneralResult<Vec<Instruction>>
+{
+    use Operation::{LoadArray, StoreArray};
+    use tenyr::{InsnGeneral, Opcode};
+    use tenyr::InstructionType::Type1;
+    use tenyr::MemoryOpType::{LoadRight, StoreRight};
+
+    let mut v = Vec::new();
+    let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
+        let (arr, gets) = sm.get(1);
+        v.extend(gets);
+        let (idx, gets) = sm.get(0);
+        v.extend(gets);
+        v.extend(sm.release(2));
+        GeneralResult::Ok((idx, arr))
+    };
+    let kind;
+    let (x, y, z, dd) = match op {
+        LoadArray(k) => {
+            kind = k;
+            let (idx, arr) = array_params(sm, &mut v)?;
+            v.extend(sm.reserve(1));
+            let (res, gets) = sm.get(0);
+            v.extend(gets);
+            (idx, arr, res, LoadRight)
+        },
+        StoreArray(k) => {
+            kind = k;
+            let (val, gets) = sm.get(0);
+            v.extend(gets);
+            v.extend(sm.release(1));
+            let (idx, arr) = array_params(sm, &mut v)?;
+            (idx, arr, val, StoreRight)
+        },
+        _ => return Err("invalid Operation passed".into()),
+    };
+    // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
+    // per 32-bit tenyr word)
+    let (op, imm) = match kind.size() {
+        1 => Ok((Opcode::BitwiseOr, 0_u8)),
+        2 => Ok((Opcode::ShiftLeft, 1_u8)),
+        _ => Err("bad kind size"),
+    }?;
+    let imm = imm.into();
+    let kind = Type1(InsnGeneral { y, op, imm });
+    let insn = Instruction { kind, z, x, dd };
+    v.push(insn);
+    Ok(v)
+}
+
 fn make_instructions<'a, T>(
         sm : &mut StackManager,
         (addr, op) : (usize, Operation),
@@ -683,7 +736,7 @@ where
     use jvmtypes::AllocationKind::{Array, Element};
     use Operation::*;
     use std::convert::TryInto;
-    use tenyr::InstructionType::{Type1, Type3};
+    use tenyr::InstructionType::Type3;
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
     use util::get_string;
 
@@ -723,48 +776,9 @@ where
             make_switch(sm, params, target_namer, addr),
         Jump { target } =>
             Ok((addr, vec![ make_jump(target, target_namer)? ], vec![ Destination::Address(target as usize) ])),
-        LoadArray(kind) | StoreArray(kind) => {
-            use tenyr::{InsnGeneral, Opcode};
-
-            let mut v = Vec::new();
-            let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
-                let (arr, gets) = sm.get(1);
-                v.extend(gets);
-                let (idx, gets) = sm.get(0);
-                v.extend(gets);
-                v.extend(sm.release(2));
-                GeneralResult::Ok((idx, arr))
-            };
-            let (x, y, z, dd) = match op {
-                LoadArray(_) => {
-                    let (idx, arr) = array_params(sm, &mut v)?;
-                    v.extend(sm.reserve(1));
-                    let (res, gets) = sm.get(0);
-                    v.extend(gets);
-                    (idx, arr, res, LoadRight)
-                },
-                StoreArray(_) => {
-                    let (val, gets) = sm.get(0);
-                    v.extend(gets);
-                    v.extend(sm.release(1));
-                    let (idx, arr) = array_params(sm, &mut v)?;
-                    (idx, arr, val, StoreRight)
-                },
-                _ => unreachable!(),
-            };
-            // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
-            // per 32-bit tenyr word)
-            let (op, imm) = match kind.size() {
-                1 => Ok((Opcode::BitwiseOr, 0_u8)),
-                2 => Ok((Opcode::ShiftLeft, 1_u8)),
-                _ => Err("bad kind size"),
-            }?;
-            let imm = imm.into();
-            let kind = Type1(InsnGeneral { y, op, imm });
-            let insn = Instruction { kind, z, x, dd };
-            v.push(insn);
-            Ok((addr, v, default_dest))
-        },
+        LoadArray(_) |
+        StoreArray(_) =>
+            no_branch(make_array_access(sm, op)?),
         Noop => Ok((addr, vec![ tenyr::NOOP_TYPE0 ], default_dest)),
         Length => {
             // TODO document layout of arrays
