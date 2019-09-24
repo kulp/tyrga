@@ -843,10 +843,8 @@ where
             Ok((addr, v, default_dest))
         },
         StackOp { op : StackOperation::Dup, size } => {
-            let mut v = Vec::new();
             let size = size as u16;
             let (_, gets) = sm.get(size - 1); // ensure spills are reloaded
-            v.extend(gets);
             let old : Vec<_> = (0..size).map(|i| sm.get(i).0).collect();
             let res = sm.reserve(size);
             let put : GeneralResult<Vec<_>> = (0..size).map(|i| {
@@ -854,9 +852,8 @@ where
                 let t = old[i as usize];
                 tenyr_insn!( new <- t )
             }).collect();
-            v.extend(res);
-            v.extend(put?);
-            Ok((addr, v, default_dest))
+
+            Ok((addr, [ gets, res, put? ].concat(), default_dest))
         },
         Allocation(Array { kind, dims }) => {
             use jvmtypes::Indirection::Explicit;
