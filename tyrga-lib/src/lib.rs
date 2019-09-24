@@ -760,9 +760,7 @@ where
     // follow multiple destinations. Each basic block needs to be visited only once, however, since
     // the JVM guarantees that every instance of every instruction within a method always sees the
     // same depth of the operand stack every time that instance is executed.
-    let default_dest = vec![Destination::Successor];
-
-    let no_branch = |x| Ok((addr, x, default_dest.clone()));
+    let no_branch = |x| Ok((addr, x, vec![Destination::Successor]));
 
     match op {
         Constant(details) =>
