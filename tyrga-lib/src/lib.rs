@@ -848,7 +848,7 @@ where
             let (_, gets) = sm.get(size - 1); // ensure spills are reloaded
             v.extend(gets);
             let old : Vec<_> = (0..size).map(|i| sm.get(i).0).collect();
-            let res : Vec<_> = (0..size).map(|_| sm.reserve(1)).flatten().collect();
+            let res = sm.reserve(size);
             let put : GeneralResult<Vec<_>> = (0..size).map(|i| {
                 let (new, _) = sm.get(i); // already forced gets above
                 let t = old[i as usize];
