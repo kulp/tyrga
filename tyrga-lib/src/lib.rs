@@ -785,16 +785,17 @@ where
             Ok((addr, vec![ make_jump(target, target_namer)? ], vec![ Destination::Address(target as usize) ])),
         ArrayOp(aop) =>
             no_branch(make_array_op(sm, aop)?),
-        Noop => Ok((addr, vec![ tenyr::NOOP_TYPE0 ], default_dest)),
+        Noop =>
+            no_branch(vec![ tenyr::NOOP_TYPE0 ]),
         // TODO fully handle Special (this is dumb partial handling)
         Invocation { kind : InvokeKind::Special, index } => {
             let mut insns =
                 make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2])?;
             insns.extend(sm.release(1));
-            Ok((addr, insns, default_dest.clone()))
+            no_branch(insns)
         },
         Invocation { kind : InvokeKind::Static, index } =>
-            Ok((addr, make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2])?, default_dest.clone())),
+            no_branch(make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2])?),
         // TODO vet handling of Virtual against JVM spec
         Invocation { kind : InvokeKind::Virtual, index } => {
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
@@ -828,14 +829,14 @@ where
 
                 insns.extend(sm.thaw(count_returns(descriptor)?.into()));
 
-                Ok((addr, insns, default_dest.clone()))
+                no_branch(insns)
             } else {
                 Err("bad constant kind".into())
             }
         },
         StackOp { op : StackOperation::Pop, size } => {
             let v = sm.release(size as u16);
-            Ok((addr, v, default_dest))
+            no_branch(v)
         },
         StackOp { op : StackOperation::Dup, size } => {
             let size = size as u16;
@@ -848,7 +849,7 @@ where
                 tenyr_insn!( new <- t )
             }).collect();
 
-            Ok((addr, [ gets, res, put? ].concat(), default_dest))
+            no_branch([ gets, res, put? ].concat())
         },
         Allocation(Array { kind, dims }) => {
             use jvmtypes::Indirection::Explicit;
@@ -877,7 +878,7 @@ where
                     }?;
                     let v = make_call(sm, &name, descriptor)?;
                     pre.extend(v);
-                    Ok((addr, pre, default_dest.clone()))
+                    no_branch(pre)
                 },
                 _ => Err("not implemented".into()),
             }
@@ -899,7 +900,7 @@ where
             let desc = format!("({}{}I)I", ch, ch);
             let insns = make_call(sm, &make_builtin_name(name, &desc)?, &desc)?;
             v.extend(insns);
-            Ok((addr, v, default_dest.clone()))
+            no_branch(v)
         },
         Conversion { from : JType::Int, to : JType::Byte } => {
             let mut v = Vec::new();
@@ -909,7 +910,7 @@ where
             let right = tenyr_insn!( top <- top >> 24 )?; // arithmetic shift, result is signed
             v.push(left);
             v.push(right);
-            Ok((addr, v, default_dest ))
+            no_branch(v)
         },
         Conversion { from : JType::Int, to : JType::Short } => {
             let mut v = Vec::new();
@@ -919,7 +920,7 @@ where
             let right = tenyr_insn!( top <- top >> 16 )?; // arithmetic shift, result is signed
             v.push(left);
             v.push(right);
-            Ok((addr, v, default_dest ))
+            no_branch(v)
         },
         Conversion { from : JType::Int, to : JType::Char } => {
             let mut v = Vec::new();
@@ -929,14 +930,14 @@ where
             let right = tenyr_insn!( top <- top >>> 16 )?; // logical shift, result is positive
             v.push(left);
             v.push(right);
-            Ok((addr, v, default_dest ))
+            no_branch(v)
         },
         Conversion { from, to } => {
             let ch_from : char = from.try_into()?;
             let ch_to   : char = to  .try_into()?;
             let name = format!("into_{}", ch_to); // TODO improve naming
             let desc = format!("({}){}", ch_from, ch_to);
-            Ok((addr, make_call(sm, &make_builtin_name(&name, &desc)?, &desc)?, default_dest.clone()))
+            no_branch(make_call(sm, &make_builtin_name(&name, &desc)?, &desc)?)
         },
         VarAction  { op, kind, index } => {
             use classfile_parser::constant_info::ConstantInfo::FieldRef;
@@ -996,7 +997,7 @@ where
                     insns.extend(sm.release(1));
                 }
 
-                Ok((addr, insns, default_dest))
+                no_branch(insns)
             } else {
                 Err("invalid ConstantInfo kind".into())
             }
@@ -1007,7 +1008,7 @@ where
                 let name = get_string(gc, cc.name_index).ok_or("no class name")?;
                 let desc = format!("()L{};", name);
                 let call = mangle(&[&name, &"new"])?;
-                Ok((addr, make_call(sm, &call, &desc)?, default_dest.clone()))
+                no_branch(make_call(sm, &call, &desc)?)
             } else {
                 Err("invalid ConstantInfo kind".into())
             }
