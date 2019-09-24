@@ -676,14 +676,14 @@ fn make_switch(
     }
 }
 
-fn make_array_access(
+fn make_array_op(
     sm : &mut StackManager,
     op : ArrayOperation,
 ) -> GeneralResult<Vec<Instruction>>
 {
-    use jvmtypes::ArrayOperation::{Load, Store};
+    use jvmtypes::ArrayOperation::{Load, Store, GetLength};
     use tenyr::{InsnGeneral, Opcode};
-    use tenyr::InstructionType::Type1;
+    use tenyr::InstructionType::{Type1, Type3};
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
 
     let mut v = Vec::new();
@@ -697,6 +697,17 @@ fn make_array_access(
     };
     let kind;
     let (x, y, z, dd) = match op {
+        GetLength => {
+            // TODO document layout of arrays
+            // This implementation assumes a reference to an array points to its first element, and
+            // that one word below that element is a word containing the number of elements.
+            let mut v = Vec::new();
+            let (top, gets) = sm.get(0);
+            v.extend(gets);
+            let insn = Instruction { kind : Type3((-1_i8).into()), dd : LoadRight, z : top, x : top };
+            v.push(insn);
+            return Ok(v); // bail out early
+        }
         Load(k) => {
             kind = k;
             let (idx, arr) = array_params(sm, &mut v)?;
@@ -713,7 +724,6 @@ fn make_array_access(
             let (idx, arr) = array_params(sm, &mut v)?;
             (idx, arr, val, StoreRight)
         },
-        _ => return Err("not handled here".into()),
     };
     // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
     // per 32-bit tenyr word)
@@ -742,7 +752,6 @@ where
     use jvmtypes::AllocationKind::{Array, Element};
     use Operation::*;
     use std::convert::TryInto;
-    use tenyr::InstructionType::Type3;
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
     use util::get_string;
 
@@ -774,19 +783,8 @@ where
             make_switch(sm, params, target_namer, addr),
         Jump { target } =>
             Ok((addr, vec![ make_jump(target, target_namer)? ], vec![ Destination::Address(target as usize) ])),
-        ArrayOp(ArrayOperation::GetLength) => {
-            // TODO document layout of arrays
-            // This implementation assumes a reference to an array points to its first element, and
-            // that one word below that element is a word containing the number of elements.
-            let mut v = Vec::new();
-            let (top, gets) = sm.get(0);
-            v.extend(gets);
-            let insn = Instruction { kind : Type3((-1_i8).into()), dd : LoadRight, z : top, x : top };
-            v.push(insn);
-            Ok((addr, v, default_dest))
-        },
         ArrayOp(aop) =>
-            no_branch(make_array_access(sm, aop)?),
+            no_branch(make_array_op(sm, aop)?),
         Noop => Ok((addr, vec![ tenyr::NOOP_TYPE0 ], default_dest)),
         // TODO fully handle Special (this is dumb partial handling)
         Invocation { kind : InvokeKind::Special, index } => {
