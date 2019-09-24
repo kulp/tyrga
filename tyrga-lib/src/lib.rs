@@ -713,6 +713,7 @@ fn make_array_access(
             let (idx, arr) = array_params(sm, &mut v)?;
             (idx, arr, val, StoreRight)
         },
+        _ => return Err("not handled here".into()),
     };
     // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
     // per 32-bit tenyr word)
@@ -773,10 +774,7 @@ where
             make_switch(sm, params, target_namer, addr),
         Jump { target } =>
             Ok((addr, vec![ make_jump(target, target_namer)? ], vec![ Destination::Address(target as usize) ])),
-        ArrayOp(aop) =>
-            no_branch(make_array_access(sm, aop)?),
-        Noop => Ok((addr, vec![ tenyr::NOOP_TYPE0 ], default_dest)),
-        Length => {
+        ArrayOp(ArrayOperation::GetLength) => {
             // TODO document layout of arrays
             // This implementation assumes a reference to an array points to its first element, and
             // that one word below that element is a word containing the number of elements.
@@ -787,6 +785,9 @@ where
             v.push(insn);
             Ok((addr, v, default_dest))
         },
+        ArrayOp(aop) =>
+            no_branch(make_array_access(sm, aop)?),
+        Noop => Ok((addr, vec![ tenyr::NOOP_TYPE0 ], default_dest)),
         // TODO fully handle Special (this is dumb partial handling)
         Invocation { kind : InvokeKind::Special, index } => {
             let mut insns =

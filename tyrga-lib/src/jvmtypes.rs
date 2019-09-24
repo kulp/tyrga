@@ -179,6 +179,7 @@ pub enum AllocationKind {
 pub enum ArrayOperation {
     Load(JType),
     Store(JType),
+    GetLength,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -199,7 +200,6 @@ pub enum Operation {
     Increment   { index : u16, value : i16 },
     Invocation  { kind : InvokeKind, index : u16 },
     Jump        { target : u16 },
-    Length,     /* i.e. arraylength */
     LocalOp     (LocalOperation),
     Noop,
     StackOp     { size : OperandCount, op : StackOperation },
@@ -482,7 +482,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Multianewarray { index, dimensions : dims } =>
             Allocation(Array { kind : Indirect(index), dims }),
 
-        Arraylength => Length,
+        Arraylength => ArrayOp(ArrayOperation::GetLength),
 
         Tableswitch { default, low, high, offsets } =>
             Switch(Table { default, low, high, offsets }),
