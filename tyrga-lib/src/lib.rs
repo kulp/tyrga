@@ -201,8 +201,8 @@ fn test_expand() -> GeneralResult<()> {
 }
 
 type Namer<'a> = dyn Fn(&dyn fmt::Display) -> GeneralResult<String> + 'a;
-type InsnTriple = (usize, Vec<Instruction>, Vec<Destination>);
-type MakeInsnResult = GeneralResult<InsnTriple>;
+type InsnPair = (Vec<Instruction>, Vec<Destination>);
+type MakeInsnResult = GeneralResult<InsnPair>;
 
 fn make_target(target : &dyn std::string::ToString) -> GeneralResult<exprtree::Atom> {
     use exprtree::Atom::*;
@@ -217,7 +217,6 @@ fn make_target(target : &dyn std::string::ToString) -> GeneralResult<exprtree::A
 
 fn make_int_branch(
         sm : &mut StackManager,
-        addr : usize,
         invert : bool,
         target : u16,
         target_namer : &Namer,
@@ -239,7 +238,7 @@ fn make_int_branch(
         Destination::Successor,
         Destination::Address(target.into()),
     ];
-    Ok((addr, v, dest))
+    Ok((v, dest))
 }
 
 // number of slots of data we will save between locals and stack
@@ -284,7 +283,6 @@ fn make_yield(
     sm : &mut StackManager,
     kind : JType,
     target_namer : &Namer,
-    addr : usize,
     max_locals : u16,
 ) -> MakeInsnResult
 {
@@ -302,7 +300,7 @@ fn make_yield(
     let ex = tenyr::Immediate::Expr(make_target(&target_namer(&"epilogue")?)?);
     v.push(tenyr_insn!( P <- (ex) + P )?);
 
-    Ok((addr, v, vec![])) // leaving the method is not a Destination we care about
+    Ok((v, vec![])) // leaving the method is not a Destination we care about
 }
 
 fn make_constant<'a, T>(
@@ -514,7 +512,6 @@ fn make_branch(
     way : Comparison,
     target : u16,
     target_namer : &Namer,
-    addr : usize,
 ) -> MakeInsnResult {
     use tenyr::*;
 
@@ -554,7 +551,7 @@ fn make_branch(
         Ok((temp_reg, v))
     };
 
-    make_int_branch(sm, addr, invert, target, target_namer, opper)
+    make_int_branch(sm, invert, target, target_namer, opper)
 }
 
 fn make_switch(
@@ -583,7 +580,7 @@ fn make_switch(
                 pairs
                     .into_iter()
                     .map(|(imm, target)|
-                        make_int_branch(sm, addr, false, (target + here) as u16, target_namer,
+                        make_int_branch(sm, false, (target + here) as u16, target_namer,
                             |sm| Ok((
                                 temp_reg,
                                 expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0)?, imm)?
@@ -591,7 +588,6 @@ fn make_switch(
                         ))
                     .collect::<Result<Vec<_>,_>>()?
                     .into_iter()
-                    .map(|(_, insn, dest)| (insn, dest))
                     .unzip();
 
             insns.extend(i.concat());
@@ -600,7 +596,7 @@ fn make_switch(
             insns.push(make_jump(far, target_namer)?);
             dests.push(Destination::Address(far.into()));
 
-            Ok((addr, insns, dests))
+            Ok((insns, dests))
         },
         Table { default, low, high, offsets } => {
             use tenyr::*;
@@ -636,12 +632,10 @@ fn make_switch(
                 }
             };
 
-            let (lo_addr, lo_insns, lo_dests) =
-                make_int_branch(sm, addr, false, far, target_namer, maker(&Type1, low))?;
-            let (_, hi_insns, hi_dests) =
-                make_int_branch(sm, addr, false, far, target_namer, maker(&Type2, high))?;
-
-            let addr = lo_addr;
+            let (lo_insns, lo_dests) =
+                make_int_branch(sm, false, far, target_namer, maker(&Type1, low))?;
+            let (hi_insns, hi_dests) =
+                make_int_branch(sm, false, far, target_namer, maker(&Type2, high))?;
 
             insns.extend(lo_insns);
             insns.extend(hi_insns);
@@ -671,7 +665,7 @@ fn make_switch(
 
             insns.extend(sm.release(1)); // release temporary
 
-            Ok((addr, insns, dests))
+            Ok((insns, dests))
         },
     }
 }
@@ -760,13 +754,13 @@ where
     // follow multiple destinations. Each basic block needs to be visited only once, however, since
     // the JVM guarantees that every instance of every instruction within a method always sees the
     // same depth of the operand stack every time that instance is executed.
-    let no_branch = |x| Ok((addr, x, vec![Destination::Successor]));
+    let no_branch = |x| Ok((x, vec![Destination::Successor]));
 
     match op {
         Constant(details) =>
             no_branch(make_constant(sm, gc, details)?),
         Yield { kind } =>
-            make_yield(sm, kind, target_namer, addr, max_locals),
+            make_yield(sm, kind, target_namer, max_locals),
         Arithmetic { kind, op } =>
             no_branch(make_arithmetic(sm, kind, op)?),
         LocalOp(op) =>
@@ -775,12 +769,12 @@ where
             no_branch(make_increment(sm, index, value, max_locals)?),
         Branch { kind : JType::Object, ops, way, target } |
         Branch { kind : JType::Int   , ops, way, target } =>
-            make_branch(sm, ops, way, target, target_namer, addr),
+            make_branch(sm, ops, way, target, target_namer),
         Branch { .. } => Err("encountered impossible Branch configuration".into()),
         Switch(params) =>
             make_switch(sm, params, target_namer, addr),
         Jump { target } =>
-            Ok((addr, vec![ make_jump(target, target_namer)? ], vec![ Destination::Address(target as usize) ])),
+            Ok((vec![ make_jump(target, target_namer)? ], vec![ Destination::Address(target as usize) ])),
         ArrayOp(aop) =>
             no_branch(make_array_op(sm, aop)?),
         Noop =>
@@ -1044,8 +1038,8 @@ fn test_make_instruction() -> GeneralResult<()> {
     let insn = make_instructions(&mut sm, (0, op), &namer, &Useless, 0)?;
     let imm = 5_u8.into();
     let rhs = Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad };
-    assert_eq!(insn.1, vec![ rhs ]);
-    assert_eq!(insn.1[0].to_string(), " B  <-  5");
+    assert_eq!(insn.0, vec![ rhs ]);
+    assert_eq!(insn.0[0].to_string(), " B  <-  5");
 
     Ok(())
 }
@@ -1367,7 +1361,7 @@ fn make_label(
 fn make_basic_block(
         class : &Context<'_, &ClassConstant>,
         method : &Context<'_, &MethodInfo>,
-        list : impl IntoIterator<Item=InsnTriple>,
+        list : impl IntoIterator<Item=InsnPair>,
         range : &Range<usize>
     ) -> GeneralResult<(tenyr::BasicBlock, BTreeSet<usize>)>
 {
@@ -1383,7 +1377,7 @@ fn make_basic_block(
     for insn in list {
         let does_branch = |&e| if let Address(n) = e { Some(n) } else { None };
 
-        let (_, ins, exs) = insn;
+        let (ins, exs) = insn;
 
         // update the state of includes_successor each time so that the last instruction's behavior
         // is captured
