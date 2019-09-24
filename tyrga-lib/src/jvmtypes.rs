@@ -181,6 +181,12 @@ pub enum ArrayOperation {
     Store(JType),
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum LocalOperation {
+    Load  { kind : JType, index : u16 },
+    Store { kind : JType, index : u16 },
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Operation {
     Allocation  (AllocationKind),
@@ -194,10 +200,9 @@ pub enum Operation {
     Invocation  { kind : InvokeKind, index : u16 },
     Jump        { target : u16 },
     Length,     /* i.e. arraylength */
-    LoadLocal   { kind : JType, index : u16 },
+    LocalOp     (LocalOperation),
     Noop,
     StackOp     { size : OperandCount, op : StackOperation },
-    StoreLocal  { kind : JType, index : u16 },
     Switch      (SwitchParams),
     VarAction   { op : VarOp, kind : VarKind, index : u16 },
     Yield       { kind : JType }, /* i.e. return */
@@ -307,15 +312,15 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Sipush(v) => make_constant(Int, v),
 
         Iload(index) | Lload(index) | Fload(index) | Dload(index) | Aload(index)
-            => LoadLocal { kind : kind(), index : index.into() },
+            => LocalOp(LocalOperation::Load { kind : kind(), index : index.into() }),
 
         IloadWide(index) | LloadWide(index) | FloadWide(index) | DloadWide(index) | AloadWide(index)
-            => LoadLocal { kind : kind(), index },
+            => LocalOp(LocalOperation::Load { kind : kind(), index }),
 
-        Dload0 | Fload0 | Iload0 | Lload0 | Aload0 => LoadLocal { kind : kind(), index : 0 },
-        Dload1 | Fload1 | Iload1 | Lload1 | Aload1 => LoadLocal { kind : kind(), index : 1 },
-        Dload2 | Fload2 | Iload2 | Lload2 | Aload2 => LoadLocal { kind : kind(), index : 2 },
-        Dload3 | Fload3 | Iload3 | Lload3 | Aload3 => LoadLocal { kind : kind(), index : 3 },
+        Dload0 | Fload0 | Iload0 | Lload0 | Aload0 => LocalOp(LocalOperation::Load { kind : kind(), index : 0 }),
+        Dload1 | Fload1 | Iload1 | Lload1 | Aload1 => LocalOp(LocalOperation::Load { kind : kind(), index : 1 }),
+        Dload2 | Fload2 | Iload2 | Lload2 | Aload2 => LocalOp(LocalOperation::Load { kind : kind(), index : 2 }),
+        Dload3 | Fload3 | Iload3 | Lload3 | Aload3 => LocalOp(LocalOperation::Load { kind : kind(), index : 3 }),
 
         Iaload => ArrayOp(ArrayOperation::Load(Int)),
         Laload => ArrayOp(ArrayOperation::Load(Long)),
@@ -327,19 +332,19 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Saload => ArrayOp(ArrayOperation::Load(Short)),
 
         Istore(index) | Lstore(index) | Fstore(index) | Dstore(index) | Astore(index)
-            => StoreLocal { kind : kind(), index : index.into() },
+            => LocalOp(LocalOperation::Store { kind : kind(), index : index.into() }),
 
         IstoreWide(index)
             | LstoreWide(index)
             | FstoreWide(index)
             | DstoreWide(index)
             | AstoreWide(index)
-            => StoreLocal { kind : kind(), index },
+            => LocalOp(LocalOperation::Store { kind : kind(), index }),
 
-        Dstore0 | Fstore0 | Istore0 | Lstore0 | Astore0 => StoreLocal { kind : kind(), index : 0 },
-        Dstore1 | Fstore1 | Istore1 | Lstore1 | Astore1 => StoreLocal { kind : kind(), index : 1 },
-        Dstore2 | Fstore2 | Istore2 | Lstore2 | Astore2 => StoreLocal { kind : kind(), index : 2 },
-        Dstore3 | Fstore3 | Istore3 | Lstore3 | Astore3 => StoreLocal { kind : kind(), index : 3 },
+        Dstore0 | Fstore0 | Istore0 | Lstore0 | Astore0 => LocalOp(LocalOperation::Store { kind : kind(), index : 0 }),
+        Dstore1 | Fstore1 | Istore1 | Lstore1 | Astore1 => LocalOp(LocalOperation::Store { kind : kind(), index : 1 }),
+        Dstore2 | Fstore2 | Istore2 | Lstore2 | Astore2 => LocalOp(LocalOperation::Store { kind : kind(), index : 2 }),
+        Dstore3 | Fstore3 | Istore3 | Lstore3 | Astore3 => LocalOp(LocalOperation::Store { kind : kind(), index : 3 }),
 
         Iastore => ArrayOp(ArrayOperation::Store(Int)),
         Lastore => ArrayOp(ArrayOperation::Store(Long)),

@@ -460,18 +460,17 @@ fn make_arithmetic(
 
 fn make_mem_op(
     sm : &mut StackManager,
-    op : Operation,
+    op : LocalOperation,
     max_locals : u16,
 ) -> GeneralResult<Vec<Instruction>>
 {
-    use Operation::{LoadLocal, StoreLocal};
+    use LocalOperation::{Load, Store};
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
 
     let idx;
     let (before, dd, after) = match op {
-        LoadLocal  { kind, index } => { idx = index; (Some(kind.size()), LoadRight, None) },
-        StoreLocal { kind, index } => { idx = index; (None, StoreRight, Some(kind.size())) },
-        _ => return Err("invalid Operation passed".into()),
+        Load  { kind, index } => { idx = index; (Some(kind.size()), LoadRight, None) },
+        Store { kind, index } => { idx = index; (None, StoreRight, Some(kind.size())) },
     };
 
     let mut v = Vec::new();
@@ -762,8 +761,7 @@ where
             make_yield(sm, kind, target_namer, addr, max_locals),
         Arithmetic { kind, op } =>
             no_branch(make_arithmetic(sm, kind, op)?),
-        LoadLocal { .. } |
-        StoreLocal { .. } =>
+        LocalOp(op) =>
             no_branch(make_mem_op(sm, op, max_locals)?),
         Increment { index, value } =>
             no_branch(make_increment(sm, index, value, max_locals)?),
