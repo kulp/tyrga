@@ -175,10 +175,17 @@ pub enum AllocationKind {
     Element { index : u16 },
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum ArrayOperation {
+    Load(JType),
+    Store(JType),
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Operation {
     Allocation  (AllocationKind),
     Arithmetic  { kind : JType, op : ArithmeticOperation },
+    ArrayOp     (ArrayOperation),
     Branch      { kind : JType, ops : OperandCount, way : Comparison, target : u16 },
     Compare     { kind : JType, nans : Option<NanComparisons> },
     Constant    (Indirection<ExplicitConstant>),
@@ -187,11 +194,9 @@ pub enum Operation {
     Invocation  { kind : InvokeKind, index : u16 },
     Jump        { target : u16 },
     Length,     /* i.e. arraylength */
-    LoadArray   (JType),
     LoadLocal   { kind : JType, index : u16 },
     Noop,
     StackOp     { size : OperandCount, op : StackOperation },
-    StoreArray  (JType),
     StoreLocal  { kind : JType, index : u16 },
     Switch      (SwitchParams),
     VarAction   { op : VarOp, kind : VarKind, index : u16 },
@@ -312,14 +317,14 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Dload2 | Fload2 | Iload2 | Lload2 | Aload2 => LoadLocal { kind : kind(), index : 2 },
         Dload3 | Fload3 | Iload3 | Lload3 | Aload3 => LoadLocal { kind : kind(), index : 3 },
 
-        Iaload => LoadArray(Int),
-        Laload => LoadArray(Long),
-        Faload => LoadArray(Float),
-        Daload => LoadArray(Double),
-        Aaload => LoadArray(Object),
-        Baload => LoadArray(Byte),
-        Caload => LoadArray(Char),
-        Saload => LoadArray(Short),
+        Iaload => ArrayOp(ArrayOperation::Load(Int)),
+        Laload => ArrayOp(ArrayOperation::Load(Long)),
+        Faload => ArrayOp(ArrayOperation::Load(Float)),
+        Daload => ArrayOp(ArrayOperation::Load(Double)),
+        Aaload => ArrayOp(ArrayOperation::Load(Object)),
+        Baload => ArrayOp(ArrayOperation::Load(Byte)),
+        Caload => ArrayOp(ArrayOperation::Load(Char)),
+        Saload => ArrayOp(ArrayOperation::Load(Short)),
 
         Istore(index) | Lstore(index) | Fstore(index) | Dstore(index) | Astore(index)
             => StoreLocal { kind : kind(), index : index.into() },
@@ -336,14 +341,14 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
         Dstore2 | Fstore2 | Istore2 | Lstore2 | Astore2 => StoreLocal { kind : kind(), index : 2 },
         Dstore3 | Fstore3 | Istore3 | Lstore3 | Astore3 => StoreLocal { kind : kind(), index : 3 },
 
-        Iastore => StoreArray(Int),
-        Lastore => StoreArray(Long),
-        Fastore => StoreArray(Float),
-        Dastore => StoreArray(Double),
-        Aastore => StoreArray(Object),
-        Bastore => StoreArray(Byte),
-        Castore => StoreArray(Char),
-        Sastore => StoreArray(Short),
+        Iastore => ArrayOp(ArrayOperation::Store(Int)),
+        Lastore => ArrayOp(ArrayOperation::Store(Long)),
+        Fastore => ArrayOp(ArrayOperation::Store(Float)),
+        Dastore => ArrayOp(ArrayOperation::Store(Double)),
+        Aastore => ArrayOp(ArrayOperation::Store(Object)),
+        Bastore => ArrayOp(ArrayOperation::Store(Byte)),
+        Castore => ArrayOp(ArrayOperation::Store(Char)),
+        Sastore => ArrayOp(ArrayOperation::Store(Short)),
 
         Pop     => StackOp { op : StackOperation::Pop  , size : OperandCount::Single },
         Pop2    => StackOp { op : StackOperation::Pop  , size : OperandCount::Double },

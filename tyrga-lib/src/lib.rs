@@ -679,10 +679,10 @@ fn make_switch(
 
 fn make_array_access(
     sm : &mut StackManager,
-    op : Operation,
+    op : ArrayOperation,
 ) -> GeneralResult<Vec<Instruction>>
 {
-    use Operation::{LoadArray, StoreArray};
+    use jvmtypes::ArrayOperation::{Load, Store};
     use tenyr::{InsnGeneral, Opcode};
     use tenyr::InstructionType::Type1;
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
@@ -698,7 +698,7 @@ fn make_array_access(
     };
     let kind;
     let (x, y, z, dd) = match op {
-        LoadArray(k) => {
+        Load(k) => {
             kind = k;
             let (idx, arr) = array_params(sm, &mut v)?;
             v.extend(sm.reserve(1));
@@ -706,7 +706,7 @@ fn make_array_access(
             v.extend(gets);
             (idx, arr, res, LoadRight)
         },
-        StoreArray(k) => {
+        Store(k) => {
             kind = k;
             let (val, gets) = sm.get(0);
             v.extend(gets);
@@ -714,7 +714,6 @@ fn make_array_access(
             let (idx, arr) = array_params(sm, &mut v)?;
             (idx, arr, val, StoreRight)
         },
-        _ => return Err("invalid Operation passed".into()),
     };
     // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
     // per 32-bit tenyr word)
@@ -776,9 +775,8 @@ where
             make_switch(sm, params, target_namer, addr),
         Jump { target } =>
             Ok((addr, vec![ make_jump(target, target_namer)? ], vec![ Destination::Address(target as usize) ])),
-        LoadArray(_) |
-        StoreArray(_) =>
-            no_branch(make_array_access(sm, op)?),
+        ArrayOp(aop) =>
+            no_branch(make_array_access(sm, aop)?),
         Noop => Ok((addr, vec![ tenyr::NOOP_TYPE0 ], default_dest)),
         Length => {
             // TODO document layout of arrays
