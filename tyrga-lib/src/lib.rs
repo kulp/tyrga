@@ -563,19 +563,20 @@ fn make_switch(
 {
     use jvmtypes::SwitchParams::{Lookup, Table};
 
+    let here = addr as i32;
+
+    let mut dests = Vec::new();
+    let mut insns = Vec::new();
+    let (top, gets) = sm.get(0);
+
+    insns.extend(gets);
+    insns.extend(sm.reserve(1)); // need a persistent temporary
+
+    let (temp_reg, gets) = sm.get(0);
+    insns.extend(gets);
+
     match params {
         Lookup { default, pairs } => {
-            let here = addr as i32;
-            let far = (default + here) as u16;
-
-            let mut dests = Vec::new();
-            let mut insns = Vec::new();
-            let (top, gets) = sm.get(0);
-            insns.extend(gets);
-            insns.extend(sm.reserve(1)); // need a persistent temporary
-            let (temp_reg, gets) = sm.get(0);
-            insns.extend(gets);
-
             let (i, d) : (Vec<_>, Vec<_>) =
                 pairs
                     .into_iter()
@@ -593,6 +594,7 @@ fn make_switch(
             insns.extend(i.concat());
             dests.extend(d.concat());
 
+            let far = (default + here) as u16;
             insns.push(make_jump(far, target_namer)?);
             dests.push(Destination::Address(far.into()));
 
@@ -602,17 +604,6 @@ fn make_switch(
             use tenyr::*;
             use tenyr::InstructionType::{Type1, Type2};
             type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
-
-            let here = addr as i32;
-            let far = (default + here) as u16;
-
-            let mut dests = Vec::new();
-            let mut insns = Vec::new();
-            let (top, gets) = sm.get(0);
-            insns.extend(gets);
-            insns.extend(sm.reserve(1)); // need a persistent temporary
-            let (temp_reg, gets) = sm.get(0);
-            insns.extend(gets);
 
             let maker = |kind : &'static InsnType, imm : i32| {
                 move |sm : &mut StackManager| {
@@ -632,6 +623,7 @@ fn make_switch(
                 }
             };
 
+            let far = (default + here) as u16;
             let (lo_insns, lo_dests) =
                 make_int_branch(sm, false, far, target_namer, maker(&Type1, low))?;
             let (hi_insns, hi_dests) =
