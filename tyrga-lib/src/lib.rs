@@ -813,6 +813,63 @@ fn make_stack_op(
     }
 }
 
+fn make_allocation<'a, T>(
+    sm : &mut StackManager,
+    details : AllocationKind,
+    gc : &T,
+) -> GeneralResult<Vec<Instruction>>
+where
+    T : ContextConstantGetter<'a>
+{
+    match details {
+         AllocationKind::Array { kind, dims } => {
+            use jvmtypes::Indirection::Explicit;
+
+            let descriptor = "(I)Ljava.lang.Object;";
+            let proc = "alloc";
+            let name = make_builtin_name(proc, descriptor)?;
+            let regs : Vec<_> =
+                (0..dims.into())
+                    .map(|r| sm.get(r))
+                    .collect();
+
+            match (kind, dims) {
+                (Explicit(kind), 1) => {
+                    let mut pre = match kind.size() {
+                        1 => Ok(vec![]),
+                        // insert an instruction that doubles the top-of-stack count
+                        2 => {
+                            let mut v = Vec::new();
+                            let (top, gets) = regs[0].clone();
+                            v.extend(gets);
+                            v.push(tenyr_insn!( top <- top + top )?);
+                            Ok(v)
+                        },
+                        _ => Err("impossible size"),
+                    }?;
+                    let v = make_call(sm, &name, descriptor)?;
+                    pre.extend(v);
+                    Ok(pre)
+                },
+                _ => unimplemented!(),
+            }
+        },
+        AllocationKind::Element { index } => {
+            use util::get_string;
+
+            let class = gc.get_constant(index);
+            if let ConstantInfo::Class(cc) = class {
+                let name = get_string(gc, cc.name_index).ok_or("no class name")?;
+                let desc = format!("()L{};", name);
+                let call = mangle(&[&name, &"new"])?;
+                make_call(sm, &call, &desc)
+            } else {
+                Err("invalid ConstantInfo kind".into())
+            }
+        },
+    }
+}
+
 fn make_instructions<'a, T>(
         sm : &mut StackManager,
         (addr, op) : (usize, Operation),
@@ -823,11 +880,9 @@ fn make_instructions<'a, T>(
 where
     T : ContextConstantGetter<'a> + Contextualizer<'a>,
 {
-    use jvmtypes::AllocationKind::{Array, Element};
     use Operation::*;
     use std::convert::TryInto;
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
-    use util::get_string;
 
     // We need to track destinations and return them so that the caller can track stack state
     // through the chain of control flow, possibly cloning the StackManager state along the way to
@@ -863,38 +918,8 @@ where
             no_branch(make_invocation(sm, kind, index, gc)?),
         StackOp { op, size } =>
             no_branch(make_stack_op(sm, op, size)?),
-        Allocation(Array { kind, dims }) => {
-            use jvmtypes::Indirection::Explicit;
-
-            let descriptor = "(I)Ljava.lang.Object;";
-            let proc = "alloc";
-            let name = make_builtin_name(proc, descriptor)?;
-            let regs : Vec<_> =
-                (0..dims.into())
-                    .map(|r| sm.get(r))
-                    .collect();
-
-            match (kind, dims) {
-                (Explicit(kind), 1) => {
-                    let mut pre = match kind.size() {
-                        1 => Ok(vec![]),
-                        // insert an instruction that doubles the top-of-stack count
-                        2 => {
-                            let mut v = Vec::new();
-                            let (top, gets) = regs[0].clone();
-                            v.extend(gets);
-                            v.push(tenyr_insn!( top <- top + top )?);
-                            Ok(v)
-                        },
-                        _ => Err("impossible size"),
-                    }?;
-                    let v = make_call(sm, &name, descriptor)?;
-                    pre.extend(v);
-                    no_branch(pre)
-                },
-                _ => unimplemented!(),
-            }
-        },
+        Allocation(details) =>
+            no_branch(make_allocation(sm, details, gc)?),
         Compare { kind, nans } => {
             let mut v = sm.reserve(1);
             let name = "cmp";
@@ -1010,17 +1035,6 @@ where
                 }
 
                 no_branch(insns)
-            } else {
-                Err("invalid ConstantInfo kind".into())
-            }
-        },
-        Allocation(Element { index }) => {
-            let class = gc.get_constant(index);
-            if let ConstantInfo::Class(cc) = class {
-                let name = get_string(gc, cc.name_index).ok_or("no class name")?;
-                let desc = format!("()L{};", name);
-                let call = mangle(&[&name, &"new"])?;
-                no_branch(make_call(sm, &call, &desc)?)
             } else {
                 Err("invalid ConstantInfo kind".into())
             }
