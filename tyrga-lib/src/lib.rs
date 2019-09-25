@@ -870,6 +870,33 @@ where
     }
 }
 
+fn make_compare(
+    sm : &mut StackManager,
+    kind : JType,
+    nans : Option<NanComparisons>,
+) -> GeneralResult<Vec<Instruction>>
+{
+    use std::convert::TryInto;
+
+    let mut v = sm.reserve(1);
+    let name = "cmp";
+    let ch : char = kind.try_into()?;
+
+    let (gc, gets) = sm.get(0);
+    v.extend(gets);
+    let n = match nans {
+        Some(NanComparisons::Greater) => 1,
+        Some(NanComparisons::Less) => -1,
+        _ => 0,
+    };
+    v.push(tenyr_insn!( gc <- (n) )?);
+
+    let desc = format!("({}{}I)I", ch, ch);
+    let insns = make_call(sm, &make_builtin_name(name, &desc)?, &desc)?;
+    v.extend(insns);
+    Ok(v)
+}
+
 fn make_instructions<'a, T>(
         sm : &mut StackManager,
         (addr, op) : (usize, Operation),
@@ -920,25 +947,8 @@ where
             no_branch(make_stack_op(sm, op, size)?),
         Allocation(details) =>
             no_branch(make_allocation(sm, details, gc)?),
-        Compare { kind, nans } => {
-            let mut v = sm.reserve(1);
-            let name = "cmp";
-            let ch : char = kind.try_into()?;
-
-            let (gc, gets) = sm.get(0);
-            v.extend(gets);
-            let n = match nans {
-                Some(NanComparisons::Greater) => 1,
-                Some(NanComparisons::Less) => -1,
-                _ => 0,
-            };
-            v.push(tenyr_insn!( gc <- (n) )?);
-
-            let desc = format!("({}{}I)I", ch, ch);
-            let insns = make_call(sm, &make_builtin_name(name, &desc)?, &desc)?;
-            v.extend(insns);
-            no_branch(v)
-        },
+        Compare { kind, nans } =>
+            no_branch(make_compare(sm, kind, nans)?),
         Conversion { from : JType::Int, to : JType::Byte } => {
             let mut v = Vec::new();
             let (top, gets) = sm.get(0);
