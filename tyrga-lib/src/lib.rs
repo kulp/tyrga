@@ -11,6 +11,7 @@
 #![deny(clippy::unreadable_literal)]
 #![deny(clippy::just_underscores_and_digits)]
 #![deny(unused_imports)]
+#![deny(unreachable_patterns)]
 
 // make macros visible to later modules
 #[macro_use]
