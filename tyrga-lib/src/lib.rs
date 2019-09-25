@@ -358,7 +358,7 @@ where
                 String      (      StringConstant { .. }) |
                 MethodHandle(MethodHandleConstant { .. }) |
                 MethodType  (MethodTypeConstant   { .. }) =>
-                    Err("unhandled Constant configuration".into()),
+                    unimplemented!("unhandled Constant configuration"),
 
                 _ => Err("encountered impossible Constant configuration".into()),
             }
@@ -783,7 +783,7 @@ where
                 Err("bad constant kind".into())
             }
         },
-        _ => Err(format!("unhandled invocation kind {:?}", kind).into()),
+        _ => unimplemented!("unhandled invocation kind {:?}", kind),
     }
 }
 
@@ -881,7 +881,7 @@ where
                     pre.extend(v);
                     no_branch(pre)
                 },
-                _ => Err("not implemented".into()),
+                _ => unimplemented!(),
             }
         },
         Compare { kind, nans } => {
@@ -1017,7 +1017,7 @@ where
 
         StackOp    { .. } |
         Unhandled  ( .. ) =>
-            Err(format!("unhandled operation {:?}", op).into()),
+            unimplemented!("unhandled operation {:?}", op)
     }
 }
 
