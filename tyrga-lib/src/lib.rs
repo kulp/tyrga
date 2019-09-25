@@ -787,6 +787,32 @@ where
     }
 }
 
+fn make_stack_op(
+    sm : &mut StackManager,
+    op : StackOperation,
+    size : OperandCount,
+) -> GeneralResult<Vec<Instruction>>
+{
+    match op {
+        StackOperation::Pop =>
+            Ok(sm.release(size as u16)),
+        StackOperation::Dup => {
+            let size = size as u16;
+            let (_, gets) = sm.get(size - 1); // ensure spills are reloaded
+            let old : Vec<_> = (0..size).map(|i| sm.get(i).0).collect();
+            let res = sm.reserve(size);
+            let put : GeneralResult<Vec<_>> = (0..size).map(|i| {
+                let (new, _) = sm.get(i); // already forced gets above
+                let t = old[i as usize];
+                tenyr_insn!( new <- t )
+            }).collect();
+
+            Ok([ gets, res, put? ].concat())
+        },
+        _ => unimplemented!(),
+    }
+}
+
 fn make_instructions<'a, T>(
         sm : &mut StackManager,
         (addr, op) : (usize, Operation),
@@ -835,23 +861,8 @@ where
             no_branch(vec![ tenyr::NOOP_TYPE0 ]),
         Invocation { kind, index } =>
             no_branch(make_invocation(sm, kind, index, gc)?),
-        StackOp { op : StackOperation::Pop, size } => {
-            let v = sm.release(size as u16);
-            no_branch(v)
-        },
-        StackOp { op : StackOperation::Dup, size } => {
-            let size = size as u16;
-            let (_, gets) = sm.get(size - 1); // ensure spills are reloaded
-            let old : Vec<_> = (0..size).map(|i| sm.get(i).0).collect();
-            let res = sm.reserve(size);
-            let put : GeneralResult<Vec<_>> = (0..size).map(|i| {
-                let (new, _) = sm.get(i); // already forced gets above
-                let t = old[i as usize];
-                tenyr_insn!( new <- t )
-            }).collect();
-
-            no_branch([ gets, res, put? ].concat())
-        },
+        StackOp { op, size } =>
+            no_branch(make_stack_op(sm, op, size)?),
         Allocation(Array { kind, dims }) => {
             use jvmtypes::Indirection::Explicit;
 
@@ -1015,8 +1026,7 @@ where
             }
         },
 
-        StackOp    { .. } |
-        Unhandled  ( .. ) =>
+        Unhandled( .. ) =>
             unimplemented!("unhandled operation {:?}", op)
     }
 }
