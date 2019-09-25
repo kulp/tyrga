@@ -726,6 +726,67 @@ fn make_array_op(
     Ok(v)
 }
 
+fn make_invocation<'a, T>(
+    sm : &mut StackManager,
+    kind : InvokeKind,
+    index : u16,
+    gc : &T,
+) -> GeneralResult<Vec<Instruction>>
+where
+    T : ContextConstantGetter<'a> + Contextualizer<'a>
+{
+    match kind {
+        // TODO fully handle Special (this is dumb partial handling)
+        InvokeKind::Special => {
+            let mut insns =
+                make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2])?;
+            insns.extend(sm.release(1));
+            Ok(insns)
+        },
+        InvokeKind::Static =>
+            make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2]),
+        // TODO vet handling of Virtual against JVM spec
+        InvokeKind::Virtual => {
+            if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
+                use tenyr::Immediate20;
+                use Register::P;
+
+                let mut insns = Vec::new();
+                // Save return address through current stack pointer (callee will
+                // decrement stack pointer)
+                let sp = sm.get_stack_ptr();
+                let descriptor = &get_method_parts(gc, index)?[2];
+                let param_count = u16::from(count_params(descriptor)?);
+                let (obj, gets) = sm.get(param_count);
+                insns.extend(gets);
+                let stack_count = param_count + 1; // extra "1" for `this`
+
+                insns.extend(sm.freeze(stack_count));
+                insns.extend(sm.reserve(1));
+
+                let (temp, gets) = sm.get(0);
+                insns.extend(gets);
+                let far = format!("@{}", mangle(&[&gc.contextualize(mr), &"vslot"])?);
+                let off = Immediate20::Expr(exprtree::Atom::Variable(far));
+
+                insns.extend(tenyr_insn_list!(
+                    temp <- [obj - 1]   ;
+                    [sp] <- P + 1       ;
+                    P <- [temp + (off)] ;
+                ));
+                insns.extend(sm.release(1));
+
+                insns.extend(sm.thaw(count_returns(descriptor)?.into()));
+
+                Ok(insns)
+            } else {
+                Err("bad constant kind".into())
+            }
+        },
+        _ => Err(format!("unhandled invocation kind {:?}", kind).into()),
+    }
+}
+
 fn make_instructions<'a, T>(
         sm : &mut StackManager,
         (addr, op) : (usize, Operation),
@@ -772,53 +833,8 @@ where
             no_branch(make_array_op(sm, aop)?),
         Noop =>
             no_branch(vec![ tenyr::NOOP_TYPE0 ]),
-        // TODO fully handle Special (this is dumb partial handling)
-        Invocation { kind : InvokeKind::Special, index } => {
-            let mut insns =
-                make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2])?;
-            insns.extend(sm.release(1));
-            no_branch(insns)
-        },
-        Invocation { kind : InvokeKind::Static, index } =>
-            no_branch(make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2])?),
-        // TODO vet handling of Virtual against JVM spec
-        Invocation { kind : InvokeKind::Virtual, index } => {
-            if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
-                use tenyr::Immediate20;
-                use Register::P;
-
-                let mut insns = Vec::new();
-                // Save return address through current stack pointer (callee will
-                // decrement stack pointer)
-                let sp = sm.get_stack_ptr();
-                let descriptor = &get_method_parts(gc, index)?[2];
-                let param_count = u16::from(count_params(descriptor)?);
-                let (obj, gets) = sm.get(param_count);
-                insns.extend(gets);
-                let stack_count = param_count + 1; // extra "1" for `this`
-
-                insns.extend(sm.freeze(stack_count));
-                insns.extend(sm.reserve(1));
-
-                let (temp, gets) = sm.get(0);
-                insns.extend(gets);
-                let far = format!("@{}", mangle(&[&gc.contextualize(mr), &"vslot"])?);
-                let off = Immediate20::Expr(exprtree::Atom::Variable(far));
-
-                insns.extend(tenyr_insn_list!(
-                    temp <- [obj - 1]   ;
-                    [sp] <- P + 1       ;
-                    P <- [temp + (off)] ;
-                ));
-                insns.extend(sm.release(1));
-
-                insns.extend(sm.thaw(count_returns(descriptor)?.into()));
-
-                no_branch(insns)
-            } else {
-                Err("bad constant kind".into())
-            }
-        },
+        Invocation { kind, index } =>
+            no_branch(make_invocation(sm, kind, index, gc)?),
         StackOp { op : StackOperation::Pop, size } => {
             let v = sm.release(size as u16);
             no_branch(v)
@@ -999,7 +1015,6 @@ where
             }
         },
 
-        Invocation { .. } |
         StackOp    { .. } |
         Unhandled  ( .. ) =>
             Err(format!("unhandled operation {:?}", op).into()),
