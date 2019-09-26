@@ -947,6 +947,80 @@ fn make_conversion(
     }
 }
 
+fn make_varaction<'a, T>(
+    sm : &mut StackManager,
+    op : VarOp,
+    kind : VarKind,
+    index : u16,
+    gc : &T,
+) -> GeneralResult<Vec<Instruction>>
+where
+    T : ContextConstantGetter<'a> + Contextualizer<'a>
+{
+    use classfile_parser::constant_info::ConstantInfo::FieldRef;
+    use tenyr::MemoryOpType::{LoadRight, StoreRight};
+
+    if let FieldRef(fr) = gc.get_constant(index) {
+        use exprtree::Atom;
+
+        let fr = gc.contextualize(fr);
+        let mut insns = Vec::new();
+
+        let len = util::field_type(&fr)?.size();
+
+        let make_off = |base, i| {
+            use exprtree::Operation::Add;
+            use std::rc::Rc;
+            use tenyr::Immediate20;
+
+            let e = exprtree::Expr { a : base, b : Atom::Immediate(i), op : Add };
+            Immediate20::Expr(Atom::Expression(Rc::new(e)))
+        };
+
+        let op_depth = match op { VarOp::Get => 0, VarOp::Put => 1 };
+
+        let format = |suff|
+            GeneralResult::Ok(format!("@{}", mangle(&[ &fr, &suff ])?));
+
+        let ((reg, gets), base) = match kind {
+            VarKind::Static =>
+                (   (Register::P, vec![]),
+                    make_target(&format("static")?)?
+                ),
+            VarKind::Field =>
+                (   sm.get((op_depth * len).into()),
+                    Atom::Variable(format("field_offset")?)
+                ),
+        };
+        insns.extend(gets);
+
+        let mut range = 0i32..len.into();
+        let mut reversed = range.clone().rev();
+        let (prior, post, memop, iter) : (_, _, _, &mut dyn Iterator<Item=_>) = match op {
+            VarOp::Get => (1, 0, LoadRight , &mut range   ),
+            VarOp::Put => (0, 1, StoreRight, &mut reversed),
+        };
+
+        for it in iter {
+            let imm = make_off(base.clone(), it);
+            insns.extend(sm.reserve(prior));
+            let (top, gets) = sm.get(0);
+            insns.extend(gets);
+            insns.push(Instruction { dd : memop, ..tenyr_insn!( top <- [reg + (imm)] )? });
+            insns.extend(sm.release(post));
+        }
+
+        // Drop object reference
+        if kind == VarKind::Field {
+            insns.extend(sm.release(1));
+        }
+
+        Ok(insns)
+    } else {
+        Err("invalid ConstantInfo kind".into())
+    }
+}
+
 fn make_instructions<'a, T>(
         sm : &mut StackManager,
         (addr, op) : (usize, Operation),
@@ -958,7 +1032,6 @@ where
     T : ContextConstantGetter<'a> + Contextualizer<'a>,
 {
     use Operation::*;
-    use tenyr::MemoryOpType::{LoadRight, StoreRight};
 
     // We need to track destinations and return them so that the caller can track stack state
     // through the chain of control flow, possibly cloning the StackManager state along the way to
@@ -1000,69 +1073,8 @@ where
             no_branch(make_compare(sm, kind, nans)?),
         Conversion { from, to } =>
             no_branch(make_conversion(sm, from, to)?),
-        VarAction  { op, kind, index } => {
-            use classfile_parser::constant_info::ConstantInfo::FieldRef;
-
-            if let FieldRef(fr) = gc.get_constant(index) {
-                use exprtree::Atom;
-
-                let fr = gc.contextualize(fr);
-                let mut insns = Vec::new();
-
-                let len = util::field_type(&fr)?.size();
-
-                let make_off = |base, i| {
-                    use exprtree::Operation::Add;
-                    use std::rc::Rc;
-                    use tenyr::Immediate20;
-
-                    let e = exprtree::Expr { a : base, b : Atom::Immediate(i), op : Add };
-                    Immediate20::Expr(Atom::Expression(Rc::new(e)))
-                };
-
-                let op_depth = match op { VarOp::Get => 0, VarOp::Put => 1 };
-
-                let format = |suff|
-                    GeneralResult::Ok(format!("@{}", mangle(&[ &fr, &suff ])?));
-
-                let ((reg, gets), base) = match kind {
-                    VarKind::Static =>
-                        (   (Register::P, vec![]),
-                            make_target(&format("static")?)?
-                        ),
-                    VarKind::Field =>
-                        (   sm.get((op_depth * len).into()),
-                            Atom::Variable(format("field_offset")?)
-                        ),
-                };
-                insns.extend(gets);
-
-                let mut range = 0i32..len.into();
-                let mut reversed = range.clone().rev();
-                let (prior, post, memop, iter) : (_, _, _, &mut dyn Iterator<Item=_>) = match op {
-                    VarOp::Get => (1, 0, LoadRight , &mut range   ),
-                    VarOp::Put => (0, 1, StoreRight, &mut reversed),
-                };
-
-                for it in iter {
-                    let imm = make_off(base.clone(), it);
-                    insns.extend(sm.reserve(prior));
-                    let (top, gets) = sm.get(0);
-                    insns.extend(gets);
-                    insns.push(Instruction { dd : memop, ..tenyr_insn!( top <- [reg + (imm)] )? });
-                    insns.extend(sm.release(post));
-                }
-
-                // Drop object reference
-                if kind == VarKind::Field {
-                    insns.extend(sm.release(1));
-                }
-
-                no_branch(insns)
-            } else {
-                Err("invalid ConstantInfo kind".into())
-            }
-        },
+        VarAction { op, kind, index } =>
+            no_branch(make_varaction(sm, op, kind, index, gc)?),
 
         Unhandled( .. ) =>
             unimplemented!("unhandled operation {:?}", op)
