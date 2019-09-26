@@ -897,6 +897,56 @@ fn make_compare(
     Ok(v)
 }
 
+fn make_conversion(
+    sm : &mut StackManager,
+    from : JType,
+    to : JType,
+) -> GeneralResult<Vec<Instruction>>
+{
+    use JType::{Byte, Char, Int, Short};
+    use std::convert::TryInto;
+
+    match (from, to) {
+        (Int, Byte) => {
+            let mut v = Vec::new();
+            let (top, gets) = sm.get(0);
+            v.extend(gets);
+            let left  = tenyr_insn!( top <- top << 24 )?;
+            let right = tenyr_insn!( top <- top >> 24 )?; // arithmetic shift, result is signed
+            v.push(left);
+            v.push(right);
+            Ok(v)
+        },
+        (Int, Short) => {
+            let mut v = Vec::new();
+            let (top, gets) = sm.get(0);
+            v.extend(gets);
+            let left  = tenyr_insn!( top <- top << 16 )?;
+            let right = tenyr_insn!( top <- top >> 16 )?; // arithmetic shift, result is signed
+            v.push(left);
+            v.push(right);
+            Ok(v)
+        },
+        (Int, Char) => {
+            let mut v = Vec::new();
+            let (top, gets) = sm.get(0);
+            v.extend(gets);
+            let left  = tenyr_insn!( top <- top <<  16 )?;
+            let right = tenyr_insn!( top <- top >>> 16 )?; // logical shift, result is positive
+            v.push(left);
+            v.push(right);
+            Ok(v)
+        },
+        _ => {
+            let ch_from : char = from.try_into()?;
+            let ch_to   : char = to  .try_into()?;
+            let name = format!("into_{}", ch_to); // TODO improve naming
+            let desc = format!("({}){}", ch_from, ch_to);
+            Ok(make_call(sm, &make_builtin_name(&name, &desc)?, &desc)?)
+        },
+    }
+}
+
 fn make_instructions<'a, T>(
         sm : &mut StackManager,
         (addr, op) : (usize, Operation),
@@ -908,7 +958,6 @@ where
     T : ContextConstantGetter<'a> + Contextualizer<'a>,
 {
     use Operation::*;
-    use std::convert::TryInto;
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
 
     // We need to track destinations and return them so that the caller can track stack state
@@ -949,43 +998,8 @@ where
             no_branch(make_allocation(sm, details, gc)?),
         Compare { kind, nans } =>
             no_branch(make_compare(sm, kind, nans)?),
-        Conversion { from : JType::Int, to : JType::Byte } => {
-            let mut v = Vec::new();
-            let (top, gets) = sm.get(0);
-            v.extend(gets);
-            let left  = tenyr_insn!( top <- top << 24 )?;
-            let right = tenyr_insn!( top <- top >> 24 )?; // arithmetic shift, result is signed
-            v.push(left);
-            v.push(right);
-            no_branch(v)
-        },
-        Conversion { from : JType::Int, to : JType::Short } => {
-            let mut v = Vec::new();
-            let (top, gets) = sm.get(0);
-            v.extend(gets);
-            let left  = tenyr_insn!( top <- top << 16 )?;
-            let right = tenyr_insn!( top <- top >> 16 )?; // arithmetic shift, result is signed
-            v.push(left);
-            v.push(right);
-            no_branch(v)
-        },
-        Conversion { from : JType::Int, to : JType::Char } => {
-            let mut v = Vec::new();
-            let (top, gets) = sm.get(0);
-            v.extend(gets);
-            let left  = tenyr_insn!( top <- top <<  16 )?;
-            let right = tenyr_insn!( top <- top >>> 16 )?; // logical shift, result is positive
-            v.push(left);
-            v.push(right);
-            no_branch(v)
-        },
-        Conversion { from, to } => {
-            let ch_from : char = from.try_into()?;
-            let ch_to   : char = to  .try_into()?;
-            let name = format!("into_{}", ch_to); // TODO improve naming
-            let desc = format!("({}){}", ch_from, ch_to);
-            no_branch(make_call(sm, &make_builtin_name(&name, &desc)?, &desc)?)
-        },
+        Conversion { from, to } =>
+            no_branch(make_conversion(sm, from, to)?),
         VarAction  { op, kind, index } => {
             use classfile_parser::constant_info::ConstantInfo::FieldRef;
 
