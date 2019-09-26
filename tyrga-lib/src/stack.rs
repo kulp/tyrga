@@ -362,17 +362,17 @@ quickcheck! {
             let act = man.reserve(1);
             assert_eq!(act.len(), 2);
             assert_eq!(act[0], tenyr_insn!( sp <- sp - 1 )?);
-            assert_eq!(act[1].kind, Type3(1i16.into()));
+            assert_eq!(act[1].kind, Type3(1_i16.into()));
 
             let act = man.reserve(1);
             assert_eq!(act.len(), 2);
             assert_eq!(act[0], tenyr_insn!( sp <- sp - 1 )?);
-            assert_eq!(act[1].kind, Type3(1i16.into()));
+            assert_eq!(act[1].kind, Type3(1_i16.into()));
 
             let act = man.reserve(1);
             assert_eq!(act.len(), 2);
             assert_eq!(act[0], tenyr_insn!( sp <- sp - 1 )?);
-            assert_eq!(act[1].kind, Type3(1i16.into()));
+            assert_eq!(act[1].kind, Type3(1_i16.into()));
 
             Ok(())
         });
