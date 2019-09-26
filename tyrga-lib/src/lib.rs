@@ -217,12 +217,12 @@ fn make_target(target : &dyn std::string::ToString) -> GeneralResult<exprtree::A
 }
 
 fn make_int_branch(
-        sm : &mut StackManager,
-        invert : bool,
-        target : u16,
-        target_namer : &Namer,
-        mut comp : impl FnMut(&mut StackManager) -> GeneralResult<(Register, Vec<Instruction>)>
-    ) -> MakeInsnResult
+    sm : &mut StackManager,
+    invert : bool,
+    target : u16,
+    target_namer : &Namer,
+    mut comp : impl FnMut(&mut StackManager) -> GeneralResult<(Register, Vec<Instruction>)>
+) -> MakeInsnResult
 {
     use Register::P;
 
@@ -513,7 +513,8 @@ fn make_branch(
     way : Comparison,
     target : u16,
     target_namer : &Namer,
-) -> MakeInsnResult {
+) -> MakeInsnResult
+{
     use tenyr::*;
 
     let (op, swap, invert) = match way {
@@ -1022,14 +1023,14 @@ where
 }
 
 fn make_instructions<'a, T>(
-        sm : &mut StackManager,
-        (addr, op) : (usize, Operation),
-        target_namer : &Namer,
-        gc : &T,
-        max_locals : u16,
-    ) -> MakeInsnResult
+    sm : &mut StackManager,
+    (addr, op) : (usize, Operation),
+    target_namer : &Namer,
+    gc : &T,
+    max_locals : u16,
+) -> MakeInsnResult
 where
-    T : ContextConstantGetter<'a> + Contextualizer<'a>,
+    T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
     use Operation::*;
 
