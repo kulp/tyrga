@@ -193,7 +193,7 @@ pub enum Operation {
     Allocation  (AllocationKind),
     Arithmetic  { kind : JType, op : ArithmeticOperation },
     ArrayOp     (ArrayOperation),
-    Branch      { kind : JType, ops : OperandCount, way : Comparison, target : u16 },
+    Branch      { ops : OperandCount, way : Comparison, target : u16 },
     Compare     { kind : JType, nans : Option<NanComparisons> },
     Constant    (Indirection<ExplicitConstant>),
     Conversion  { from : JType, to : JType },
@@ -451,7 +451,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
                     _ => unreachable!(),
                 };
 
-                Branch { kind : kind(), way, ops, target }
+                Branch { way, ops, target }
             },
 
         Goto(off) => Jump { target : (addr as isize + off as isize) as u16 }, // TODO remove casts

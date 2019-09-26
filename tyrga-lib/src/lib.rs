@@ -1047,11 +1047,8 @@ where
             no_branch(make_arithmetic(sm, kind, op)?),
         ArrayOp(aop) =>
             no_branch(make_array_op(sm, aop)?),
-        Branch { kind : JType::Object, ops, way, target } |
-        Branch { kind : JType::Int   , ops, way, target } =>
+        Branch { ops, way, target } =>
             make_branch(sm, ops, way, target, target_namer),
-        Branch { .. } =>
-            Err("encountered impossible Branch configuration".into()),
         Compare { kind, nans } =>
             no_branch(make_compare(sm, kind, nans)?),
         Constant(details) =>
