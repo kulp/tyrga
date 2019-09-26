@@ -907,45 +907,44 @@ fn make_conversion(
     use JType::{Byte, Char, Int, Short};
     use std::convert::TryInto;
 
+    let top;
+    let mut insns;
     match (from, to) {
-        (Int, Byte) => {
-            let mut v = Vec::new();
-            let (top, gets) = sm.get(0);
-            v.extend(gets);
-            let left  = tenyr_insn!( top <- top << 24 )?;
-            let right = tenyr_insn!( top <- top >> 24 )?; // arithmetic shift, result is signed
-            v.push(left);
-            v.push(right);
-            Ok(v)
-        },
+        (Int, Byte) |
+        (Int, Char) |
         (Int, Short) => {
-            let mut v = Vec::new();
-            let (top, gets) = sm.get(0);
-            v.extend(gets);
-            let left  = tenyr_insn!( top <- top << 16 )?;
-            let right = tenyr_insn!( top <- top >> 16 )?; // arithmetic shift, result is signed
-            v.push(left);
-            v.push(right);
-            Ok(v)
-        },
-        (Int, Char) => {
-            let mut v = Vec::new();
-            let (top, gets) = sm.get(0);
-            v.extend(gets);
-            let left  = tenyr_insn!( top <- top <<  16 )?;
-            let right = tenyr_insn!( top <- top >>> 16 )?; // logical shift, result is positive
-            v.push(left);
-            v.push(right);
-            Ok(v)
+            let (t, v) = sm.get(0);
+            top = t;
+            insns = v;
         },
         _ => {
             let ch_from : char = from.try_into()?;
             let ch_to   : char = to  .try_into()?;
             let name = format!("into_{}", ch_to); // TODO improve naming
             let desc = format!("({}){}", ch_from, ch_to);
-            Ok(make_call(sm, &make_builtin_name(&name, &desc)?, &desc)?)
+            return Ok(make_call(sm, &make_builtin_name(&name, &desc)?, &desc)?)
         },
     }
+
+    let (left, right) = match to {
+        Byte => (
+            tenyr_insn!( top <- top << 24 )?,
+            tenyr_insn!( top <- top >> 24 )?  // arithmetic shift, result is signed
+        ),
+        Short => (
+            tenyr_insn!( top <- top << 16 )?,
+            tenyr_insn!( top <- top >> 16 )?  // arithmetic shift, result is signed
+        ),
+        Char => (
+            tenyr_insn!( top <- top <<  16 )?,
+            tenyr_insn!( top <- top >>> 16 )?  // logical shift, result is positive
+        ),
+        _ => unreachable!("already handled in previous match"),
+    };
+
+    insns.push(left);
+    insns.push(right);
+    Ok(insns)
 }
 
 fn make_varaction<'a, T>(
