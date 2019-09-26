@@ -906,6 +906,10 @@ fn make_conversion(
 {
     use JType::{Byte, Char, Int, Short};
     use std::convert::TryInto;
+    use tenyr::InsnGeneral;
+    use tenyr::InstructionType::Type1;
+    use tenyr::MemoryOpType::NoLoad;
+    use tenyr::Opcode::{ShiftLeft, ShiftRightArith, ShiftRightLogic};
 
     let top;
     let mut insns;
@@ -926,24 +930,14 @@ fn make_conversion(
         },
     }
 
-    let (left, right) = match to {
-        Byte => (
-            tenyr_insn!( top <- top << 24 )?,
-            tenyr_insn!( top <- top >> 24 )?  // arithmetic shift, result is signed
-        ),
-        Short => (
-            tenyr_insn!( top <- top << 16 )?,
-            tenyr_insn!( top <- top >> 16 )?  // arithmetic shift, result is signed
-        ),
-        Char => (
-            tenyr_insn!( top <- top <<  16 )?,
-            tenyr_insn!( top <- top >>> 16 )?  // logical shift, result is positive
-        ),
-        _ => unreachable!("already handled in previous match"),
-    };
+    let op = match to { Byte | Short => ShiftRightArith, _ => ShiftRightLogic };
+    let amount : u8 = match to { Byte => 24, _ => 16 };
 
-    insns.push(left);
-    insns.push(right);
+    let make_kind = |op, imm| Type1(InsnGeneral { op, y : Register::A, imm });
+    let make_insn = |kind| Instruction { dd : NoLoad, z : top, x : top, kind };
+
+    insns.push(make_insn(make_kind(ShiftLeft, amount.into())));
+    insns.push(make_insn(make_kind(op       , amount.into())));
     Ok(insns)
 }
 
