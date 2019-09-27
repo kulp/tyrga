@@ -976,14 +976,16 @@ where
         let format = |suff|
             GeneralResult::Ok(format!("@{}", mangle(&[ &fr, &suff ])?));
 
-        let ((reg, gets), base) = match kind {
+        let ((reg, gets), base, drops) = match kind {
             VarKind::Static =>
                 (   (Register::P, vec![]),
-                    make_target(&format("static")?)?
+                    make_target(&format("static")?)?,
+                    0,
                 ),
             VarKind::Field =>
                 (   sm.get((op_depth * len).into()),
-                    Atom::Variable(format("field_offset")?)
+                    Atom::Variable(format("field_offset")?),
+                    1, // drop object reference
                 ),
         };
         insns.extend(gets);
@@ -1004,10 +1006,7 @@ where
             insns.extend(sm.release(post));
         }
 
-        // Drop object reference
-        if kind == VarKind::Field {
-            insns.extend(sm.release(1));
-        }
+        insns.extend(sm.release(drops));
 
         Ok(insns)
     } else {
