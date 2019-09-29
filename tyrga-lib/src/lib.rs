@@ -29,11 +29,6 @@ use std::fmt::Display;
 use std::io::Write;
 use std::ops::Range;
 
-#[cfg(test)]
-use std::path::Path;
-#[cfg(test)]
-use walkdir::WalkDir;
-
 use classfile_parser::attribute_info::CodeAttribute;
 use classfile_parser::attribute_info::StackMapFrame;
 use classfile_parser::constant_info::*;
@@ -1108,7 +1103,7 @@ pub type GeneralResult<T> = std::result::Result<T, Box<dyn Error>>;
 fn generic_error(e : impl Error) -> Box<dyn Error> { format!("unknown error: {}", e).into() }
 
 #[cfg(test)]
-fn parse_class(path : &Path) -> GeneralResult<ClassFile> {
+fn parse_class(path : &std::path::Path) -> GeneralResult<ClassFile> {
     let p = path.with_extension("");
     let p = p.to_str().ok_or("bad path")?;
     classfile_parser::parse_class(p).map_err(Into::into)
@@ -1520,7 +1515,7 @@ fn make_blocks_for_method<'a, 'b>(
 }
 
 #[cfg(test)]
-fn test_stack_map_table(path : &Path) -> GeneralResult<()> {
+fn test_stack_map_table(path : &std::path::Path) -> GeneralResult<()> {
     use util::get_constant_getter;
 
     let class = parse_class(path)?;
@@ -1547,7 +1542,7 @@ fn test_parse_classes() -> GeneralResult<()>
         e.metadata().map(|e| e.is_dir()).unwrap_or(false) ||
             e.file_name().to_str().map(|s| s.ends_with(".class")).unwrap_or(false)
     };
-    for class in WalkDir::new(env!("OUT_DIR")).into_iter().filter_entry(is_dir_or_class) {
+    for class in walkdir::WalkDir::new(env!("OUT_DIR")).into_iter().filter_entry(is_dir_or_class) {
         let class = class?;
         if ! class.path().metadata()?.is_dir() {
             let path = class.path();
