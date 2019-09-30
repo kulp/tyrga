@@ -1102,13 +1102,6 @@ pub type GeneralResult<T> = std::result::Result<T, Box<dyn Error>>;
 
 fn generic_error(e : impl Error) -> Box<dyn Error> { format!("unknown error: {}", e).into() }
 
-#[cfg(test)]
-fn parse_class(path : &std::path::Path) -> GeneralResult<ClassFile> {
-    let p = path.with_extension("");
-    let p = p.to_str().ok_or("bad path")?;
-    classfile_parser::parse_class(p).map_err(Into::into)
-}
-
 type RangeMap<T> = (Vec<Range<usize>>, BTreeMap<usize, T>);
 
 fn derive_ranges<'a, T>(body : Vec<(usize, T)>, table : impl IntoIterator<Item=&'a StackMapFrame>)
@@ -1514,30 +1507,35 @@ fn make_blocks_for_method<'a, 'b>(
     make_blocks(&params, &mut seen, sm, &rangemap[&0])
 }
 
-#[cfg(test)]
-fn test_stack_map_table(path : &std::path::Path) -> GeneralResult<()> {
-    use util::get_constant_getter;
-
-    let class = parse_class(path)?;
-    let methods = class.methods.iter();
-    for method in methods.filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
-        let sm = StackManager::new(STACK_REGS.to_owned());
-        let get_constant = get_constant_getter(&class);
-        let class = get_class(get_constant, class.this_class)?;
-        let max_locals = get_method_code(method)?.max_locals;
-        let method = class.contextualize(method);
-        let bbs = make_blocks_for_method(&class, &method, &sm, max_locals)?;
-        for bb in &bbs {
-            eprintln!("{}", bb);
-        }
-    }
-
-    Ok(())
-}
-
 #[test]
 fn test_parse_classes() -> GeneralResult<()>
 {
+    fn parse_class(path : &std::path::Path) -> GeneralResult<ClassFile> {
+        let p = path.with_extension("");
+        let p = p.to_str().ok_or("bad path")?;
+        classfile_parser::parse_class(p).map_err(Into::into)
+    }
+
+    fn test_stack_map_table(path : &std::path::Path) -> GeneralResult<()> {
+        use util::get_constant_getter;
+
+        let class = parse_class(path)?;
+        let methods = class.methods.iter();
+        for method in methods.filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
+            let sm = StackManager::new(STACK_REGS.to_owned());
+            let get_constant = get_constant_getter(&class);
+            let class = get_class(get_constant, class.this_class)?;
+            let max_locals = get_method_code(method)?.max_locals;
+            let method = class.contextualize(method);
+            let bbs = make_blocks_for_method(&class, &method, &sm, max_locals)?;
+            for bb in &bbs {
+                eprintln!("{}", bb);
+            }
+        }
+
+        Ok(())
+    }
+
     let is_dir_or_class = |e : &walkdir::DirEntry| {
         e.metadata().map(|e| e.is_dir()).unwrap_or(false) ||
             e.file_name().to_str().map(|s| s.ends_with(".class")).unwrap_or(false)
