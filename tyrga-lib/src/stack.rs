@@ -26,9 +26,6 @@ use crate::tenyr::Register;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 
-#[cfg(test)]
-use quickcheck::{quickcheck, Gen, TestResult};
-
 /// a list of stack-maintenance instructions that must be executed
 /// Note: the `must_use` attribute here does not appear to be effective on
 /// functions that return `StackActions`, so the `must_use` directive is
@@ -194,187 +191,190 @@ impl Manager {
 }
 
 #[cfg(test)]
-#[derive(Copy, Clone, Debug)]
-struct NumRegs(u8);
+mod test
+{
+    use crate::tenyr::Instruction;
+    use super::Manager;
 
-#[cfg(test)]
-impl quickcheck::Arbitrary for NumRegs {
-    fn arbitrary<G : Gen>(g : &mut G) -> Self {
-        // to be useful, we need a stack pointer and a non-stack pointer
-        let min = 2;
-        // do not count A and P registers
-        let max = 14;
-        NumRegs((g.next_u32() as u8) % (max - min) + min) // lossy cast is fine
-    }
-}
+    use quickcheck::{quickcheck, Gen, TestResult};
 
-#[cfg(test)]
-fn get_mgr(num_regs : NumRegs) -> Manager {
-    use Register::*;
-    let regs = [B, C, D, E, F, G, H, I, J, K, L, M, N, O];
-    let regs = regs.iter().take(num_regs.0.into()).cloned();
-    Manager::new(regs)
-}
+    #[derive(Copy, Clone, Debug)]
+    struct NumRegs(u8);
 
-#[cfg(test)]
-const POINTER_UPDATE_INSNS : u16 = 1;
-
-#[cfg(test)]
-fn unwrap<T>(f : impl FnOnce() -> Result<T, Box<dyn std::error::Error>>) -> T {
-    #[allow(clippy::result_unwrap_used)]
-    f().unwrap()
-}
-
-#[cfg(test)]
-quickcheck! {
-    fn test_new(num_regs : NumRegs) -> () {
-        let man = get_mgr(num_regs);
-        assert_eq!(man.register_count, (num_regs.0 - 1).into());
+    impl quickcheck::Arbitrary for NumRegs {
+        fn arbitrary<G : Gen>(g : &mut G) -> Self {
+            // to be useful, we need a stack pointer and a non-stack pointer
+            let min = 2;
+            // do not count A and P registers
+            let max = 14;
+            NumRegs((g.next_u32() as u8) % (max - min) + min) // lossy cast is fine
+        }
     }
 
-    fn test_trivial_reserve(n : NumRegs) -> () {
-        let mut man = get_mgr(n);
-        let act = man.reserve(1);
-        assert!(act.is_empty());
+    fn get_mgr(num_regs : NumRegs) -> Manager {
+        use crate::Register::*;
+        let regs = [B, C, D, E, F, G, H, I, J, K, L, M, N, O];
+        let regs = regs.iter().take(num_regs.0.into()).cloned();
+        Manager::new(regs)
     }
 
-    fn test_trivial_release(num_regs : NumRegs) -> TestResult {
-        let mut man = get_mgr(num_regs);
-        TestResult::must_fail(move || { let _ = man.release(1); })
+    const POINTER_UPDATE_INSNS : u16 = 1;
+
+    fn unwrap<T>(f : impl FnOnce() -> Result<T, Box<dyn std::error::Error>>) -> T {
+        #[allow(clippy::result_unwrap_used)]
+        f().unwrap()
     }
 
-    fn test_small_spill_and_load(num_regs : NumRegs) -> TestResult {
-        if num_regs.0 < 4 { return TestResult::discard(); }
-        unwrap(|| {
+    quickcheck! {
+        fn test_new(num_regs : NumRegs) -> () {
+            let man = get_mgr(num_regs);
+            assert_eq!(man.register_count, (num_regs.0 - 1).into());
+        }
+
+        fn test_trivial_reserve(n : NumRegs) -> () {
+            let mut man = get_mgr(n);
+            let act = man.reserve(1);
+            assert!(act.is_empty());
+        }
+
+        fn test_trivial_release(num_regs : NumRegs) -> TestResult {
             let mut man = get_mgr(num_regs);
-            let act = man.reserve((num_regs.0 - 1).into());
+            TestResult::must_fail(move || { let _ = man.release(1); })
+        }
+
+        fn test_small_spill_and_load(num_regs : NumRegs) -> TestResult {
+            if num_regs.0 < 4 { return TestResult::discard(); }
+            unwrap(|| {
+                let mut man = get_mgr(num_regs);
+                let act = man.reserve((num_regs.0 - 1).into());
+                assert!(act.is_empty());
+
+                let sp = man.stack_ptr;
+                let top = man.regs[0];
+                let sec = man.regs[1];
+                let thr = man.regs[2];
+
+                let act = man.reserve(3);
+                let exp : Vec<_> = tenyr_insn_list!(
+                    sp  <-  sp - 3  ;
+                    top -> [sp + 3] ;
+                    sec -> [sp + 2] ;
+                    thr -> [sp + 1] ;
+                ).collect();
+                assert_eq!(act, exp);
+
+                let act = man.release(3);
+                let exp : Vec<_> = tenyr_insn_list!(
+                    top <- [sp + 3] ;
+                    sec <- [sp + 2] ;
+                    thr <- [sp + 1] ;
+                    sp  <-  sp + 3  ;
+                ).collect();
+                assert_eq!(act, exp);
+
+                Ok(())
+            });
+            TestResult::passed()
+        }
+
+        fn test_boundary(num_regs : NumRegs, extra : u16, backoff : u16) -> TestResult {
+            if backoff > extra { return TestResult::discard(); }
+
+            let mut man = get_mgr(num_regs);
+            let r = man.register_count;
+
+            let first = extra - backoff;
+            let update_first = if first != 0 { POINTER_UPDATE_INSNS } else { 0 };
+            let update_backoff = if backoff != 0 { POINTER_UPDATE_INSNS } else { 0 };
+            let act = man.reserve(r + first);
+            assert_eq!(act.len(), (first + update_first).into());
+            let act = man.reserve(backoff);
+            assert_eq!(act.len(), (backoff + update_backoff).into());
+            let act = man.release(first);
+            assert_eq!(act.len(), (first + update_first).into());
+            let act = man.release(r + backoff);
+            assert_eq!(act.len(), (backoff + update_backoff).into());
+
+            assert_eq!(man.pick_point, 0);
+
+            TestResult::passed()
+        }
+
+        fn test_get(num_regs : NumRegs) -> TestResult {
+            if num_regs.0 < 3 { return TestResult::discard(); }
+
+            let mut man = get_mgr(num_regs);
+            let free_regs : u16 = (num_regs.0 - 1).into();
+            let act = man.reserve(free_regs * 2); // ensure we spill
+            assert_eq!(act.len(), num_regs.0.into());
+
+            // The expected register is computed using the same logic that is used in
+            // the `get` function, so ths is not an independent check, but it does help
+            // avoid regressions.
+            let len : usize = man.register_count.into();
+            let deep : usize = man.stack_depth.into();
+            let from_top = |n| (deep - 1 - usize::from(n)) % len;
+
+            let (r, act) = man.get(0);
+            let exp = man.regs[from_top(0)];
+            assert_eq!(r, exp);
             assert!(act.is_empty());
 
-            let sp = man.stack_ptr;
-            let top = man.regs[0];
-            let sec = man.regs[1];
-            let thr = man.regs[2];
+            let (r, act) = man.get(free_regs - 1);
+            let exp = man.regs[from_top(free_regs - 1)];
+            assert_eq!(r, exp);
+            assert!(act.is_empty());
 
-            let act = man.reserve(3);
-            let exp : Vec<_> = tenyr_insn_list!(
-                sp  <-  sp - 3  ;
-                top -> [sp + 3] ;
-                sec -> [sp + 2] ;
-                thr -> [sp + 1] ;
-            ).collect();
-            assert_eq!(act, exp);
+            TestResult::passed()
+        }
 
-            let act = man.release(3);
-            let exp : Vec<_> = tenyr_insn_list!(
-                top <- [sp + 3] ;
-                sec <- [sp + 2] ;
-                thr <- [sp + 1] ;
-                sp  <-  sp + 3  ;
-            ).collect();
-            assert_eq!(act, exp);
+        fn test_get_too_deep(num_regs : NumRegs) -> TestResult {
+            if num_regs.0 < 3 { return TestResult::discard(); }
 
-            Ok(())
-        });
-        TestResult::passed()
-    }
-
-    fn test_boundary(num_regs : NumRegs, extra : u16, backoff : u16) -> TestResult {
-        if backoff > extra { return TestResult::discard(); }
-
-        let mut man = get_mgr(num_regs);
-        let r = man.register_count;
-
-        let first = extra - backoff;
-        let update_first = if first != 0 { POINTER_UPDATE_INSNS } else { 0 };
-        let update_backoff = if backoff != 0 { POINTER_UPDATE_INSNS } else { 0 };
-        let act = man.reserve(r + first);
-        assert_eq!(act.len(), (first + update_first).into());
-        let act = man.reserve(backoff);
-        assert_eq!(act.len(), (backoff + update_backoff).into());
-        let act = man.release(first);
-        assert_eq!(act.len(), (first + update_first).into());
-        let act = man.release(r + backoff);
-        assert_eq!(act.len(), (backoff + update_backoff).into());
-
-        assert_eq!(man.pick_point, 0);
-
-        TestResult::passed()
-    }
-
-    fn test_get(num_regs : NumRegs) -> TestResult {
-        if num_regs.0 < 3 { return TestResult::discard(); }
-
-        let mut man = get_mgr(num_regs);
-        let free_regs : u16 = (num_regs.0 - 1).into();
-        let act = man.reserve(free_regs * 2); // ensure we spill
-        assert_eq!(act.len(), num_regs.0.into());
-
-        // The expected register is computed using the same logic that is used in
-        // the `get` function, so ths is not an independent check, but it does help
-        // avoid regressions.
-        let len : usize = man.register_count.into();
-        let deep : usize = man.stack_depth.into();
-        let from_top = |n| (deep - 1 - usize::from(n)) % len;
-
-        let (r, act) = man.get(0);
-        let exp = man.regs[from_top(0)];
-        assert_eq!(r, exp);
-        assert!(act.is_empty());
-
-        let (r, act) = man.get(free_regs - 1);
-        let exp = man.regs[from_top(free_regs - 1)];
-        assert_eq!(r, exp);
-        assert!(act.is_empty());
-
-        TestResult::passed()
-    }
-
-    fn test_get_too_deep(num_regs : NumRegs) -> TestResult {
-        if num_regs.0 < 3 { return TestResult::discard(); }
-
-        let mut man = get_mgr(num_regs);
-        let free_regs : u16 = (num_regs.0 - 1).into();
-        let act = man.reserve(free_regs * 2); // ensure we spill
-        assert_eq!(act.len(), num_regs.0.into());
-
-        TestResult::must_fail(move || { let _ = man.get(free_regs); })
-    }
-
-    fn test_pick_underflow(num_regs : NumRegs, n : u16) -> TestResult {
-        if u16::from(num_regs.0 + 1) < n { return TestResult::discard(); }
-
-        let mut man = get_mgr(num_regs);
-        let _ = man.reserve(n);
-        let _ = man.nudge(-i32::from(n + 3), 0); // force underflow
-        assert_eq!(man.pick_point, 0);
-        TestResult::passed()
-    }
-
-    fn test_repeated_spills(num_regs : NumRegs) -> () {
-        use crate::tenyr::InstructionType::Type3;
-
-        unwrap(|| {
-            let n : u16 = num_regs.0.into();
             let mut man = get_mgr(num_regs);
-            let sp = man.stack_ptr;
+            let free_regs : u16 = (num_regs.0 - 1).into();
+            let act = man.reserve(free_regs * 2); // ensure we spill
+            assert_eq!(act.len(), num_regs.0.into());
 
-            let _  = man.reserve(n - 1);
-            let act = man.reserve(1);
-            assert_eq!(act.len(), 2);
-            assert_eq!(act[0], tenyr_insn!( sp <- sp - 1 )?);
-            assert_eq!(act[1].kind, Type3(1_i16.into()));
+            TestResult::must_fail(move || { let _ = man.get(free_regs); })
+        }
 
-            let act = man.reserve(1);
-            assert_eq!(act.len(), 2);
-            assert_eq!(act[0], tenyr_insn!( sp <- sp - 1 )?);
-            assert_eq!(act[1].kind, Type3(1_i16.into()));
+        fn test_pick_underflow(num_regs : NumRegs, n : u16) -> TestResult {
+            if u16::from(num_regs.0 + 1) < n { return TestResult::discard(); }
 
-            let act = man.reserve(1);
-            assert_eq!(act.len(), 2);
-            assert_eq!(act[0], tenyr_insn!( sp <- sp - 1 )?);
-            assert_eq!(act[1].kind, Type3(1_i16.into()));
+            let mut man = get_mgr(num_regs);
+            let _ = man.reserve(n);
+            let _ = man.nudge(-i32::from(n + 3), 0); // force underflow
+            assert_eq!(man.pick_point, 0);
+            TestResult::passed()
+        }
 
-            Ok(())
-        });
+        fn test_repeated_spills(num_regs : NumRegs) -> () {
+            use crate::tenyr::InstructionType::Type3;
+
+            unwrap(|| {
+                let n : u16 = num_regs.0.into();
+                let mut man = get_mgr(num_regs);
+                let sp = man.stack_ptr;
+
+                let _  = man.reserve(n - 1);
+                let act = man.reserve(1);
+                assert_eq!(act.len(), 2);
+                assert_eq!(act[0], tenyr_insn!( sp <- sp - 1 )?);
+                assert_eq!(act[1].kind, Type3(1_i16.into()));
+
+                let act = man.reserve(1);
+                assert_eq!(act.len(), 2);
+                assert_eq!(act[0], tenyr_insn!( sp <- sp - 1 )?);
+                assert_eq!(act[1].kind, Type3(1_i16.into()));
+
+                let act = man.reserve(1);
+                assert_eq!(act.len(), 2);
+                assert_eq!(act[0], tenyr_insn!( sp <- sp - 1 )?);
+                assert_eq!(act[1].kind, Type3(1_i16.into()));
+
+                Ok(())
+            });
+        }
     }
 }
