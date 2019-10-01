@@ -3,9 +3,6 @@
 use std::fs::File;
 use std::path::Path;
 
-#[cfg(test)]
-use walkdir::WalkDir;
-
 type TerminatingResult = std::result::Result<(), Box<dyn std::error::Error>>;
 
 fn translate_file(input_filename : &Path, output_filename : &Path) -> TerminatingResult {
@@ -25,7 +22,7 @@ fn test_translate_file() -> TerminatingResult {
         e.metadata().map(|e| e.is_dir()).unwrap_or(false) ||
             e.file_name().to_str().map(|s| s.ends_with(".class")).unwrap_or(false)
     };
-    for from in WalkDir::new(env!("OUT_DIR")).into_iter().filter_entry(is_dir_or_class) {
+    for from in walkdir::WalkDir::new(env!("OUT_DIR")).into_iter().filter_entry(is_dir_or_class) {
         let from = from?;
         let from = from.path();
         if ! from.metadata()?.is_dir() {
