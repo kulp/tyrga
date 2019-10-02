@@ -297,6 +297,7 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
          B  <-  C >>> D + 3      ;
          B  <-  C  +  D + 3      ;
          B  <-  C  *  D + 3      ;
+         B  <-  C  *  D - 3      ;
          B  <-  C                ;
          B  <-  C  +  D          ;
          B  <-  C  |~ D          ;
@@ -317,44 +318,52 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
          B  -> [(three) &~ C + D];
          B  <- [(three) @  C + D];
          B  <-  C  +  0x12345    ;
+         B  <-  C  -  0x12345    ;
          B  <-        0x12345    ;
          B  <-  C  +  (three)    ;
+         B  <-  C  -  (three)    ;
          B  <-        (three)    ;
     };
 
-    let maker = |f : &dyn Fn(InsnGeneral) -> InstructionType, y, op, imm, z, x, dd|
-        Instruction { kind : f(InsnGeneral { y, op, imm } ), z, x, dd };
+    let make = |ctor : &dyn Fn(InsnGeneral) -> InstructionType, y, op, imm : i8, z, x, dd|
+        Instruction { kind : ctor(InsnGeneral { y, op, imm : imm.into() }), z, x, dd };
+
+    let make3 = |imm : i32, z, x, dd|
+        InsnResult::Ok(Instruction { kind : Type3(imm.try_into()?), z, x, dd });
 
     let from : Vec<_> = from.collect();
 
     let to = vec![
-        maker(&Type0, D, BitwiseOrn      , 3_u8.into(), B, C, NoLoad    ),
-        maker(&Type0, D, ShiftRightLogic , 3_u8.into(), B, C, NoLoad    ),
-        maker(&Type0, D, Add             , 3_u8.into(), B, C, NoLoad    ),
-        maker(&Type0, D, Multiply        , 3_u8.into(), B, C, NoLoad    ),
-        maker(&Type0, A, BitwiseOr       , 0_u8.into(), B, C, NoLoad    ),
-        maker(&Type0, D, Add             , 0_u8.into(), B, C, NoLoad    ),
-        maker(&Type0, D, BitwiseOrn      , 0_u8.into(), B, C, NoLoad    ),
-        maker(&Type1, A, Pack            , 3_u8.into(), B, C, NoLoad    ),
-        maker(&Type2, A, Multiply        , 3_u8.into(), B, C, NoLoad    ),
-        maker(&Type2, D, Multiply        , 3_u8.into(), B, C, NoLoad    ),
-        maker(&Type2, D, Pack            , 3_u8.into(), B, C, StoreLeft ),
-        maker(&Type2, D, BitwiseAndn     , 3_u8.into(), B, C, StoreRight),
-        maker(&Type2, D, TestBit         , 3_u8.into(), B, C, LoadRight ),
-        maker(&Type0, D, BitwiseOrn      , 3_u8.into(), B, C, NoLoad    ),
-        maker(&Type0, D, ShiftRightLogic , 3_u8.into(), B, C, NoLoad    ),
-        maker(&Type0, D, Add             , 3_u8.into(), B, C, NoLoad    ),
-        maker(&Type0, D, Multiply        , 3_u8.into(), B, C, NoLoad    ),
-        maker(&Type1, A, Pack            , 3_u8.into(), B, C, NoLoad    ),
-        maker(&Type2, A, Multiply        , 3_u8.into(), B, C, NoLoad    ),
-        maker(&Type2, D, Multiply        , 3_u8.into(), B, C, NoLoad    ),
-        maker(&Type2, D, Pack            , 3_u8.into(), B, C, StoreLeft ),
-        maker(&Type2, D, BitwiseAndn     , 3_u8.into(), B, C, StoreRight),
-        maker(&Type2, D, TestBit         , 3_u8.into(), B, C, LoadRight ),
-        Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type3(0x12345_i32.try_into()?), z : B, x : A, dd : NoLoad },
-        Instruction { kind : Type3(3_u8.into())            , z : B, x : C, dd : NoLoad },
-        Instruction { kind : Type3(3_u8.into())            , z : B, x : A, dd : NoLoad },
+        make(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ),
+        make(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ),
+        make(&Type0,D,Add            , 3_i8,B,C,NoLoad    ),
+        make(&Type0,D,Multiply       , 3_i8,B,C,NoLoad    ),
+        make(&Type0,D,Multiply       ,-3_i8,B,C,NoLoad    ),
+        make(&Type0,A,BitwiseOr      , 0_i8,B,C,NoLoad    ),
+        make(&Type0,D,Add            , 0_i8,B,C,NoLoad    ),
+        make(&Type0,D,BitwiseOrn     , 0_i8,B,C,NoLoad    ),
+        make(&Type1,A,Pack           , 3_i8,B,C,NoLoad    ),
+        make(&Type2,A,Multiply       , 3_i8,B,C,NoLoad    ),
+        make(&Type2,D,Multiply       , 3_i8,B,C,NoLoad    ),
+        make(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ),
+        make(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight),
+        make(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ),
+        make(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ),
+        make(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ),
+        make(&Type0,D,Add            , 3_i8,B,C,NoLoad    ),
+        make(&Type0,D,Multiply       , 3_i8,B,C,NoLoad    ),
+        make(&Type1,A,Pack           , 3_i8,B,C,NoLoad    ),
+        make(&Type2,A,Multiply       , 3_i8,B,C,NoLoad    ),
+        make(&Type2,D,Multiply       , 3_i8,B,C,NoLoad    ),
+        make(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ),
+        make(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight),
+        make(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ),
+        make3( 0x12345_i32,B,C,NoLoad)?,
+        make3(-0x12345_i32,B,C,NoLoad)?,
+        make3( 0x12345_i32,B,A,NoLoad)?,
+        make3(       3_i32,B,C,NoLoad)?,
+        make3(      -3_i32,B,C,NoLoad)?,
+        make3(       3_i32,B,A,NoLoad)?,
     ];
 
     assert_eq!(from, to);
