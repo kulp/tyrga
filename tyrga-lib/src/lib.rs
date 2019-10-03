@@ -1236,18 +1236,10 @@ mod util {
         fn get_constant(&self, index : u16) -> &'a ConstantInfo;
     }
 
+    #[derive(Clone)]
     pub(in super) struct Context<'a, T> {
         get_constant : Rc<ConstantGetter<'a>>,
         nested : Rc<T>,
-    }
-
-    impl<'a, T> Clone for Context<'a, T> {
-        fn clone(&self) -> Self {
-            Context {
-                get_constant : Rc::clone(&self.get_constant),
-                nested : Rc::clone(&self.nested),
-            }
-        }
     }
 
     impl<'a, T> Contextualizer<'a> for Context<'a, T> {
