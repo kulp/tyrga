@@ -133,7 +133,7 @@ fn test_expand() -> GeneralResult<()> {
     use Register::{A, B, C, D, E, F, G};
 
     let v = vec![C, D, E, F, G];
-    let mut sm = StackManager::new(v.clone());
+    let mut sm = StackManager::new(v);
 
     {
         let imm = 867_5309; // 0x845fed
@@ -153,7 +153,7 @@ fn test_expand() -> GeneralResult<()> {
     {
         let imm = 123;
         let insn = tenyr_insn!( D -> [C + 0] )?;
-        let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
+        let vv = expand_immediate_load(&mut sm, insn, imm)?;
         let expect = tenyr_insn_list!(
              D  -> [C + 123]    ;
         );
@@ -165,7 +165,7 @@ fn test_expand() -> GeneralResult<()> {
     {
         let imm = 867_5309; // 0x845fed
         let insn = tenyr_insn!( D -> [C + 0] )?;
-        let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
+        let vv = expand_immediate_load(&mut sm, insn, imm)?;
         let rhs = 0xffff_ffed_u32 as i32;
         let expect = tenyr_insn_list!(
              C  <-  0x845       ;
@@ -180,7 +180,7 @@ fn test_expand() -> GeneralResult<()> {
     {
         let imm = 123;
         let insn = tenyr_insn!( D -> [C * B] )?;
-        let vv = expand_immediate_load(&mut sm, insn.clone(), imm)?;
+        let vv = expand_immediate_load(&mut sm, insn, imm)?;
         let expect = tenyr_insn_list!(
              D  -> [C  *  B + 123]  ;
         );
