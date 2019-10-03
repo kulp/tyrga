@@ -132,8 +132,8 @@ fn test_expand() -> GeneralResult<()> {
     use InstructionType::Type0;
     use Register::{A, B, C, D, E, F, G};
 
-    let v = vec![C, D, E, F, G];
-    let mut sm = StackManager::new(v);
+    let v = [C, D, E, F, G];
+    let mut sm = StackManager::new(&v);
 
     {
         let imm = 867_5309; // 0x845fed
@@ -1084,7 +1084,7 @@ fn test_make_instruction() -> GeneralResult<()> {
         }
     }
 
-    let mut sm = StackManager::new(STACK_REGS.to_owned());
+    let mut sm = StackManager::new(STACK_REGS);
     let op = Operation::Constant(Explicit(ExplicitConstant { kind : JType::Int, value : 5 }));
     let namer = |x : &dyn fmt::Display| Ok(format!("{}:{}", "test", x.to_string()));
     let insn = make_instructions(&mut sm, (0, op), &namer, &Useless, 0)?;
@@ -1520,7 +1520,7 @@ fn test_parse_classes() -> GeneralResult<()>
         let class = parse_class(path)?;
         let methods = class.methods.iter();
         for method in methods.filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
-            let sm = StackManager::new(STACK_REGS.to_owned());
+            let sm = StackManager::new(STACK_REGS);
             let get_constant = get_constant_getter(&class);
             let class = get_class(get_constant, class.this_class)?;
             let max_locals = get_method_code(method)?.max_locals;
@@ -1651,7 +1651,7 @@ fn translate_method<'a, 'b>(
     // store our results when we Yield.
     let max_locals = total_locals.max(num_returns);
 
-    let sm = &StackManager::new(STACK_REGS.to_owned());
+    let sm = &StackManager::new(STACK_REGS);
     let sp = sm.get_stack_ptr();
     let max_locals_i32 = i32::from(max_locals);
 

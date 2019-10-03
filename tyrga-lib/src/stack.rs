@@ -49,8 +49,8 @@ pub struct Manager {
 
 impl Manager {
     /// create manager for a given register list
-    pub fn new<I : IntoIterator<Item = Register>>(regs : I) -> Self {
-        let mut regs : Vec<_> = regs.into_iter().collect();
+    pub fn new<'a,I : IntoIterator<Item = &'a Register>>(regs : I) -> Self {
+        let mut regs : Vec<_> = regs.into_iter().copied().collect();
         let stack_depth = 0;
         let pick_point = 0;
         let stack_ptr = regs.pop().expect("too few registers");
@@ -214,8 +214,7 @@ mod test
     fn get_mgr(num_regs : NumRegs) -> Manager {
         use crate::Register::*;
         let regs = [B, C, D, E, F, G, H, I, J, K, L, M, N, O];
-        let regs = regs.iter().take(num_regs.0.into()).cloned();
-        Manager::new(regs)
+        Manager::new(&regs[0..num_regs.0.into()])
     }
 
     const POINTER_UPDATE_INSNS : u16 = 1;
