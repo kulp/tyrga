@@ -33,21 +33,21 @@ impl fmt::Display for Atom {
         match self {
             Variable(name) => write!(f, "{}", name),
             Immediate(num) => write!(f, "{}", num),
-            Expression(e)  => write!(f, "({})", e.to_string()),
+            Expression(e) => write!(f, "({})", e.to_string()),
         }
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Expr {
-    pub a  : Atom,
-    pub b  : Atom,
+    pub a :  Atom,
+    pub b :  Atom,
     pub op : Operation,
 }
 
 impl fmt::Display for Expr {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{a} {op} {b}", a=self.a, b=self.b, op=self.op)
+        write!(f, "{a} {op} {b}", a = self.a, b = self.b, op = self.op)
     }
 }
 
@@ -57,11 +57,23 @@ fn test_expr_display() {
     use Atom::*;
     use Operation::*;
 
-    let e = Expr { a : Variable("A".to_string()), op : Add, b : Immediate(3)              };
+    let e = Expr {
+        a :  Variable("A".to_string()),
+        op : Add,
+        b :  Immediate(3),
+    };
     let ee = Rc::new(e);
-    let f = Expr { a : Expression(ee.clone())   , op : Sub, b : Variable("B".to_string()) };
+    let f = Expr {
+        a :  Expression(ee.clone()),
+        op : Sub,
+        b :  Variable("B".to_string()),
+    };
     let ff = Rc::new(f);
-    let g = Expr { a : Expression(ee.clone())   , op : Sub, b : Expression(ff.clone())    };
+    let g = Expr {
+        a :  Expression(ee.clone()),
+        op : Sub,
+        b :  Expression(ff.clone()),
+    };
 
     assert_eq!(ee.to_string(), "A + 3");
     assert_eq!(ff.to_string(), "(A + 3) - B");

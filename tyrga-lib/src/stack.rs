@@ -74,7 +74,7 @@ impl Manager {
 
     fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
         use crate::tenyr::InstructionType::Type3;
-        use crate::tenyr::MemoryOpType::{NoLoad, LoadRight, StoreRight};
+        use crate::tenyr::MemoryOpType::{LoadRight, NoLoad, StoreRight};
 
         let spilled_before = self.spilled_count();
 
@@ -114,22 +114,16 @@ impl Manager {
 
     /// reserves a given number of slots, pushing the pick point down
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
-    pub fn reserve(&mut self, n : u16) -> StackActions {
-        self.adjust(i32::from(n))
-    }
+    pub fn reserve(&mut self, n : u16) -> StackActions { self.adjust(i32::from(n)) }
 
     /// releases a given number of slots, pulling the pick point up
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
-    pub fn release(&mut self, n : u16) -> StackActions {
-        self.adjust(-i32::from(n))
-    }
+    pub fn release(&mut self, n : u16) -> StackActions { self.adjust(-i32::from(n)) }
 
     /// reserves (positive argument) or releases (negative input) a given number
     /// of slots (zero means no operation)
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
-    fn adjust(&mut self, n : i32) -> StackActions {
-        self.nudge(n, n)
-    }
+    fn adjust(&mut self, n : i32) -> StackActions { self.nudge(n, n) }
 
     /// commits all registers to memory, optionally releasing afterward
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
@@ -191,10 +185,9 @@ impl Manager {
 }
 
 #[cfg(test)]
-mod test
-{
-    use crate::tenyr::Instruction;
+mod test {
     use super::Manager;
+    use crate::tenyr::Instruction;
 
     use quickcheck::{quickcheck, Gen, TestResult};
 
