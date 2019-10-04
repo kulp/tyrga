@@ -817,7 +817,7 @@ where
 {
     match details {
          AllocationKind::Array { kind, dims } => {
-            use jvmtypes::Indirection::Explicit;
+            use jvmtypes::Indirection::{Explicit, Indirect};
 
             let descriptor = "(I)Ljava.lang.Object;";
             let proc = "alloc";
@@ -845,7 +845,8 @@ where
                     pre.extend(v);
                     Ok(pre)
                 },
-                _ => unimplemented!(),
+                (Indirect(_index), _) => unimplemented!(),
+                _ => Err("invalid allocation configuration".into()),
             }
         },
         AllocationKind::Element { index } => {
