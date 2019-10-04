@@ -244,13 +244,8 @@ fn make_builtin_name(proc : &str, descriptor : &str) -> GeneralResult<String> {
 
 fn make_jump(target : u16, target_namer : &Namer) -> GeneralResult<Instruction> {
     use crate::tenyr::InstructionType::Type3;
-    use Register::P;
-    Ok(Instruction {
-        kind : Type3(tenyr::Immediate::Expr(make_target(&target_namer(&target)?)?)),
-        z : P,
-        x : P,
-        ..tenyr::NOOP_TYPE3
-    })
+    let kind = Type3(tenyr::Immediate::Expr(make_target(&target_namer(&target)?)?));
+    Ok(Instruction { kind, z : Register::P, x : Register::P, ..tenyr::NOOP_TYPE3 })
 }
 
 fn make_call(sm : &mut StackManager, target : &str, descriptor : &str) -> GeneralResult<Vec<Instruction>> {
@@ -1097,7 +1092,7 @@ fn test_make_instruction() -> GeneralResult<()> {
     Ok(())
 }
 
-pub type GeneralResult<T> = std::result::Result<T, Box<dyn Error>>;
+pub type GeneralResult<T> = Result<T, Box<dyn Error>>;
 
 fn generic_error(e : impl Error) -> Box<dyn Error> { format!("unknown error: {}", e).into() }
 
