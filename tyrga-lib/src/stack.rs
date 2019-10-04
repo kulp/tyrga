@@ -49,8 +49,8 @@ pub struct Manager {
 
 impl Manager {
     /// create manager for a given register list
-    pub fn new<'a,I : IntoIterator<Item = &'a Register>>(regs : I) -> Self {
-        let mut regs : Vec<_> = regs.into_iter().copied().collect();
+    pub fn new(regs : &[Register]) -> Self {
+        let mut regs = regs.to_owned();
         let stack_depth = 0;
         let pick_point = 0;
         let stack_ptr = regs.pop().expect("too few registers");
