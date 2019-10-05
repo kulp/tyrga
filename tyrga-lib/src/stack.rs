@@ -167,6 +167,12 @@ impl Manager {
         (reg, act)
     }
 
+    /// copies a register at depth from top of stack to a newly reserved register
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
+    pub fn get_copy(&mut self, n : u16) -> (Register, StackActions) {
+        (Register::A, vec![])
+    }
+
     /// returns the register that points to the highest empty slot in memory
     pub fn get_stack_ptr(&self) -> Register { self.stack_ptr }
 
