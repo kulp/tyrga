@@ -680,8 +680,7 @@ fn make_array_op(
             let mut v = Vec::new();
             let (top, gets) = sm.get(0);
             v.extend(gets);
-            let insn = Instruction { kind : Type3((-1_i8).into()), dd : LoadRight, z : top, x : top };
-            v.push(insn);
+            v.push(Instruction { kind : Type3((-1_i8).into()), dd : LoadRight, z : top, x : top });
             return Ok(v); // bail out early
         }
         Load(k) => {
@@ -815,8 +814,7 @@ where
             use jvmtypes::Indirection::{Explicit, Indirect};
 
             let descriptor = "(I)Ljava.lang.Object;";
-            let proc = "alloc";
-            let name = make_builtin_name(proc, descriptor)?;
+            let name = make_builtin_name("alloc", descriptor)?;
             let regs : Vec<_> =
                 (0..dims.into())
                     .map(|r| sm.get(r))
@@ -869,7 +867,6 @@ fn make_compare(
     use std::convert::TryInto;
 
     let mut v = sm.reserve(1);
-    let name = "cmp";
     let ch : char = kind.try_into()?;
 
     let (gc, gets) = sm.get(0);
@@ -882,7 +879,7 @@ fn make_compare(
     v.push(tenyr_insn!( gc <- (n) )?);
 
     let desc = format!("({}{}I)I", ch, ch);
-    let insns = make_call(sm, &make_builtin_name(name, &desc)?, &desc)?;
+    let insns = make_call(sm, &make_builtin_name("cmp", &desc)?, &desc)?;
     v.extend(insns);
     Ok(v)
 }
