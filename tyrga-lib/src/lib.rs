@@ -515,7 +515,7 @@ fn make_branch(
     };
     let invert = way == jvmtypes::Comparison::Ne;
 
-    let opper = |sm : &mut StackManager| {
+    make_int_branch(sm, invert, target, target_namer, |sm| {
         use OperandCount::{Single, Double};
 
         let mut v = Vec::new();
@@ -540,9 +540,7 @@ fn make_branch(
             dd : MemoryOpType::NoLoad,
         });
         Ok((temp_reg, v))
-    };
-
-    make_int_branch(sm, invert, target, target_namer, opper)
+    })
 }
 
 fn make_switch(
