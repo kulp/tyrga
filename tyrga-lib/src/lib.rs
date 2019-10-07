@@ -505,14 +505,15 @@ fn make_branch(
 {
     use tenyr::*;
 
-    let (op, swap, invert) = match way {
-        jvmtypes::Comparison::Eq => (Opcode::CompareEq, false, false),
-        jvmtypes::Comparison::Ne => (Opcode::CompareEq, false, true ),
-        jvmtypes::Comparison::Lt => (Opcode::CompareLt, false, false),
-        jvmtypes::Comparison::Ge => (Opcode::CompareGe, false, false),
-        jvmtypes::Comparison::Gt => (Opcode::CompareLt, true , false),
-        jvmtypes::Comparison::Le => (Opcode::CompareGe, true , false),
+    let (op, swap) = match way {
+        jvmtypes::Comparison::Eq => (Opcode::CompareEq, false),
+        jvmtypes::Comparison::Ne => (Opcode::CompareEq, false),
+        jvmtypes::Comparison::Lt => (Opcode::CompareLt, false),
+        jvmtypes::Comparison::Ge => (Opcode::CompareGe, false),
+        jvmtypes::Comparison::Gt => (Opcode::CompareLt, true ),
+        jvmtypes::Comparison::Le => (Opcode::CompareGe, true ),
     };
+    let invert = way == jvmtypes::Comparison::Ne;
 
     let opper = |sm : &mut StackManager| {
         use OperandCount::{Single, Double};
