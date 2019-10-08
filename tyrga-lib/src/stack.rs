@@ -189,7 +189,27 @@ impl Manager {
                     .collect();
             (to, v)
         } else {
-            unimplemented!()
+            use crate::tenyr::InstructionType::Type3;
+            use crate::tenyr::MemoryOpType::LoadRight;
+            let to_actions = self.reserve(1);
+            let (to, to_actions_addl) = self.get(0);
+            assert!(to_actions_addl.is_empty());
+            // add one for reservation above
+            // add one since stack pointer points to empty slot
+            let offset = n + 1 + 1 - self.pick_point;
+            let insn = Instruction {
+                z : to,
+                x : self.get_stack_ptr(),
+                dd : LoadRight,
+                kind : Type3(offset.into()),
+            };
+
+            let v =
+                std::iter::empty()
+                    .chain(to_actions)
+                    .chain(std::iter::once(insn))
+                    .collect();
+            (to, v)
         }
     }
 
@@ -406,5 +426,16 @@ mod test {
         assert_eq!(man.regs[4], reg);
         assert_eq!(act[0].dd, crate::tenyr::MemoryOpType::NoLoad);
         assert_eq!(act[0].kind, crate::tenyr::NOOP_TYPE0.kind);
+    }
+    #[test]
+    fn test_get_copy_tiny_1() {
+        let mut man = get_mgr(NumRegs(8));
+        let _ = man.reserve(4);
+        let _ = man.nudge(-1, 0);
+        let (reg, act) = man.get_copy(3);
+        assert_eq!(act.len(), 1);
+        assert_eq!(man.regs[4], reg);
+        assert_eq!(act[0].dd, crate::tenyr::MemoryOpType::LoadRight);
+        assert_eq!(act[0].kind, crate::tenyr::InstructionType::Type3(1u8.into()));
     }
 }
