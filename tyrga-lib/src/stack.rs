@@ -170,7 +170,27 @@ impl Manager {
     /// copies a register at depth from top of stack to a newly reserved register
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn get_copy(&mut self, n : u16) -> (Register, StackActions) {
-        (Register::A, vec![])
+        assert!(n < self.stack_depth);
+        if n < self.pick_point {
+            let (from, from_actions) = self.get(n);
+            assert!(from_actions.is_empty());
+            let to_actions = self.reserve(1);
+            let (to, to_actions_addl) = self.get(0);
+            assert!(to_actions_addl.is_empty());
+            let insn = Instruction {
+                z : to,
+                x : from,
+                ..crate::tenyr::NOOP_TYPE0
+            };
+            let v =
+                std::iter::empty()
+                    .chain(to_actions)
+                    .chain(std::iter::once(insn))
+                    .collect();
+            (to, v)
+        } else {
+            unimplemented!()
+        }
     }
 
     /// returns the register that points to the highest empty slot in memory
@@ -375,5 +395,16 @@ mod test {
                 Ok(())
             });
         }
+    }
+
+    #[test]
+    fn test_get_copy_tiny_0() {
+        let mut man = get_mgr(NumRegs(8));
+        let _ = man.reserve(4);
+        let (reg, act) = man.get_copy(3);
+        assert_eq!(act.len(), 1);
+        assert_eq!(man.regs[4], reg);
+        assert_eq!(act[0].dd, crate::tenyr::MemoryOpType::NoLoad);
+        assert_eq!(act[0].kind, crate::tenyr::NOOP_TYPE0.kind);
     }
 }
