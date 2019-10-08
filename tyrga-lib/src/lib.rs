@@ -599,9 +599,9 @@ fn make_switch(
                     let insn = Instruction {
                         kind : kind(
                             InsnGeneral {
-                            y : Register::A,
-                            op : Opcode::CompareLt,
-                            imm : 0_u8.into(), // placeholder
+                                y : Register::A,
+                                op : Opcode::CompareLt,
+                                imm : 0_u8.into(), // placeholder
                             }),
                         z : temp_reg,
                         x : top,
