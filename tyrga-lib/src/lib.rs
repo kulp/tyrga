@@ -1134,12 +1134,12 @@ fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
 }
 
 mod util {
-    use super::jvmtypes::JType;
-    use super::mangling;
-    use super::tenyr::Instruction;
-    use super::tenyr::Register;
-    use super::GeneralResult;
-    use super::StackManager;
+    use crate::jvmtypes::JType;
+    use crate::mangling;
+    use crate::tenyr::Instruction;
+    use crate::tenyr::Register;
+    use crate::GeneralResult;
+    use crate::StackManager;
     use classfile_parser::constant_info::ConstantInfo;
     use classfile_parser::constant_info::FieldRefConstant;
     use classfile_parser::constant_info::{ClassConstant, MethodRefConstant, NameAndTypeConstant};
@@ -1557,8 +1557,8 @@ impl fmt::Display for Method {
 }
 
 mod args {
-    use super::GeneralResult;
-    use super::JType;
+    use crate::GeneralResult;
+    use crate::JType;
     use std::convert::TryFrom;
 
     pub fn field_size(ch : char) -> GeneralResult<u8> {
