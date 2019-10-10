@@ -242,10 +242,12 @@ fn make_builtin_name(proc : &str, descriptor : &str) -> GeneralResult<String> {
     mangle(&[&"tyrga/Builtin", &proc, &descriptor])
 }
 
-fn make_jump(target : u16, target_namer : &Namer) -> GeneralResult<Instruction> {
+fn make_jump(target : u16, target_namer : &Namer) -> MakeInsnResult {
     use crate::tenyr::InstructionType::Type3;
     let kind = Type3(tenyr::Immediate::Expr(make_target(&target_namer(&target)?)?));
-    Ok(Instruction { kind, z : Register::P, x : Register::P, ..tenyr::NOOP_TYPE3 })
+    let insn = Instruction { kind, z : Register::P, x : Register::P, ..tenyr::NOOP_TYPE3 };
+    let dests = vec![ Destination::Address(target as usize) ];
+    Ok((vec![ insn ], dests))
 }
 
 fn make_call(sm : &mut StackManager, target : &str, descriptor : &str) -> GeneralResult<Vec<Instruction>> {
@@ -584,8 +586,9 @@ fn make_switch(
             dests.extend(d.concat());
 
             let far = (default + here) as u16;
-            insns.push(make_jump(far, target_namer)?);
-            dests.push(Destination::Address(far.into()));
+            let (i, d) = make_jump(far, target_namer)?;
+            insns.extend(i);
+            dests.extend(d);
 
             Ok((insns, dests))
         },
@@ -630,16 +633,13 @@ fn make_switch(
             let (i, d) : (Vec<_>, Vec<_>) =
                 offsets
                     .into_iter()
-                    .map(|n| GeneralResult::Ok((
-                        make_jump((n + here) as u16, target_namer)?,
-                        Destination::Address((n + here) as usize))
-                    ))
+                    .map(|n| make_jump((n + here) as u16, target_namer))
                     .collect::<Result<Vec<_>,_>>()?
                     .into_iter()
                     .unzip();
 
-            insns.extend(i);
-            dests.extend(d);
+            insns.extend(i.concat());
+            dests.extend(d.concat());
 
             dests.extend(lo_dests);
             dests.extend(hi_dests);
@@ -1038,7 +1038,7 @@ where
         Invocation { kind, index } =>
             no_branch(make_invocation(sm, kind, index, gc)?),
         Jump { target } =>
-            Ok((vec![ make_jump(target, target_namer)? ], vec![ Destination::Address(target as usize) ])),
+            make_jump(target, target_namer),
         LocalOp(op) =>
             no_branch(make_mem_op(sm, op, max_locals)?),
         Noop =>
