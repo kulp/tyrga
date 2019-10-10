@@ -1019,38 +1019,22 @@ where
     let no_branch = |x| Ok((x, vec![Destination::Successor]));
 
     match op {
-        Allocation(details) =>
-            no_branch(make_allocation(sm, details, gc)?),
-        Arithmetic { kind, op } =>
-            no_branch(make_arithmetic(sm, kind, op)?),
-        ArrayOp(aop) =>
-            no_branch(make_array_op(sm, aop)?),
-        Branch { ops, way, target } =>
-            make_branch(sm, ops, way, target, target_namer),
-        Compare { kind, nans } =>
-            no_branch(make_compare(sm, kind, nans)?),
-        Constant(details) =>
-            no_branch(make_constant(sm, gc, details)?),
-        Conversion { from, to } =>
-            no_branch(make_conversion(sm, from, to)?),
-        Increment { index, value } =>
-            no_branch(make_increment(sm, index, value, max_locals)?),
-        Invocation { kind, index } =>
-            no_branch(make_invocation(sm, kind, index, gc)?),
-        Jump { target } =>
-            make_jump(target, target_namer),
-        LocalOp(op) =>
-            no_branch(make_mem_op(sm, op, max_locals)?),
-        Noop =>
-            no_branch(vec![ tenyr::NOOP_TYPE0 ]),
-        StackOp { op, size } =>
-            no_branch(make_stack_op(sm, op, size)?),
-        Switch(params) =>
-            make_switch(sm, params, target_namer, addr),
-        VarAction { op, kind, index } =>
-            no_branch(make_varaction(sm, op, kind, index, gc)?),
-        Yield { kind } =>
-            make_yield(sm, kind, target_namer, max_locals),
+        Allocation(details)           => no_branch(make_allocation(sm, details, gc)?),
+        Arithmetic { kind, op }       => no_branch(make_arithmetic(sm, kind, op)?),
+        ArrayOp(aop)                  => no_branch(make_array_op(sm, aop)?),
+        Branch { ops, way, target }   => make_branch(sm, ops, way, target, target_namer),
+        Compare { kind, nans }        => no_branch(make_compare(sm, kind, nans)?),
+        Constant(details)             => no_branch(make_constant(sm, gc, details)?),
+        Conversion { from, to }       => no_branch(make_conversion(sm, from, to)?),
+        Increment { index, value }    => no_branch(make_increment(sm, index, value, max_locals)?),
+        Invocation { kind, index }    => no_branch(make_invocation(sm, kind, index, gc)?),
+        Jump { target }               => make_jump(target, target_namer),
+        LocalOp(op)                   => no_branch(make_mem_op(sm, op, max_locals)?),
+        Noop                          => no_branch(vec![ tenyr::NOOP_TYPE0 ]),
+        StackOp { op, size }          => no_branch(make_stack_op(sm, op, size)?),
+        Switch(params)                => make_switch(sm, params, target_namer, addr),
+        VarAction { op, kind, index } => no_branch(make_varaction(sm, op, kind, index, gc)?),
+        Yield { kind }                => make_yield(sm, kind, target_namer, max_locals),
 
         Unhandled( .. ) =>
             unimplemented!("unhandled operation {:?}", op)
