@@ -56,9 +56,11 @@ enum Destination {
     Address(usize),
 }
 
-fn expand_immediate_load(sm : &mut StackManager, insn : Instruction, imm : i32)
-    -> GeneralResult<Vec<Instruction>>
-{
+fn expand_immediate_load(
+    sm : &mut StackManager,
+    insn : Instruction,
+    imm : i32,
+) -> GeneralResult<Vec<Instruction>> {
     use tenyr::InsnGeneral as Gen;
     use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::NoLoad;
@@ -250,7 +252,11 @@ fn make_jump(target : u16, target_namer : &Namer) -> MakeInsnResult {
     Ok((vec![ insn ], dests))
 }
 
-fn make_call(sm : &mut StackManager, target : &str, descriptor : &str) -> GeneralResult<Vec<Instruction>> {
+fn make_call(
+    sm : &mut StackManager,
+    target : &str,
+    descriptor : &str,
+) -> GeneralResult<Vec<Instruction>> {
     use Register::P;
 
     let mut insns = Vec::new();
@@ -275,8 +281,7 @@ fn make_yield(
     kind : JType,
     target_namer : &Namer,
     max_locals : u16,
-) -> MakeInsnResult
-{
+) -> MakeInsnResult {
     use tenyr::MemoryOpType::StoreRight;
     use util::index_local;
     use Register::P;
@@ -359,16 +364,15 @@ where
 fn make_arithmetic(
     sm : &mut StackManager,
     kind : JType,
-    op : ArithmeticOperation
-) -> GeneralResult<Vec<Instruction>>
-{
+    op : ArithmeticOperation,
+) -> GeneralResult<Vec<Instruction>> {
     use tenyr::InstructionType::Type0;
 
     fn make_descriptor(kind : JType, op : ArithmeticOperation) -> GeneralResult<String> {
         use std::convert::TryInto;
-    
+
         let ch : char = kind.try_into()?;
-    
+
         let nargs = {
             use ArithmeticOperation::*;
             match op {
@@ -479,8 +483,7 @@ fn make_increment(
     index : u16,
     value : i16,
     max_locals : u16,
-) -> GeneralResult<Vec<Instruction>>
-{
+) -> GeneralResult<Vec<Instruction>> {
     use tenyr::MemoryOpType;
     use util::index_local;
 
@@ -503,8 +506,7 @@ fn make_branch(
     way : Comparison,
     target : u16,
     target_namer : &Namer,
-) -> MakeInsnResult
-{
+) -> MakeInsnResult {
     use tenyr::*;
 
     let (op, swap) = match way {
@@ -550,8 +552,7 @@ fn make_switch(
     params : SwitchParams,
     target_namer : &Namer,
     addr : usize,
-) -> MakeInsnResult
-{
+) -> MakeInsnResult {
     use jvmtypes::SwitchParams::{Lookup, Table};
 
     let here = addr as i32;
@@ -651,11 +652,7 @@ fn make_switch(
     }
 }
 
-fn make_array_op(
-    sm : &mut StackManager,
-    op : ArrayOperation,
-) -> GeneralResult<Vec<Instruction>>
-{
+fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<Vec<Instruction>> {
     use jvmtypes::ArrayOperation::{Load, Store, GetLength};
     use tenyr::{InsnGeneral, Opcode};
     use tenyr::InstructionType::{Type1, Type3};
