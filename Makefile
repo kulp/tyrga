@@ -3,6 +3,9 @@ JAVAFLAGS += -target 1.8 -source 1.8
 # avoid generating unused debugging information
 JAVAFLAGS += -g:none
 
+TAS ?= tas
+TLD ?= tld
+
 TYRGA_CLI := $(shell cargo with echo -- run --quiet --bin tyrga-cli --offline)
 
 JAVA_SRC_DIRS += test test/interesting/module/name
@@ -27,4 +30,10 @@ tases: $(ALL_JAVA:%.java=%.tas)
 # Rebuild tases when the translator binary changes
 %.tas: %.class $(TYRGA_CLI)
 	$(TYRGA_CLI) translate --output $@ $<
+
+%.texe: %.to
+	$(TLD) -o $@ $^
+
+%.to: %.tas
+	$(TAS) -o $@ $<
 
