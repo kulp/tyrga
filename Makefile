@@ -31,7 +31,11 @@ tases: $(ALL_JAVA:%.java=%.tas)
 %.tas: %.class $(TYRGA_CLI)
 	$(TYRGA_CLI) translate --output $@ $<
 
-%.texe: %.to
+vpath %.tas tyrga-lib/tenyr-lib
+LIB_to += Object.to
+LIB_to += Builtin.to
+
+%.texe: %.to $(LIB_to)
 	$(TLD) -o $@ $^
 
 %.to: %.tas
