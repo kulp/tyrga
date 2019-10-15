@@ -63,6 +63,7 @@ impl Manager {
             stack_ptr,
         }
     }
+
     /// number of values stored in memory
     fn spilled_count(&self) -> u16 {
         let regs : i32 = self.register_count.into();
