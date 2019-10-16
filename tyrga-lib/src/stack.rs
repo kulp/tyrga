@@ -429,13 +429,17 @@ mod test {
     }
     #[test]
     fn test_get_copy_tiny_1() {
-        let mut man = get_mgr(NumRegs(8));
-        let _ = man.reserve(4);
-        let _ = man.nudge(-1, 0);
-        let (reg, act) = man.get_copy(3);
+        let n : u8 = 8;
+        let off : u16 = 2;
+
+        let mut man = get_mgr(NumRegs(n));
+        let half = (n / 2).into();
+        let _ = man.reserve(half);
+        let _ = man.nudge(-(i32::from(off)), 0);
+        let (reg, act) = man.get_copy(half - 1);
         assert_eq!(act.len(), 1);
         assert_eq!(man.regs[4], reg);
         assert_eq!(act[0].dd, crate::tenyr::MemoryOpType::LoadRight);
-        assert_eq!(act[0].kind, crate::tenyr::InstructionType::Type3(1u8.into()));
+        assert_eq!(act[0].kind, crate::tenyr::InstructionType::Type3(off.into()));
     }
 }
