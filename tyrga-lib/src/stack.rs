@@ -415,6 +415,24 @@ mod test {
                 Ok(())
             });
         }
+
+        fn test_get_copy_tiny_1(num_regs : NumRegs) -> TestResult {
+            if num_regs.0 < 5 { return TestResult::discard(); }
+
+            let off : u16 = 2;
+
+            let mut man = get_mgr(num_regs);
+            let half = (num_regs.0 / 2).into();
+            let _ = man.reserve(half);
+            let _ = man.nudge(-(i32::from(off)), 0);
+            let (reg, act) = man.get_copy(half - 1);
+            assert_eq!(act.len(), 1);
+            assert_eq!(man.regs[usize::from(half)], reg);
+            assert_eq!(act[0].dd, crate::tenyr::MemoryOpType::LoadRight);
+            assert_eq!(act[0].kind, crate::tenyr::InstructionType::Type3(off.into()));
+
+            TestResult::passed()
+        }
     }
 
     #[test]
@@ -426,20 +444,5 @@ mod test {
         assert_eq!(man.regs[4], reg);
         assert_eq!(act[0].dd, crate::tenyr::MemoryOpType::NoLoad);
         assert_eq!(act[0].kind, crate::tenyr::NOOP_TYPE0.kind);
-    }
-    #[test]
-    fn test_get_copy_tiny_1() {
-        let n : u8 = 8;
-        let off : u16 = 2;
-
-        let mut man = get_mgr(NumRegs(n));
-        let half = (n / 2).into();
-        let _ = man.reserve(half);
-        let _ = man.nudge(-(i32::from(off)), 0);
-        let (reg, act) = man.get_copy(half - 1);
-        assert_eq!(act.len(), 1);
-        assert_eq!(man.regs[4], reg);
-        assert_eq!(act[0].dd, crate::tenyr::MemoryOpType::LoadRight);
-        assert_eq!(act[0].kind, crate::tenyr::InstructionType::Type3(off.into()));
     }
 }
