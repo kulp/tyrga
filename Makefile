@@ -3,6 +3,7 @@ JAVAFLAGS += -target 1.8 -source 1.8
 # avoid generating unused debugging information
 JAVAFLAGS += -g:none
 
+JAVAC ?= javac
 TAS ?= tas
 TLD ?= tld
 
@@ -25,7 +26,7 @@ classes: $(ALL_JAVA:%.java=%.class)
 tases: $(ALL_JAVA:%.java=%.tas)
 
 %.class: %.java
-	javac $(JAVAFLAGS) $<
+	$(JAVAC) $(JAVAFLAGS) $<
 
 # Rebuild tases when the translator binary changes
 %.tas: %.class $(TYRGA_CLI)
