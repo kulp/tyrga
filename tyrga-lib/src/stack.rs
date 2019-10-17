@@ -427,7 +427,10 @@ mod test {
 
             let _ = man.reserve(half);
             let _ = man.nudge(-(i32::from(off)), 0);
+            let before = man.stack_depth;
             let (reg, act) = man.get_copy(half - 1);
+            let after = man.stack_depth;
+            assert_eq!(before + 1, after);
             assert_eq!(act.len(), 1);
             assert_eq!(man.regs[usize::from(half)], reg);
             if off <= 0 {
