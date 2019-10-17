@@ -130,11 +130,10 @@ _4Deep01_3b7calling03_3b28291J:
      P  <-  P + @+_4Deep01_3b3add02_3b282II01_291I
     [O] <-  P + 1
      P  <-  P + @+_4Deep01_3b3add02_3b282II01_291I
-    [O] <-  P + 1
-     P  <-  P + @+_5tyrga01_2f7Builtin01_3b6into_J02_3b281I01_291J
-     B  <- [O + 2]
-     C  <- [O + 1]
-     O  <-  O + 2
+     B  <- [O + 1]
+     O  <-  O + 1
+     C  <-  B  |  A
+     B  <-  C  @  31
      B  -> [O + 2]
      C  -> [O + 3]
      P  <-  (.L_4Deep01_3b7calling03_3b28291J01_3b10__epilogue - (. + 1))  +  P

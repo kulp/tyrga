@@ -886,7 +886,7 @@ fn make_conversion(
     to : JType,
 ) -> GeneralResult<Vec<Instruction>>
 {
-    use JType::{Byte, Char, Int, Short};
+    use JType::{Byte, Char, Int, Long, Short};
     use std::convert::TryInto;
     use tenyr::InsnGeneral;
     use tenyr::InstructionType::Type1;
@@ -906,6 +906,24 @@ fn make_conversion(
 
             insns.push(make_insn(make_kind(ShiftLeft, amount.into())));
             insns.push(make_insn(make_kind(op       , amount.into())));
+            Ok(insns)
+        },
+        (Int, Long) => {
+            let (low, get_actions) = sm.get(0);
+            let reserve_actions = sm.reserve(1);
+            let (top, get_second) = sm.get(0);
+
+            let moves = tenyr_insn_list!(
+                top <- low      ;
+                low <- top @ 31 ;
+            );
+
+            let insns = std::iter::empty()
+                .chain(get_actions)
+                .chain(reserve_actions)
+                .chain(get_second)
+                .chain(moves)
+                .collect();
             Ok(insns)
         },
         _ => {
