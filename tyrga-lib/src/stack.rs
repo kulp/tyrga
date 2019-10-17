@@ -416,7 +416,7 @@ mod test {
             });
         }
 
-        fn test_get_copy_tiny(num_regs : NumRegs, off : i8) -> TestResult {
+        fn test_get_copy(num_regs : NumRegs, off : i8) -> TestResult {
             use crate::tenyr::MemoryOpType::{LoadRight, NoLoad};
             if num_regs.0 < 3 { return TestResult::discard(); }
 
