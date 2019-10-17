@@ -418,7 +418,7 @@ mod test {
 
         fn test_get_copy_tiny(num_regs : NumRegs, off : i8) -> TestResult {
             use crate::tenyr::MemoryOpType::{LoadRight, NoLoad};
-            if num_regs.0 < 5 { return TestResult::discard(); }
+            if num_regs.0 < 3 { return TestResult::discard(); }
 
             let mut man = get_mgr(num_regs);
             let half : u16 = (num_regs.0 / 2).into();
