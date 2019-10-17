@@ -416,29 +416,9 @@ mod test {
             });
         }
 
-        fn test_get_copy_tiny_0(num_regs : NumRegs, off : u8) -> TestResult {
+        fn test_get_copy_tiny(num_regs : NumRegs, off : u8) -> TestResult {
+            use crate::tenyr::MemoryOpType::{LoadRight, NoLoad};
             if num_regs.0 < 5 { return TestResult::discard(); }
-            if off == 0 { return TestResult::discard(); }
-
-            let off : u16 = off.into();
-
-            let mut man = get_mgr(num_regs);
-            let half = (num_regs.0 / 2).into();
-            if off >= half { return TestResult::discard(); }
-
-            let _ = man.reserve(half);
-            let (reg, act) = man.get_copy(half - 1);
-            assert_eq!(act.len(), 1);
-            assert_eq!(man.regs[usize::from(half)], reg);
-            assert_eq!(act[0].dd, crate::tenyr::MemoryOpType::NoLoad);
-            assert_eq!(act[0].kind, crate::tenyr::NOOP_TYPE0.kind);
-
-            TestResult::passed()
-        }
-
-        fn test_get_copy_tiny_1(num_regs : NumRegs, off : u8) -> TestResult {
-            if num_regs.0 < 5 { return TestResult::discard(); }
-            if off == 0 { return TestResult::discard(); }
 
             let off : u16 = off.into();
 
@@ -451,8 +431,13 @@ mod test {
             let (reg, act) = man.get_copy(half - 1);
             assert_eq!(act.len(), 1);
             assert_eq!(man.regs[usize::from(half)], reg);
-            assert_eq!(act[0].dd, crate::tenyr::MemoryOpType::LoadRight);
-            assert_eq!(act[0].kind, crate::tenyr::InstructionType::Type3(off.into()));
+            if off == 0 {
+                assert_eq!(act[0].dd, NoLoad);
+                assert_eq!(act[0].kind, crate::tenyr::NOOP_TYPE0.kind);
+            } else {
+                assert_eq!(act[0].dd, LoadRight);
+                assert_eq!(act[0].kind, crate::tenyr::InstructionType::Type3(off.into()));
+            }
 
             TestResult::passed()
         }
