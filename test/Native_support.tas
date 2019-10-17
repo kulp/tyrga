@@ -1,0 +1,3 @@
+.global _6Native01_3b10nativeCall03_3b28291V
+_6Native01_3b10nativeCall03_3b28291V: # Native;nativeCall;()V
+     P  <- [O]

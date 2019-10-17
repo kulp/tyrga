@@ -46,3 +46,4 @@ LIB_to += $(BUILTIN_java:.java=.to)
 %.to: %.tas
 	$(TAS) -o $@ $<
 
+test/Native.texe: test/Native_support.to
