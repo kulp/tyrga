@@ -416,13 +416,16 @@ mod test {
             });
         }
 
-        fn test_get_copy_tiny_1(num_regs : NumRegs) -> TestResult {
+        fn test_get_copy_tiny_1(num_regs : NumRegs, off : u8) -> TestResult {
             if num_regs.0 < 5 { return TestResult::discard(); }
+            if off == 0 { return TestResult::discard(); }
 
-            let off : u16 = 2;
+            let off : u16 = off.into();
 
             let mut man = get_mgr(num_regs);
             let half = (num_regs.0 / 2).into();
+            if off >= half { return TestResult::discard(); }
+
             let _ = man.reserve(half);
             let _ = man.nudge(-(i32::from(off)), 0);
             let (reg, act) = man.get_copy(half - 1);
