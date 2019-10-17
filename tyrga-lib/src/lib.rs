@@ -893,34 +893,29 @@ fn make_conversion(
     use tenyr::MemoryOpType::NoLoad;
     use tenyr::Opcode::{ShiftLeft, ShiftRightArith, ShiftRightLogic};
 
-    let top;
-    let mut insns;
     match (from, to) {
         (Int, Byte) |
         (Int, Char) |
         (Int, Short) => {
-            let (t, v) = sm.get(0);
-            top = t;
-            insns = v;
+            let (top, mut insns) = sm.get(0);
+            let op = match to { Byte | Short => ShiftRightArith, _ => ShiftRightLogic };
+            let amount : u8 = match to { Byte => 24, _ => 16 };
+
+            let make_kind = |op, imm| Type1(InsnGeneral { op, y : Register::A, imm });
+            let make_insn = |kind| Instruction { dd : NoLoad, z : top, x : top, kind };
+
+            insns.push(make_insn(make_kind(ShiftLeft, amount.into())));
+            insns.push(make_insn(make_kind(op       , amount.into())));
+            Ok(insns)
         },
         _ => {
             let ch_from : char = from.try_into()?;
             let ch_to   : char = to  .try_into()?;
             let name = format!("into_{}", ch_to); // TODO improve naming
             let desc = format!("({}){}", ch_from, ch_to);
-            return Ok(make_call(sm, &make_builtin_name(&name, &desc)?, &desc)?)
+            Ok(make_call(sm, &make_builtin_name(&name, &desc)?, &desc)?)
         },
     }
-
-    let op = match to { Byte | Short => ShiftRightArith, _ => ShiftRightLogic };
-    let amount : u8 = match to { Byte => 24, _ => 16 };
-
-    let make_kind = |op, imm| Type1(InsnGeneral { op, y : Register::A, imm });
-    let make_insn = |kind| Instruction { dd : NoLoad, z : top, x : top, kind };
-
-    insns.push(make_insn(make_kind(ShiftLeft, amount.into())));
-    insns.push(make_insn(make_kind(op       , amount.into())));
-    Ok(insns)
 }
 
 fn make_varaction<'a, T>(
