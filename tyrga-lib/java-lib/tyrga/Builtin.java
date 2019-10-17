@@ -1,6 +1,12 @@
 package tyrga;
 
 public class Builtin {
+    public static native long add(long a, long b);
+
+    public static long sub(long a, long b) {
+        return add(a, -b);
+    }
+
     public static int div(int a, int b) {
         if (b == 0)
             return (1 << 32) - 1; // TODO handle how ?
