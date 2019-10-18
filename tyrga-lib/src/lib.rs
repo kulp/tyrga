@@ -366,6 +366,7 @@ fn make_arithmetic(
     kind : JType,
     op : ArithmeticOperation,
 ) -> GeneralResult<Vec<Instruction>> {
+    use tenyr::{InsnGeneral, MemoryOpType};
     use tenyr::InstructionType::Type0;
 
     fn make_descriptor(kind : JType, op : ArithmeticOperation) -> GeneralResult<String> {
@@ -424,8 +425,18 @@ fn make_arithmetic(
         }
     };
 
-    match (kind, op, make_op(op)) {
-        (JType::Int, ArithmeticOperation::Neg, _) => {
+    let bitwise_op = |x| {
+        use tenyr::Opcode::*;
+        match x {
+            ArithmeticOperation::And => Some(BitwiseAnd),
+            ArithmeticOperation::Or  => Some(BitwiseOr),
+            ArithmeticOperation::Xor => Some(BitwiseXor),
+            _ => None,
+        }
+    };
+
+    match (kind, op, make_op(op), bitwise_op(op)) {
+        (JType::Int, ArithmeticOperation::Neg, _, _) => {
             use Register::A;
             let mut v = Vec::new();
             let (y, gets) = sm.get(0);
@@ -433,7 +444,7 @@ fn make_arithmetic(
             v.push(tenyr_insn!( y <- A - y )?);
             Ok(v)
         },
-        (_, ArithmeticOperation::Xor, _) => {
+        (_, _, _, Some(op)) => {
             let mut v = Vec::new();
             let size : u16 = kind.size().into();
             for i in (0..size).rev() {
@@ -441,13 +452,15 @@ fn make_arithmetic(
                 let (y, get_y) = sm.get(i);
                 assert!(get_y.is_empty());
                 v.extend(get_x);
-                v.push(tenyr_insn!( x <- x ^ y )?);
+                let z = x;
+                let imm = 0_u8.into();
+                let dd = MemoryOpType::NoLoad;
+                v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
             }
             v.extend(sm.release(size));
             Ok(v)
         },
-        (JType::Int, _, Some(op)) => {
-            use tenyr::{InsnGeneral, MemoryOpType};
+        (JType::Int, _, Some(op), _) => {
             let mut v = Vec::new();
             let (x, gets) = sm.get(1);
             v.extend(gets);
