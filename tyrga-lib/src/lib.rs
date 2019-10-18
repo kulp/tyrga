@@ -433,6 +433,19 @@ fn make_arithmetic(
             v.push(tenyr_insn!( y <- A - y )?);
             Ok(v)
         },
+        (_, ArithmeticOperation::Xor, _) => {
+            let mut v = Vec::new();
+            let size : u16 = kind.size().into();
+            for i in (0..size).rev() {
+                let (x, get_x) = sm.get(i + size);
+                let (y, get_y) = sm.get(i);
+                assert!(get_y.is_empty());
+                v.extend(get_x);
+                v.push(tenyr_insn!( x <- x ^ y )?);
+            }
+            v.extend(sm.release(size));
+            Ok(v)
+        },
         (JType::Int, _, Some(op)) => {
             use tenyr::{InsnGeneral, MemoryOpType};
             let mut v = Vec::new();
