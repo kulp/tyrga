@@ -7,6 +7,10 @@ public class Builtin {
         return add(a, -b);
     }
 
+    public static long neg(long a) {
+        return ~a + 1;
+    }
+
     public static int div(int a, int b) {
         if (b == 0)
             return (1 << 32) - 1; // TODO handle how ?
