@@ -369,9 +369,9 @@ fn make_arithmetic(
     use tenyr::{InsnGeneral, MemoryOpType};
     use tenyr::InstructionType::Type0;
 
-    let make_op = |x| {
+    let general_op = {
         use tenyr::Opcode::*;
-        match x {
+        match op {
             ArithmeticOperation::Add  => Some(Add),
             ArithmeticOperation::Sub  => Some(Subtract),
             ArithmeticOperation::Mul  => Some(Multiply),
@@ -385,9 +385,9 @@ fn make_arithmetic(
         }
     };
 
-    let bitwise_op = |x| {
+    let bitwise_op = {
         use tenyr::Opcode::*;
-        match x {
+        match op {
             ArithmeticOperation::And => Some(BitwiseAnd),
             ArithmeticOperation::Or  => Some(BitwiseOr),
             ArithmeticOperation::Xor => Some(BitwiseXor),
@@ -395,7 +395,7 @@ fn make_arithmetic(
         }
     };
 
-    match (kind, op, make_op(op), bitwise_op(op)) {
+    match (kind, op, general_op, bitwise_op) {
         (JType::Int, ArithmeticOperation::Neg, _, _) => {
             use Register::A;
             let mut v = Vec::new();
