@@ -369,46 +369,6 @@ fn make_arithmetic(
     use tenyr::{InsnGeneral, MemoryOpType};
     use tenyr::InstructionType::Type0;
 
-    fn make_descriptor(kind : JType, op : ArithmeticOperation) -> GeneralResult<String> {
-        use std::convert::TryInto;
-
-        let ch : char = kind.try_into()?;
-
-        let nargs = {
-            use ArithmeticOperation::*;
-            match op {
-                Add | Sub | Mul | Div | Rem | Shl | Shr | Ushr | And | Or | Xor => 2,
-                Neg => 1,
-            }
-        };
-        Ok(format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch))
-    }
-
-    // TODO replace make_op_name with some automatic namer
-    fn make_op_name(op : ArithmeticOperation) -> &'static str {
-        use ArithmeticOperation::*;
-        match op {
-            Add  => "Add",
-            Sub  => "Sub",
-            Mul  => "Mul",
-            Div  => "Div",
-            Rem  => "Rem",
-            Neg  => "Neg",
-            Shl  => "Shl",
-            Shr  => "Shr",
-            Ushr => "Ushr",
-            And  => "And",
-            Or   => "Or",
-            Xor  => "Xor",
-        }
-    }
-
-    let make_name = |kind, op| {
-        let descriptor = make_descriptor(kind, op)?;
-        let proc = make_op_name(op).to_lowercase();
-        make_builtin_name(&proc, &descriptor)
-    };
-
     let make_op = |x| {
         use tenyr::Opcode::*;
         match x {
@@ -472,8 +432,46 @@ fn make_arithmetic(
             v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
             v.extend(sm.release(1));
             Ok(v)
-        }
-        _ => make_call(sm, &make_name(kind, op)?, &make_descriptor(kind, op)?),
+        },
+        _ => {
+            fn make_descriptor(kind : JType, op : ArithmeticOperation) -> GeneralResult<String> {
+                use std::convert::TryInto;
+
+                let ch : char = kind.try_into()?;
+
+                let nargs = {
+                    use ArithmeticOperation::*;
+                    match op {
+                        Add | Sub | Mul | Div | Rem | Shl | Shr | Ushr | And | Or | Xor => 2,
+                        Neg => 1,
+                    }
+                };
+                Ok(format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch))
+            }
+
+            // TODO replace make_op_name with some automatic namer
+            fn make_op_name(op : ArithmeticOperation) -> &'static str {
+                use ArithmeticOperation::*;
+                match op {
+                    Add  => "Add",
+                    Sub  => "Sub",
+                    Mul  => "Mul",
+                    Div  => "Div",
+                    Rem  => "Rem",
+                    Neg  => "Neg",
+                    Shl  => "Shl",
+                    Shr  => "Shr",
+                    Ushr => "Ushr",
+                    And  => "And",
+                    Or   => "Or",
+                    Xor  => "Xor",
+                }
+            }
+
+            let descriptor = make_descriptor(kind, op)?;
+            let proc = make_op_name(op).to_lowercase();
+            make_call(sm, &make_builtin_name(&proc, &descriptor)?, &make_descriptor(kind, op)?)
+        },
     }
 }
 
