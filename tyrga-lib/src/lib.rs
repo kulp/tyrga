@@ -369,29 +369,19 @@ fn make_arithmetic(
     use tenyr::{InsnGeneral, MemoryOpType};
     use tenyr::InstructionType::Type0;
 
-    let general_op = {
+    let (general_op, bitwise_op) = {
         use tenyr::Opcode::*;
         match op {
-            ArithmeticOperation::Add  => Some(Add),
-            ArithmeticOperation::Sub  => Some(Subtract),
-            ArithmeticOperation::Mul  => Some(Multiply),
-            ArithmeticOperation::Shl  => Some(ShiftLeft),
-            ArithmeticOperation::Shr  => Some(ShiftRightArith),
-            ArithmeticOperation::Ushr => Some(ShiftRightLogic),
-            ArithmeticOperation::And  => Some(BitwiseAnd),
-            ArithmeticOperation::Or   => Some(BitwiseOr),
-            ArithmeticOperation::Xor  => Some(BitwiseXor),
-            _ => None,
-        }
-    };
-
-    let bitwise_op = {
-        use tenyr::Opcode::*;
-        match op {
-            ArithmeticOperation::And => Some(BitwiseAnd),
-            ArithmeticOperation::Or  => Some(BitwiseOr),
-            ArithmeticOperation::Xor => Some(BitwiseXor),
-            _ => None,
+            ArithmeticOperation::Add  => (Some(Add)            , None            ),
+            ArithmeticOperation::Sub  => (Some(Subtract)       , None            ),
+            ArithmeticOperation::Mul  => (Some(Multiply)       , None            ),
+            ArithmeticOperation::Shl  => (Some(ShiftLeft)      , None            ),
+            ArithmeticOperation::Shr  => (Some(ShiftRightArith), None            ),
+            ArithmeticOperation::Ushr => (Some(ShiftRightLogic), None            ),
+            ArithmeticOperation::And  => (Some(BitwiseAnd)     , Some(BitwiseAnd)),
+            ArithmeticOperation::Or   => (Some(BitwiseOr)      , Some(BitwiseOr )),
+            ArithmeticOperation::Xor  => (Some(BitwiseXor)     , Some(BitwiseXor)),
+            _ => (None, None),
         }
     };
 
