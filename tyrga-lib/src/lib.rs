@@ -434,43 +434,36 @@ fn make_arithmetic(
             Ok(v)
         },
         _ => {
-            fn make_descriptor(kind : JType, op : ArithmeticOperation) -> GeneralResult<String> {
-                use std::convert::TryInto;
+            use ArithmeticOperation::*;
+            use std::convert::TryInto;
 
-                let ch : char = kind.try_into()?;
+            let ch : char = kind.try_into()?;
 
-                let nargs = {
-                    use ArithmeticOperation::*;
-                    match op {
-                        Add | Sub | Mul | Div | Rem | Shl | Shr | Ushr | And | Or | Xor => 2,
-                        Neg => 1,
-                    }
-                };
-                Ok(format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch))
-            }
-
-            // TODO replace make_op_name with some automatic namer
-            fn make_op_name(op : ArithmeticOperation) -> &'static str {
-                use ArithmeticOperation::*;
+            let nargs = {
                 match op {
-                    Add  => "Add",
-                    Sub  => "Sub",
-                    Mul  => "Mul",
-                    Div  => "Div",
-                    Rem  => "Rem",
-                    Neg  => "Neg",
-                    Shl  => "Shl",
-                    Shr  => "Shr",
-                    Ushr => "Ushr",
-                    And  => "And",
-                    Or   => "Or",
-                    Xor  => "Xor",
+                    Add | Sub | Mul | Div | Rem | Shl | Shr | Ushr | And | Or | Xor => 2,
+                    Neg => 1,
                 }
-            }
+            };
+            let descriptor = format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch);
 
-            let descriptor = make_descriptor(kind, op)?;
-            let proc = make_op_name(op).to_lowercase();
-            make_call(sm, &make_builtin_name(&proc, &descriptor)?, &make_descriptor(kind, op)?)
+            // TODO replace lookup table with some automatic namer
+            let proc = match op {
+                Add  => "Add",
+                Sub  => "Sub",
+                Mul  => "Mul",
+                Div  => "Div",
+                Rem  => "Rem",
+                Neg  => "Neg",
+                Shl  => "Shl",
+                Shr  => "Shr",
+                Ushr => "Ushr",
+                And  => "And",
+                Or   => "Or",
+                Xor  => "Xor",
+            };
+
+            make_call(sm, &make_builtin_name(&proc.to_lowercase(), &descriptor)?, &descriptor)
         },
     }
 }
