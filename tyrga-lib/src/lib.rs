@@ -473,11 +473,16 @@ fn make_arithmetic(
         }
     };
 
-    match (kind, op, general_op, bitwise_op) {
-        (JType::Int, ArithmeticOperation::Neg, _, _) => make_negation(sm),
-        (_, _, _, Some(op)) => make_bitwise(sm, kind, op),
-        (JType::Int, _, Some(op), _) => make_arithmetic_general(sm, op),
-        _ => make_arithmetic_call(sm, kind, op),
+    {
+        use ArithmeticOperation::Neg;
+        use JType::Int;
+
+        match (kind, op, general_op, bitwise_op) {
+            (Int , Neg , _        , _       ) => make_negation              (sm),
+            (_   , _   , _        , Some(op)) => make_bitwise               (sm, kind, op),
+            (Int , _   , Some(op) , _       ) => make_arithmetic_general    (sm, op),
+            (_   , _   , _        , _       ) => make_arithmetic_call       (sm, kind, op),
+        }
     }
 }
 
