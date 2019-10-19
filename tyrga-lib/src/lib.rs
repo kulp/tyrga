@@ -361,14 +361,102 @@ where
     }
 }
 
+fn make_negation(sm : &mut StackManager) -> GeneralResult<Vec<Instruction>> {
+    use Register::A;
+    let mut v = Vec::new();
+    let (y, gets) = sm.get(0);
+    v.extend(gets);
+    v.push(tenyr_insn!( y <- A - y )?);
+    Ok(v)
+}
+
+fn make_bitwise(
+    sm : &mut StackManager,
+    kind : JType,
+    op : tenyr::Opcode,
+) -> GeneralResult<Vec<Instruction>> {
+    use tenyr::{InsnGeneral, MemoryOpType};
+    use tenyr::InstructionType::Type0;
+
+    let mut v = Vec::new();
+    let size : u16 = kind.size().into();
+    for i in (0..size).rev() {
+        let (x, get_x) = sm.get(i + size);
+        let (y, get_y) = sm.get(i);
+        assert!(get_y.is_empty());
+        v.extend(get_x);
+        let z = x;
+        let imm = 0_u8.into();
+        let dd = MemoryOpType::NoLoad;
+        v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
+    }
+    v.extend(sm.release(size));
+    Ok(v)
+}
+
+fn make_arithmetic_general(
+    sm : &mut StackManager,
+    op : tenyr::Opcode,
+) -> GeneralResult<Vec<Instruction>>
+{
+    use tenyr::{InsnGeneral, MemoryOpType};
+    use tenyr::InstructionType::Type0;
+
+    let mut v = Vec::new();
+    let (x, gets) = sm.get(1);
+    v.extend(gets);
+    let (y, gets) = sm.get(0);
+    v.extend(gets);
+    let z = x;
+    let dd = MemoryOpType::NoLoad;
+    let imm = 0_u8.into();
+    v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
+    v.extend(sm.release(1));
+    Ok(v)
+}
+
+fn make_arithmetic_call(
+    sm : &mut StackManager,
+    kind : JType,
+    op : ArithmeticOperation,
+) -> GeneralResult<Vec<Instruction>> {
+    use ArithmeticOperation::*;
+    use std::convert::TryInto;
+
+    let ch : char = kind.try_into()?;
+
+    let nargs = {
+        match op {
+            Add | Sub | Mul | Div | Rem | Shl | Shr | Ushr | And | Or | Xor => 2,
+            Neg => 1,
+        }
+    };
+    let descriptor = format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch);
+
+    // TODO replace lookup table with some automatic namer
+    let proc = match op {
+        Add  => "Add",
+        Sub  => "Sub",
+        Mul  => "Mul",
+        Div  => "Div",
+        Rem  => "Rem",
+        Neg  => "Neg",
+        Shl  => "Shl",
+        Shr  => "Shr",
+        Ushr => "Ushr",
+        And  => "And",
+        Or   => "Or",
+        Xor  => "Xor",
+    };
+
+    make_call(sm, &make_builtin_name(&proc.to_lowercase(), &descriptor)?, &descriptor)
+}
+
 fn make_arithmetic(
     sm : &mut StackManager,
     kind : JType,
     op : ArithmeticOperation,
 ) -> GeneralResult<Vec<Instruction>> {
-    use tenyr::{InsnGeneral, MemoryOpType};
-    use tenyr::InstructionType::Type0;
-
     let (general_op, bitwise_op) = {
         use tenyr::Opcode::*;
         match op {
@@ -386,75 +474,10 @@ fn make_arithmetic(
     };
 
     match (kind, op, general_op, bitwise_op) {
-        (JType::Int, ArithmeticOperation::Neg, _, _) => {
-            use Register::A;
-            let mut v = Vec::new();
-            let (y, gets) = sm.get(0);
-            v.extend(gets);
-            v.push(tenyr_insn!( y <- A - y )?);
-            Ok(v)
-        },
-        (_, _, _, Some(op)) => {
-            let mut v = Vec::new();
-            let size : u16 = kind.size().into();
-            for i in (0..size).rev() {
-                let (x, get_x) = sm.get(i + size);
-                let (y, get_y) = sm.get(i);
-                assert!(get_y.is_empty());
-                v.extend(get_x);
-                let z = x;
-                let imm = 0_u8.into();
-                let dd = MemoryOpType::NoLoad;
-                v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
-            }
-            v.extend(sm.release(size));
-            Ok(v)
-        },
-        (JType::Int, _, Some(op), _) => {
-            let mut v = Vec::new();
-            let (x, gets) = sm.get(1);
-            v.extend(gets);
-            let (y, gets) = sm.get(0);
-            v.extend(gets);
-            let z = x;
-            let dd = MemoryOpType::NoLoad;
-            let imm = 0_u8.into();
-            v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
-            v.extend(sm.release(1));
-            Ok(v)
-        },
-        _ => {
-            use ArithmeticOperation::*;
-            use std::convert::TryInto;
-
-            let ch : char = kind.try_into()?;
-
-            let nargs = {
-                match op {
-                    Add | Sub | Mul | Div | Rem | Shl | Shr | Ushr | And | Or | Xor => 2,
-                    Neg => 1,
-                }
-            };
-            let descriptor = format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch);
-
-            // TODO replace lookup table with some automatic namer
-            let proc = match op {
-                Add  => "Add",
-                Sub  => "Sub",
-                Mul  => "Mul",
-                Div  => "Div",
-                Rem  => "Rem",
-                Neg  => "Neg",
-                Shl  => "Shl",
-                Shr  => "Shr",
-                Ushr => "Ushr",
-                And  => "And",
-                Or   => "Or",
-                Xor  => "Xor",
-            };
-
-            make_call(sm, &make_builtin_name(&proc.to_lowercase(), &descriptor)?, &descriptor)
-        },
+        (JType::Int, ArithmeticOperation::Neg, _, _) => make_negation(sm),
+        (_, _, _, Some(op)) => make_bitwise(sm, kind, op),
+        (JType::Int, _, Some(op), _) => make_arithmetic_general(sm, op),
+        _ => make_arithmetic_call(sm, kind, op),
     }
 }
 
