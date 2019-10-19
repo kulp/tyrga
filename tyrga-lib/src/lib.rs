@@ -477,11 +477,11 @@ fn make_arithmetic(
         use ArithmeticOperation::Neg;
         use JType::Int;
 
-        match (kind, op, general_op, bitwise_op) {
-            (Int , Neg , _        , _       ) => make_negation              (sm),
-            (_   , _   , _        , Some(op)) => make_bitwise               (sm, kind, op),
-            (Int , _   , Some(op) , _       ) => make_arithmetic_general    (sm, op),
-            (_   , _   , _        , _       ) => make_arithmetic_call       (sm, kind, op),
+        match (kind, bitwise_op, general_op, op) {
+            (_  , Some(op), _       , _  ) => make_bitwise               (sm, kind, op),
+            (Int, _       , Some(op), _  ) => make_arithmetic_general    (sm,       op),
+            (Int, _       , _       , Neg) => make_negation              (sm          ),
+            (_  , _       , _       , _  ) => make_arithmetic_call       (sm, kind, op),
         }
     }
 }
