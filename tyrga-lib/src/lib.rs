@@ -375,7 +375,6 @@ fn make_bitwise(
     kind : JType,
     op : tenyr::Opcode,
 ) -> GeneralResult<Vec<Instruction>> {
-    use tenyr::{InsnGeneral, MemoryOpType};
     use tenyr::InstructionType::Type0;
 
     let mut v = Vec::new();
@@ -387,8 +386,8 @@ fn make_bitwise(
         v.extend(get_x);
         let z = x;
         let imm = 0_u8.into();
-        let dd = MemoryOpType::NoLoad;
-        v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
+        let dd = tenyr::MemoryOpType::NoLoad;
+        v.push(Instruction { kind : Type0(tenyr::InsnGeneral { y, op, imm }), x, z, dd });
     }
     v.extend(sm.release(size));
     Ok(v)
@@ -399,7 +398,6 @@ fn make_arithmetic_general(
     op : tenyr::Opcode,
 ) -> GeneralResult<Vec<Instruction>>
 {
-    use tenyr::{InsnGeneral, MemoryOpType};
     use tenyr::InstructionType::Type0;
 
     let mut v = Vec::new();
@@ -408,9 +406,9 @@ fn make_arithmetic_general(
     let (y, gets) = sm.get(0);
     v.extend(gets);
     let z = x;
-    let dd = MemoryOpType::NoLoad;
+    let dd = tenyr::MemoryOpType::NoLoad;
     let imm = 0_u8.into();
-    v.push(Instruction { kind : Type0(InsnGeneral { y, op, imm }), x, z, dd });
+    v.push(Instruction { kind : Type0(tenyr::InsnGeneral { y, op, imm }), x, z, dd });
     v.extend(sm.release(1));
     Ok(v)
 }
