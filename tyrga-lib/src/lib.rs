@@ -1201,9 +1201,7 @@ mod util {
 
     impl Manglable for Context<'_, &ClassConstant> {
         fn pieces(&self) -> GeneralResult<Vec<String>> {
-            let r : GeneralResult<String> =
-                get_string(self, self.as_ref().name_index).ok_or_else(|| "no name".into());
-            Ok(vec![ r? ])
+            Ok(vec![ get_string(self, self.as_ref().name_index).ok_or_else(|| "no name".to_string())? ])
         }
     }
 
