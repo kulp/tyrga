@@ -706,7 +706,6 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<V
             // TODO document layout of arrays
             // This implementation assumes a reference to an array points to its first element, and
             // that one word below that element is a word containing the number of elements.
-            let mut v = Vec::new();
             let (top, gets) = sm.get(0);
             v.extend(gets);
             v.push(Instruction { kind : Type3((-1_i8).into()), dd : LoadRight, z : top, x : top });
