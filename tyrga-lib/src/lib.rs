@@ -1116,8 +1116,6 @@ fn test_make_instruction() -> GeneralResult<()> {
 
 pub type GeneralResult<T> = Result<T, Box<dyn Error>>;
 
-fn generic_error(e : impl Error) -> Box<dyn Error> { format!("unknown error: {}", e).into() }
-
 type RangeMap<T> = (Vec<Range<usize>>, BTreeMap<usize, T>);
 
 fn derive_ranges<'a, T>(body : Vec<(usize, T)>, table : impl IntoIterator<Item=&'a StackMapFrame>)
@@ -1156,7 +1154,7 @@ fn derive_ranges<'a, T>(body : Vec<(usize, T)>, table : impl IntoIterator<Item=&
 
 fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
     use classfile_parser::attribute_info::code_attribute_parser;
-    Ok(code_attribute_parser(&method.attributes[0].info).map_err(generic_error)?.1)
+    Ok(code_attribute_parser(&method.attributes[0].info).or(Err("error while parsing code attribute"))?.1)
 }
 
 mod util {
@@ -1350,13 +1348,13 @@ fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
     let keep;
     let table = match info {
         Some(info) => {
-            keep = stack_map_table_attribute_parser(&info).map_err(generic_error)?;
+            keep = stack_map_table_attribute_parser(&info).or(Err("error while parsing stack map"))?;
             &keep.1.entries
         },
         _ => &[] as &[StackMapFrame],
     };
 
-    let vec = code_parser(&code.code).map_err(generic_error)?.1;
+    let vec = code_parser(&code.code).or(Err("error while parsing method code"))?.1;
     let (ranges, map) = derive_ranges(vec, table)?;
     let ops = map.into_iter().map(decode_insn).collect();
     Ok((ranges, ops))
