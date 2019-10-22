@@ -1119,7 +1119,7 @@ pub type GeneralResult<T> = Result<T, Box<dyn Error>>;
 type RangeMap<T> = (Vec<Range<usize>>, BTreeMap<usize, T>);
 
 fn derive_ranges<'a, T>(body : Vec<(usize, T)>, table : impl IntoIterator<Item=&'a StackMapFrame>)
-    -> GeneralResult<RangeMap<T>>
+    -> GeneralResult<Vec<Range<usize>>>
 {
     use classfile_parser::attribute_info::StackMapFrame::*;
     let mut deltas = table.into_iter().map(|f| match *f {
@@ -1148,8 +1148,7 @@ fn derive_ranges<'a, T>(body : Vec<(usize, T)>, table : impl IntoIterator<Item=&
             .map(|x| x[0]..x[1])
             .collect();
 
-    let tree = body.into_iter().collect();
-    Ok((ranges, tree))
+    Ok(ranges)
 }
 
 fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
@@ -1355,8 +1354,8 @@ fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
     };
 
     let vec = code_parser(&code.code).or(Err("error while parsing method code"))?.1;
-    let (ranges, map) = derive_ranges(vec, table)?;
-    let ops = map.into_iter().map(decode_insn).collect();
+    let ranges = derive_ranges(vec.clone(), table)?;
+    let ops = vec.into_iter().map(decode_insn).collect();
     Ok((ranges, ops))
 }
 
