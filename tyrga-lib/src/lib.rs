@@ -1351,9 +1351,9 @@ fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
         _ => &[] as &[StackMapFrame],
     };
 
-    let vec = code_parser(&code.code).or(Err("error while parsing method code"))?.1;
-    let max = vec.last().ok_or("body unexpectedly empty")?.0 + 1;
-    let ranges = derive_ranges(max, table)?;
+    let (_, vec) = code_parser(&code.code).or(Err("error while parsing method code"))?;
+    let (max, _) = vec.last().ok_or("body unexpectedly empty")?;
+    let ranges = derive_ranges(max + 1, table)?;
     let ops = vec.into_iter().map(decode_insn).collect();
     Ok((ranges, ops))
 }
