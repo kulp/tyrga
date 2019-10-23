@@ -809,12 +809,12 @@ fn make_stack_op(
     size : OperandCount,
 ) -> Vec<Instruction>
 {
-    let size = size as u16;
-    match op {
-        StackOperation::Pop =>
-            sm.release(size),
-        StackOperation::Dup =>
-            (0..size).rev().map(|_| sm.get_copy(size - 1).1).flatten().collect(),
+    use StackOperation::*;
+    let mut copy = |i| sm.get_copy(i).1;
+    match (op, size as u16) {
+        (Pop, size) => sm.release(size),
+        (Dup,    1) => copy(0),
+        (Dup,    2) => [ copy(1), copy(1) ].concat(),
         _ => unimplemented!(),
     }
 }
