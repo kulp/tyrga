@@ -1419,8 +1419,6 @@ fn make_basic_block(
     let mut insns = Vec::with_capacity(range.len() * 2); // heuristic
     let mut exits = BTreeSet::new();
 
-    let inside = |addr| addr >= range.start && addr < range.end;
-
     let mut includes_successor = false;
     for insn in list {
         let does_branch = |&e| if let Address(n) = e { Some(n) } else { None };
@@ -1431,7 +1429,7 @@ fn make_basic_block(
         // is captured
         includes_successor = exs.iter().any(|e| if let Successor = e { true } else { false });
 
-        exits.extend(exs.iter().filter_map(does_branch).filter(|&e| !inside(e)));
+        exits.extend(exs.iter().filter_map(does_branch).filter(|e| !range.contains(e)));
         insns.extend(ins);
     }
     let label = make_label(class, method, &range.start)?;
