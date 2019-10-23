@@ -1091,7 +1091,7 @@ fn test_make_instruction() -> GeneralResult<()> {
     use tenyr::InstructionType::Type3;
     use tenyr::MemoryOpType::NoLoad;
     use Instruction;
-    use Register::A;
+    use Register::{A, B};
     struct Useless;
     impl<'a> ContextConstantGetter<'a> for Useless {
         fn get_constant(&self, _ : u16) -> &'a ConstantInfo { &Unusable }
@@ -1109,7 +1109,7 @@ fn test_make_instruction() -> GeneralResult<()> {
     let imm = 5_u8.into();
     let rhs = Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad };
     assert_eq!(insn.0, vec![ rhs ]);
-    assert_eq!(insn.0[0].to_string(), " B  <-  5");
+    assert_eq!(insn.0[0], tenyr_insn!( B <- 5 )?);
 
     Ok(())
 }
