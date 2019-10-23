@@ -1117,7 +1117,7 @@ fn test_make_instruction() -> GeneralResult<()> {
 pub type GeneralResult<T> = Result<T, Box<dyn Error>>;
 
 fn derive_ranges<'a>(max : usize, table : impl IntoIterator<Item=&'a StackMapFrame>)
-    -> GeneralResult<Vec<Range<usize>>>
+    -> Vec<Range<usize>>
 {
     use classfile_parser::attribute_info::StackMapFrame::*;
     let mut deltas = table.into_iter().map(|f| match *f {
@@ -1132,19 +1132,16 @@ fn derive_ranges<'a>(max : usize, table : impl IntoIterator<Item=&'a StackMapFra
             | FullFrame                     { offset_delta, .. } => offset_delta,
     });
 
-    let ranges =
-        std::iter::once(0)
-            .chain(deltas.next())
-            .chain(deltas.map(|n| n + 1))
-            .scan(0, |state, x| { *state += x; Some(usize::from(*state)) })
-            .chain(std::iter::once(max))
-            .collect::<Vec<_>>()
-            .windows(2)
-            .filter(|x| x[1] > x[0])
-            .map(|x| x[0]..x[1])
-            .collect();
-
-    Ok(ranges)
+    std::iter::once(0)
+        .chain(deltas.next())
+        .chain(deltas.map(|n| n + 1))
+        .scan(0, |state, x| { *state += x; Some(usize::from(*state)) })
+        .chain(std::iter::once(max))
+        .collect::<Vec<_>>()
+        .windows(2)
+        .filter(|x| x[1] > x[0])
+        .map(|x| x[0]..x[1])
+        .collect()
 }
 
 fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
@@ -1350,7 +1347,7 @@ fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
     match info {
         Some(info) => {
             let (_, keep) = stack_map_table_attribute_parser(&info).or(Err("error while parsing stack map"))?;
-            Ok((derive_ranges(max, &keep.entries)?, ops))
+            Ok((derive_ranges(max, &keep.entries), ops))
         },
         _ =>
             Ok((vec![ 0..max ], ops)),
