@@ -807,24 +807,14 @@ fn make_stack_op(
     sm : &mut StackManager,
     op : StackOperation,
     size : OperandCount,
-) -> GeneralResult<Vec<Instruction>>
+) -> Vec<Instruction>
 {
+    let size = size as u16;
     match op {
         StackOperation::Pop =>
-            Ok(sm.release(size as u16)),
-        StackOperation::Dup => {
-            let size = size as u16;
-            let (_, gets) = sm.get(size - 1); // ensure spills are reloaded
-            let old : Vec<_> = (0..size).map(|i| sm.get(i).0).collect();
-            let res = sm.reserve(size);
-            let put : GeneralResult<Vec<_>> = (0..size).map(|i| {
-                let (new, _) = sm.get(i); // already forced gets above
-                let t = old[i as usize];
-                tenyr_insn!( new <- t )
-            }).collect();
-
-            Ok([ gets, res, put? ].concat())
-        },
+            sm.release(size),
+        StackOperation::Dup =>
+            (0..size).rev().map(|_| sm.get_copy(size - 1).1).flatten().collect(),
         _ => unimplemented!(),
     }
 }
@@ -1073,7 +1063,7 @@ where
         Jump { target }               => make_jump(target, target_namer),
         LocalOp(op)                   => no_branch(make_mem_op(sm, op, max_locals)?),
         Noop                          => no_branch(vec![ tenyr::NOOP_TYPE0 ]),
-        StackOp { op, size }          => no_branch(make_stack_op(sm, op, size)?),
+        StackOp { op, size }          => no_branch(make_stack_op(sm, op, size)),
         Switch(params)                => make_switch(sm, params, target_namer, addr),
         VarAction { op, kind, index } => no_branch(make_varaction(sm, op, kind, index, gc)?),
         Yield { kind }                => make_yield(sm, kind, target_namer, max_locals),
