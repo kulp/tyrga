@@ -1416,7 +1416,7 @@ fn make_basic_block(
     use Destination::{Address, Successor};
     use tenyr::BasicBlock;
 
-    let mut insns = Vec::with_capacity(range.len() * 2); // heuristic
+    let mut insns = Vec::new();
     let mut exits = BTreeSet::new();
 
     let mut includes_successor = false;
@@ -1437,8 +1437,6 @@ fn make_basic_block(
     if includes_successor {
         exits.insert(range.end);
     }
-
-    insns.shrink_to_fit();
 
     Ok((BasicBlock { label, insns }, exits))
 }
