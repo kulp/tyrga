@@ -1116,8 +1116,6 @@ fn test_make_instruction() -> GeneralResult<()> {
 
 pub type GeneralResult<T> = Result<T, Box<dyn Error>>;
 
-type RangeMap<T> = (Vec<Range<usize>>, BTreeMap<usize, T>);
-
 fn derive_ranges<'a>(max : usize, table : impl IntoIterator<Item=&'a StackMapFrame>)
     -> GeneralResult<Vec<Range<usize>>>
 {
@@ -1325,8 +1323,11 @@ mod util {
     }
 }
 
+type RangeList = Vec<Range<usize>>;
+type OperationMap = BTreeMap<usize, Operation>;
+
 fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
-    -> GeneralResult<RangeMap<Operation>>
+    -> GeneralResult<(RangeList, OperationMap)>
 {
     use classfile_parser::attribute_info::AttributeInfo;
     use classfile_parser::attribute_info::stack_map_table_attribute_parser;
