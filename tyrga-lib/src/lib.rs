@@ -1342,20 +1342,18 @@ fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
     let code = get_method_code(method.as_ref())?;
     let names : Result<Vec<_>,_> = code.attributes.iter().map(attribute_namer).collect();
     let info = names?.into_iter().find(|(_, name)| name == &"StackMapTable").map(|t| t.0);
-    let keep;
-    let table = match info {
-        Some(info) => {
-            keep = stack_map_table_attribute_parser(&info).or(Err("error while parsing stack map"))?;
-            &keep.1.entries
-        },
-        _ => &[] as &[StackMapFrame],
-    };
-
     let (_, vec) = code_parser(&code.code).or(Err("error while parsing method code"))?;
     let (max, _) = vec.last().ok_or("body unexpectedly empty")?;
-    let ranges = derive_ranges(max + 1, table)?;
+    let max = max + 1; // convert address to an exclusive bound
     let ops = vec.into_iter().map(decode_insn).collect();
-    Ok((ranges, ops))
+    match info {
+        Some(info) => {
+            let (_, keep) = stack_map_table_attribute_parser(&info).or(Err("error while parsing stack map"))?;
+            Ok((derive_ranges(max, &keep.entries)?, ops))
+        },
+        _ =>
+            Ok((vec![ 0..max ], ops)),
+    }
 }
 
 fn get_method_parts(g : &dyn ContextConstantGetter, pool_index : u16)
