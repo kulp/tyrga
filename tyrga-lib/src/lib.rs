@@ -789,8 +789,8 @@ fn make_invocation<'a, T>(
 where
     T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
-    let [_, _, descriptor] = &get_method_parts(gc, index)?;
-    let name = &make_callable_name(gc, index)?;
+    let [class, method, descriptor] = &get_method_parts(gc, index)?;
+    let name = &mangle(&[ class, method, descriptor ])?;
 
     match kind {
         // TODO fully handle Special (this is dumb partial handling)
@@ -1372,12 +1372,6 @@ fn get_method_parts(g : &dyn ContextConstantGetter, pool_index : u16)
     }
 
     Err("error during constant pool lookup".into())
-}
-
-fn make_callable_name(g : &dyn ContextConstantGetter, pool_index : u16) -> GeneralResult<String> {
-    let parts = get_method_parts(g, pool_index)?;
-    // TODO do this generically, without explicit indexing
-    mangle(&[ &parts[0], &parts[1], &parts[2] ])
 }
 
 fn mangle(list : &[&dyn Manglable]) -> GeneralResult<String> { list.mangle() }
