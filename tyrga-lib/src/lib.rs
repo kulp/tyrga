@@ -793,16 +793,17 @@ where
     T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
     let [_, _, descriptor] = &get_method_parts(gc, index)?;
+    let name = &make_callable_name(gc, index)?;
+
     match kind {
         // TODO fully handle Special (this is dumb partial handling)
         InvokeKind::Special => {
-            let mut insns =
-                make_call(sm, &make_callable_name(gc, index)?, descriptor)?;
+            let mut insns = make_call(sm, name, descriptor)?;
             insns.extend(sm.release(1));
             Ok(insns)
         },
         InvokeKind::Static =>
-            make_call(sm, &make_callable_name(gc, index)?, descriptor),
+            make_call(sm, name, descriptor),
         // TODO vet handling of Virtual against JVM spec
         InvokeKind::Virtual => {
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
