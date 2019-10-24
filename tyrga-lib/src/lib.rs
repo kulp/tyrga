@@ -789,6 +789,29 @@ fn make_invocation<'a, T>(
 where
     T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
+    fn get_method_parts(g : &dyn ContextConstantGetter, pool_index : u16)
+        -> GeneralResult<[String ; 3]>
+    {
+        use classfile_parser::constant_info::ConstantInfo::{Class, MethodRef, NameAndType};
+        use util::get_string;
+
+        let get_string = |n| get_string(g, n);
+
+        if let MethodRef(mr) = g.get_constant(pool_index) {
+            if let Class(cl) = g.get_constant(mr.class_index) {
+                if let NameAndType(nt) = g.get_constant(mr.name_and_type_index) {
+                    return Ok([
+                            get_string(cl.name_index).ok_or("bad class name")?,
+                            get_string(nt.name_index).ok_or("bad method name")?,
+                            get_string(nt.descriptor_index).ok_or("bad method descriptor")?,
+                        ]);
+                }
+            }
+        }
+
+        Err("error during constant pool lookup".into())
+    }
+
     let [class, method, descriptor] = &get_method_parts(gc, index)?;
     let name = &mangle(&[ class, method, descriptor ])?;
 
@@ -1349,29 +1372,6 @@ fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
         _ =>
             Ok((vec![ 0..max ], ops)),
     }
-}
-
-fn get_method_parts(g : &dyn ContextConstantGetter, pool_index : u16)
-    -> GeneralResult<[String ; 3]>
-{
-    use classfile_parser::constant_info::ConstantInfo::{Class, MethodRef, NameAndType};
-    use util::get_string;
-
-    let get_string = |n| get_string(g, n);
-
-    if let MethodRef(mr) = g.get_constant(pool_index) {
-        if let Class(cl) = g.get_constant(mr.class_index) {
-            if let NameAndType(nt) = g.get_constant(mr.name_and_type_index) {
-                return Ok([
-                        get_string(cl.name_index).ok_or("bad class name")?,
-                        get_string(nt.name_index).ok_or("bad method name")?,
-                        get_string(nt.descriptor_index).ok_or("bad method descriptor")?,
-                    ]);
-            }
-        }
-    }
-
-    Err("error during constant pool lookup".into())
 }
 
 fn mangle(list : &[&dyn Manglable]) -> GeneralResult<String> { list.mangle() }
