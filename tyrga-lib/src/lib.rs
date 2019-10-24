@@ -742,14 +742,11 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<V
     Ok(v)
 }
 
-fn make_invocation_virtual<'a, T>(
+fn make_invocation_virtual(
     sm : &mut StackManager,
     descriptor : &str,
-    mr : &MethodRefConstant,
-    gc : &T,
+    method_name : &dyn Manglable,
 ) -> GeneralResult<Vec<Instruction>>
-where
-    T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
     use tenyr::Immediate20;
     use Register::P;
@@ -768,7 +765,7 @@ where
 
     let (temp, gets) = sm.get(0);
     insns.extend(gets);
-    let far = format!("@{}", mangle(&[&gc.contextualize(mr), &"vslot"])?);
+    let far = format!("@{}", mangle(&[method_name, &"vslot"])?);
     let off = Immediate20::Expr(exprtree::Atom::Variable(far));
 
     insns.extend(tenyr_insn_list!(
@@ -804,7 +801,7 @@ where
         // TODO vet handling of Virtual against JVM spec
         InvokeKind::Virtual => {
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
-                make_invocation_virtual(sm, descriptor, mr, gc)
+                make_invocation_virtual(sm, descriptor, &gc.contextualize(mr))
             } else {
                 Err("bad constant kind".into())
             }
