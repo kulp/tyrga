@@ -790,12 +790,11 @@ where
     T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
     let get_method_parts = || {
-        use classfile_parser::constant_info::ConstantInfo::{Class, MethodRef, NameAndType};
         let get_string = |n| util::get_string(gc, n);
 
-        if let MethodRef(mr) = gc.get_constant(index) {
-            if let Class(cl) = gc.get_constant(mr.class_index) {
-                if let NameAndType(nt) = gc.get_constant(mr.name_and_type_index) {
+        if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
+            if let ConstantInfo::Class(cl) = gc.get_constant(mr.class_index) {
+                if let ConstantInfo::NameAndType(nt) = gc.get_constant(mr.name_and_type_index) {
                     return Ok((
                             get_string(cl.name_index).ok_or("bad class name")?,
                             get_string(nt.name_index).ok_or("bad method name")?,
