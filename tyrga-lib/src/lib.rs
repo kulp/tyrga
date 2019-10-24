@@ -744,7 +744,7 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<V
 
 fn make_invocation_virtual<'a, T>(
     sm : &mut StackManager,
-    index : u16,
+    descriptor : &str,
     mr : &MethodRefConstant,
     gc : &T,
 ) -> GeneralResult<Vec<Instruction>>
@@ -758,7 +758,6 @@ where
     // Save return address through current stack pointer (callee will
     // decrement stack pointer)
     let sp = sm.get_stack_ptr();
-    let descriptor = &get_method_parts(gc, index)?[2];
     let param_count = u16::from(count_params(descriptor)?);
     let (obj, gets) = sm.get(param_count);
     insns.extend(gets);
@@ -793,20 +792,21 @@ fn make_invocation<'a, T>(
 where
     T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
+    let [_, _, descriptor] = &get_method_parts(gc, index)?;
     match kind {
         // TODO fully handle Special (this is dumb partial handling)
         InvokeKind::Special => {
             let mut insns =
-                make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2])?;
+                make_call(sm, &make_callable_name(gc, index)?, descriptor)?;
             insns.extend(sm.release(1));
             Ok(insns)
         },
         InvokeKind::Static =>
-            make_call(sm, &make_callable_name(gc, index)?, &get_method_parts(gc, index)?[2]),
+            make_call(sm, &make_callable_name(gc, index)?, descriptor),
         // TODO vet handling of Virtual against JVM spec
         InvokeKind::Virtual => {
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
-                make_invocation_virtual(sm, index, mr, gc)
+                make_invocation_virtual(sm, descriptor, mr, gc)
             } else {
                 Err("bad constant kind".into())
             }
