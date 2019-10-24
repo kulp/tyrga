@@ -828,7 +828,7 @@ where
     T : ContextConstantGetter<'a>
 {
     match details {
-         AllocationKind::Array { kind, dims } => {
+        AllocationKind::Array { kind, dims } => {
             use jvmtypes::Indirection::{Explicit, Indirect};
 
             let descriptor = "(I)Ljava.lang.Object;";
