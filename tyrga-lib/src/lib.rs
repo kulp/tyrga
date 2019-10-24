@@ -797,11 +797,8 @@ where
 
     match kind {
         // TODO fully handle Special (this is dumb partial handling)
-        InvokeKind::Special => {
-            let mut insns = make_call(sm, name, descriptor)?;
-            insns.extend(sm.release(1));
-            Ok(insns)
-        },
+        InvokeKind::Special =>
+            Ok(make_call(sm, name, descriptor)?.into_iter().chain(sm.release(1)).collect()),
         InvokeKind::Static =>
             make_call(sm, name, descriptor),
         // TODO vet handling of Virtual against JVM spec
