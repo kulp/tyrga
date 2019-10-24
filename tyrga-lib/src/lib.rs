@@ -793,9 +793,8 @@ where
         -> GeneralResult<[String ; 3]>
     {
         use classfile_parser::constant_info::ConstantInfo::{Class, MethodRef, NameAndType};
-        use util::get_string;
 
-        let get_string = |n| get_string(g, n);
+        let get_string = |n| util::get_string(g, n);
 
         if let MethodRef(mr) = g.get_constant(pool_index) {
             if let Class(cl) = g.get_constant(mr.class_index) {
@@ -891,11 +890,9 @@ where
             }
         },
         AllocationKind::Element { index } => {
-            use util::get_string;
-
             let class = gc.get_constant(index);
             if let ConstantInfo::Class(cc) = class {
-                let name = get_string(gc, cc.name_index).ok_or("no class name")?;
+                let name = util::get_string(gc, cc.name_index).ok_or("no class name")?;
                 let desc = format!("()L{};", name);
                 let call = mangle(&[&name, &"new"])?;
                 make_call(sm, &call, &desc)
@@ -1628,11 +1625,9 @@ fn translate_method<'a, 'b>(
         method : &'a Context<'b, &'b MethodInfo>,
     ) -> GeneralResult<Method>
 {
-    use util::get_string;
-
     let mr = method.as_ref();
     let total_locals = get_method_code(mr)?.max_locals;
-    let descriptor = get_string(class, mr.descriptor_index).ok_or("method descriptor missing")?;
+    let descriptor = util::get_string(class, mr.descriptor_index).ok_or("method descriptor missing")?;
     let num_returns = count_returns(&descriptor)?.into();
     // Pretend we have at least as many locals as we have return-slots, so we have somewhere to
     // store our results when we Yield.
@@ -1737,10 +1732,8 @@ fn write_field_list(
         generator : impl Fn(&mut dyn Write, &str, usize, usize, usize) -> GeneralResult<()>,
     ) -> GeneralResult<()>
 {
-    use util::get_string;
-
     let tuples = fields.iter().filter(selector).map(|f| {
-        let s = get_string(class, f.descriptor_index).ok_or("missing descriptor")?;
+        let s = util::get_string(class, f.descriptor_index).ok_or("missing descriptor")?;
         let desc = s.chars().next().ok_or("empty descriptor")?;
         let size = args::field_size(desc)?.into();
         let name = mangle(&[ class, &class.contextualize(f), &suff ])?;
