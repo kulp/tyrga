@@ -742,6 +742,48 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<V
     Ok(v)
 }
 
+fn make_invocation_virtual<'a, T>(
+    sm : &mut StackManager,
+    index : u16,
+    mr : &MethodRefConstant,
+    gc : &T,
+) -> GeneralResult<Vec<Instruction>>
+where
+    T : ContextConstantGetter<'a> + Contextualizer<'a>
+{
+    use tenyr::Immediate20;
+    use Register::P;
+
+    let mut insns = Vec::new();
+    // Save return address through current stack pointer (callee will
+    // decrement stack pointer)
+    let sp = sm.get_stack_ptr();
+    let descriptor = &get_method_parts(gc, index)?[2];
+    let param_count = u16::from(count_params(descriptor)?);
+    let (obj, gets) = sm.get(param_count);
+    insns.extend(gets);
+    let stack_count = param_count + 1; // extra "1" for `this`
+
+    insns.extend(sm.freeze(stack_count));
+    insns.extend(sm.reserve(1));
+
+    let (temp, gets) = sm.get(0);
+    insns.extend(gets);
+    let far = format!("@{}", mangle(&[&gc.contextualize(mr), &"vslot"])?);
+    let off = Immediate20::Expr(exprtree::Atom::Variable(far));
+
+    insns.extend(tenyr_insn_list!(
+            temp <- [obj - 1]   ;
+            [sp] <- P + 1       ;
+            P <- [temp + (off)] ;
+        ));
+    insns.extend(sm.release(1));
+
+    insns.extend(sm.thaw(count_returns(descriptor)?.into()));
+
+    Ok(insns)
+}
+
 fn make_invocation<'a, T>(
     sm : &mut StackManager,
     kind : InvokeKind,
@@ -764,37 +806,7 @@ where
         // TODO vet handling of Virtual against JVM spec
         InvokeKind::Virtual => {
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
-                use tenyr::Immediate20;
-                use Register::P;
-
-                let mut insns = Vec::new();
-                // Save return address through current stack pointer (callee will
-                // decrement stack pointer)
-                let sp = sm.get_stack_ptr();
-                let descriptor = &get_method_parts(gc, index)?[2];
-                let param_count = u16::from(count_params(descriptor)?);
-                let (obj, gets) = sm.get(param_count);
-                insns.extend(gets);
-                let stack_count = param_count + 1; // extra "1" for `this`
-
-                insns.extend(sm.freeze(stack_count));
-                insns.extend(sm.reserve(1));
-
-                let (temp, gets) = sm.get(0);
-                insns.extend(gets);
-                let far = format!("@{}", mangle(&[&gc.contextualize(mr), &"vslot"])?);
-                let off = Immediate20::Expr(exprtree::Atom::Variable(far));
-
-                insns.extend(tenyr_insn_list!(
-                    temp <- [obj - 1]   ;
-                    [sp] <- P + 1       ;
-                    P <- [temp + (off)] ;
-                ));
-                insns.extend(sm.release(1));
-
-                insns.extend(sm.thaw(count_returns(descriptor)?.into()));
-
-                Ok(insns)
+                make_invocation_virtual(sm, index, mr, gc)
             } else {
                 Err("bad constant kind".into())
             }
