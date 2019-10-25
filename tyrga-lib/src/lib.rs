@@ -795,7 +795,7 @@ where
         if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
             if let ConstantInfo::Class(cl) = gc.get_constant(mr.class_index) {
                 if let ConstantInfo::NameAndType(nt) = gc.get_constant(mr.name_and_type_index) {
-                    return Ok((
+                    return GeneralResult::Ok((
                             get_string(cl.name_index).ok_or("bad class name")?,
                             get_string(nt.name_index).ok_or("bad method name")?,
                             get_string(nt.descriptor_index).ok_or("bad method descriptor")?,
@@ -807,8 +807,7 @@ where
         Err("error during constant pool lookup".into())
     };
 
-    let tuple : GeneralResult<_> = get_method_parts();
-    let (class, method, descriptor) = tuple?;
+    let (class, method, descriptor) = get_method_parts()?;
     let name = &mangle(&[ &class, &method, &descriptor ])?;
 
     match kind {
