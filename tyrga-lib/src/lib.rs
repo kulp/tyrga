@@ -858,10 +858,6 @@ where
 
             let descriptor = "(I)Ljava.lang.Object;";
             let name = make_builtin_name("alloc", descriptor)?;
-            let regs : Vec<_> =
-                (0..dims.into())
-                    .map(|r| sm.get(r))
-                    .collect();
 
             match (kind, dims) {
                 (Explicit(kind), 1) => {
@@ -870,7 +866,7 @@ where
                         // insert an instruction that doubles the top-of-stack count
                         2 => {
                             let mut v = Vec::new();
-                            let (top, gets) = regs[0].clone();
+                            let (top, gets) = sm.get(0);
                             v.extend(gets);
                             v.push(tenyr_insn!( top <- top + top )?);
                             Ok(v)
