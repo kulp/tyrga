@@ -856,9 +856,6 @@ where
         AllocationKind::Array { kind, dims } => {
             use jvmtypes::Indirection::{Explicit, Indirect};
 
-            let descriptor = "(I)Ljava.lang.Object;";
-            let name = make_builtin_name("alloc", descriptor)?;
-
             match (kind, dims) {
                 (Explicit(kind), 1) => {
                     let mut pre = match kind.size() {
@@ -873,6 +870,8 @@ where
                         },
                         _ => Err("impossible size"),
                     }?;
+                    let descriptor = "(I)Ljava.lang.Object;";
+                    let name = make_builtin_name("alloc", descriptor)?;
                     let v = make_call(sm, &name, descriptor)?;
                     pre.extend(v);
                     Ok(pre)
