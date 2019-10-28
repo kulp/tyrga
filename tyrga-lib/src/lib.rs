@@ -1664,11 +1664,7 @@ fn write_method_table(
 
     let names = methods.iter().map(|method| GeneralResult::Ok(mangle(&[ class, &class.contextualize(method) ])?) );
     let lengths : GeneralResult<Vec<_>> =
-        names.map(|s| {
-            let s = s?;
-            let len = s.len();
-            Ok((s, len))
-        }).collect();
+        names.map(|s| { let s = s?; let len = s.len(); Ok((s, len)) }).collect();
     let lengths = lengths?;
     let width = lengths.iter().fold(0, |c, (_, len)| c.max(*len));
 
@@ -1696,11 +1692,7 @@ fn write_vslot_list(
     let virtuals = methods.iter().filter(|m| (m.access_flags & non_virtual).is_empty());
     let names = virtuals.map(|m| GeneralResult::Ok(mangle(&[ class, &class.contextualize(m), &"vslot" ])?) );
     let lengths : GeneralResult<Vec<_>> =
-        names.map(|s| {
-            let s = s?;
-            let len = s.len();
-            Ok((s, len))
-        }).collect();
+        names.map(|s| { let s = s?; let len = s.len(); Ok((s, len)) }).collect();
     let lengths = lengths?;
     let width = lengths.iter().fold(0, |c, (_, len)| c.max(*len));
 
