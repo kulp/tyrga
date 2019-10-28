@@ -311,8 +311,8 @@ where
 
     let mut make = |slice : &[_]| {
         slice.iter().fold(
-            Ok(vec![]),
-            |v : GeneralResult<Vec<_>>, &value| {
+            GeneralResult::Ok(vec![]),
+            |v, &value| {
                 use Register::A;
 
                 let mut v = v?;
@@ -1662,9 +1662,9 @@ fn write_method_table(
     let label = ".Lmethod_table";
     writeln!(outfile, "{}:", label)?;
 
-    let names = methods.iter().map(|method| Ok(mangle(&[ class, &class.contextualize(method) ])?) );
+    let names = methods.iter().map(|method| GeneralResult::Ok(mangle(&[ class, &class.contextualize(method) ])?) );
     let lengths : GeneralResult<Vec<_>> =
-        names.map(|s : GeneralResult<String>| {
+        names.map(|s| {
             let s = s?;
             let len = s.len();
             Ok((s, len))
@@ -1694,9 +1694,9 @@ fn write_vslot_list(
     let non_virtual = MethodAccessFlags::STATIC | MethodAccessFlags::PRIVATE;
 
     let virtuals = methods.iter().filter(|m| (m.access_flags & non_virtual).is_empty());
-    let names = virtuals.map(|m| Ok(mangle(&[ class, &class.contextualize(m), &"vslot" ])?) );
+    let names = virtuals.map(|m| GeneralResult::Ok(mangle(&[ class, &class.contextualize(m), &"vslot" ])?) );
     let lengths : GeneralResult<Vec<_>> =
-        names.map(|s : GeneralResult<String>| {
+        names.map(|s| {
             let s = s?;
             let len = s.len();
             Ok((s, len))
