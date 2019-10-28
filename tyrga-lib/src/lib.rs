@@ -1313,10 +1313,11 @@ mod util {
     pub(in super) fn field_type(fr : &Context<'_, &FieldRefConstant>) -> GeneralResult<JType> {
         use classfile_parser::constant_info::ConstantInfo::NameAndType;
         if let NameAndType(nt) = fr.get_constant(fr.as_ref().name_and_type_index) {
-            let desc = get_string(fr, nt.descriptor_index).ok_or("no description")?;
-            let ch = desc.chars().next().ok_or("descriptor too short")?;
-            let kind = JType::try_from(ch)?;
-            Ok(kind)
+            get_string(fr, nt.descriptor_index)
+                .and_then(|x| x.chars().next())
+                .ok_or("bad descriptor")
+                .and_then(JType::try_from)
+                .map_err(Into::into)
         } else {
             Err("unexpected kind".into())
         }
