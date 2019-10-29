@@ -1266,7 +1266,7 @@ mod util {
         Context { get_constant : Rc::new(gc), nested : Rc::new(nested) }
     }
 
-    pub(in super) fn get_string(g : &dyn ContextConstantGetter, i : u16) -> Option<String> {
+    pub(in super) fn get_string<'a>(g : &impl ContextConstantGetter<'a>, i : u16) -> Option<String> {
         if let classfile_parser::constant_info::ConstantInfo::Utf8(u) = g.get_constant(i) {
             Some(u.utf8_string.to_string())
         } else {
