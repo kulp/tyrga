@@ -200,7 +200,6 @@ fn test_expand() -> GeneralResult<()> {
 
 type Namer<'a> = dyn Fn(&dyn fmt::Display) -> GeneralResult<String> + 'a;
 type InsnPair = (Vec<Instruction>, Vec<Destination>);
-type MakeInsnResult = GeneralResult<InsnPair>;
 
 fn make_target(target : &dyn std::string::ToString) -> GeneralResult<exprtree::Atom> {
     use exprtree::Atom::*;
@@ -219,7 +218,7 @@ fn make_int_branch(
     target : u16,
     target_namer : &Namer,
     mut comp : impl FnMut(&mut StackManager) -> GeneralResult<(Register, Vec<Instruction>)>
-) -> MakeInsnResult
+) -> GeneralResult<InsnPair>
 {
     use Register::P;
 
@@ -244,7 +243,7 @@ fn make_builtin_name(proc : &str, descriptor : &str) -> GeneralResult<String> {
     mangle(&[&"tyrga/Builtin", &proc, &descriptor])
 }
 
-fn make_jump(target : u16, target_namer : &Namer) -> MakeInsnResult {
+fn make_jump(target : u16, target_namer : &Namer) -> GeneralResult<InsnPair> {
     use crate::tenyr::InstructionType::Type3;
     let kind = Type3(tenyr::Immediate::Expr(make_target(&target_namer(&target)?)?));
     let insn = Instruction { kind, z : Register::P, x : Register::P, ..tenyr::NOOP_TYPE3 };
@@ -281,7 +280,7 @@ fn make_yield(
     kind : JType,
     target_namer : &Namer,
     max_locals : u16,
-) -> MakeInsnResult {
+) -> GeneralResult<InsnPair> {
     use tenyr::MemoryOpType::StoreRight;
     use util::index_local;
     use Register::P;
@@ -539,7 +538,7 @@ fn make_branch(
     way : Comparison,
     target : u16,
     target_namer : &Namer,
-) -> MakeInsnResult {
+) -> GeneralResult<InsnPair> {
     use tenyr::*;
 
     let (op, swap) = match way {
@@ -585,7 +584,7 @@ fn make_switch(
     params : SwitchParams,
     target_namer : &Namer,
     addr : usize,
-) -> MakeInsnResult {
+) -> GeneralResult<InsnPair> {
     use jvmtypes::SwitchParams::{Lookup, Table};
 
     let here = addr as i32;
@@ -1055,7 +1054,7 @@ fn make_instructions<'a, T>(
     target_namer : &Namer,
     gc : &T,
     max_locals : u16,
-) -> MakeInsnResult
+) -> GeneralResult<InsnPair>
 where
     T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
