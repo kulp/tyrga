@@ -298,13 +298,11 @@ fn make_yield(
     Ok((v, vec![])) // leaving the method is not a Destination we care about
 }
 
-fn make_constant<'a, T>(
+fn make_constant<'a>(
     sm : &mut StackManager,
-    gc : &T,
+    gc : &impl ContextConstantGetter<'a>,
     details : Indirection<ExplicitConstant>,
 ) -> GeneralResult<Vec<Instruction>>
-where
-    T : ContextConstantGetter<'a>
 {
     use jvmtypes::Indirection::{Explicit, Indirect};
 
@@ -779,14 +777,12 @@ fn make_invocation_virtual(
     Ok(insns)
 }
 
-fn make_invocation<'a, T>(
+fn make_invocation<'a>(
     sm : &mut StackManager,
     kind : InvokeKind,
     index : u16,
-    gc : &T,
+    gc : &(impl ContextConstantGetter<'a> + Contextualizer<'a>),
 ) -> GeneralResult<Vec<Instruction>>
-where
-    T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
     let get_method_parts = || {
         let get_string = |n| util::get_string(gc, n);
@@ -843,13 +839,11 @@ fn make_stack_op(
     }
 }
 
-fn make_allocation<'a, T>(
+fn make_allocation<'a>(
     sm : &mut StackManager,
     details : AllocationKind,
-    gc : &T,
+    gc : &impl ContextConstantGetter<'a>,
 ) -> GeneralResult<Vec<Instruction>>
-where
-    T : ContextConstantGetter<'a>
 {
     match details {
         AllocationKind::Array { kind, dims } => {
@@ -975,15 +969,13 @@ fn make_conversion(
     }
 }
 
-fn make_varaction<'a, T>(
+fn make_varaction<'a>(
     sm : &mut StackManager,
     op : VarOp,
     kind : VarKind,
     index : u16,
-    gc : &T,
+    gc : &(impl ContextConstantGetter<'a> + Contextualizer<'a>),
 ) -> GeneralResult<Vec<Instruction>>
-where
-    T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
     use classfile_parser::constant_info::ConstantInfo::FieldRef;
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
@@ -1048,15 +1040,13 @@ where
     }
 }
 
-fn make_instructions<'a, T>(
+fn make_instructions<'a>(
     sm : &mut StackManager,
     (addr, op) : (usize, Operation),
     target_namer : &Namer,
-    gc : &T,
+    gc : &(impl ContextConstantGetter<'a> + Contextualizer<'a>),
     max_locals : u16,
 ) -> GeneralResult<InsnPair>
-where
-    T : ContextConstantGetter<'a> + Contextualizer<'a>
 {
     use Operation::*;
 
