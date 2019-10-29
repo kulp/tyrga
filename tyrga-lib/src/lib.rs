@@ -374,7 +374,7 @@ fn make_bitwise(
     sm : &mut StackManager,
     kind : JType,
     op : tenyr::Opcode,
-) -> GeneralResult<Vec<Instruction>> {
+) -> Vec<Instruction> {
     use tenyr::InstructionType::Type0;
 
     let mut v = Vec::new();
@@ -390,13 +390,13 @@ fn make_bitwise(
         v.push(Instruction { kind : Type0(tenyr::InsnGeneral { y, op, imm }), x, z, dd });
     }
     v.extend(sm.release(size));
-    Ok(v)
+    v
 }
 
 fn make_arithmetic_general(
     sm : &mut StackManager,
     op : tenyr::Opcode,
-) -> GeneralResult<Vec<Instruction>>
+) -> Vec<Instruction>
 {
     use tenyr::InstructionType::Type0;
 
@@ -410,7 +410,7 @@ fn make_arithmetic_general(
     let imm = 0_u8.into();
     v.push(Instruction { kind : Type0(tenyr::InsnGeneral { y, op, imm }), x, z, dd });
     v.extend(sm.release(1));
-    Ok(v)
+    v
 }
 
 fn make_arithmetic_call(
@@ -476,10 +476,10 @@ fn make_arithmetic(
         use JType::Int;
 
         match (kind, bitwise_op, general_op, op) {
-            (_  , Some(op), _       , _  ) => make_bitwise               (sm, kind, op),
-            (Int, _       , Some(op), _  ) => make_arithmetic_general    (sm,       op),
-            (Int, _       , _       , Neg) => make_negation              (sm          ),
-            (_  , _       , _       , _  ) => make_arithmetic_call       (sm, kind, op),
+            (_  , Some(op), _       , _  ) => Ok(make_bitwise               (sm, kind, op)),
+            (Int, _       , Some(op), _  ) => Ok(make_arithmetic_general    (sm,       op)),
+            (Int, _       , _       , Neg) =>   (make_negation              (sm          )),
+            (_  , _       , _       , _  ) =>   (make_arithmetic_call       (sm, kind, op)),
         }
     }
 }
@@ -488,7 +488,7 @@ fn make_mem_op(
     sm : &mut StackManager,
     op : LocalOperation,
     max_locals : u16,
-) -> GeneralResult<Vec<Instruction>>
+) -> Vec<Instruction>
 {
     use LocalOperation::{Load, Store};
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
@@ -508,7 +508,7 @@ fn make_mem_op(
         v.push(Instruction { dd, ..util::index_local(sm, reg, (idx + i).into(), max_locals) })
     }
     v.extend(sm.release(after.unwrap_or(0).into()));
-    Ok(v)
+    v
 }
 
 fn make_increment(
@@ -1079,7 +1079,7 @@ where
         Increment { index, value }    => no_branch(make_increment(sm, index, value, max_locals)?),
         Invocation { kind, index }    => no_branch(make_invocation(sm, kind, index, gc)?),
         Jump { target }               => make_jump(target, target_namer),
-        LocalOp(op)                   => no_branch(make_mem_op(sm, op, max_locals)?),
+        LocalOp(op)                   => no_branch(make_mem_op(sm, op, max_locals)),
         Noop                          => no_branch(vec![ tenyr::NOOP_TYPE0 ]),
         StackOp { op, size }          => no_branch(make_stack_op(sm, op, size)),
         Switch(params)                => make_switch(sm, params, target_namer, addr),
