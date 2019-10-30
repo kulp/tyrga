@@ -246,9 +246,9 @@ fn make_builtin_name(proc : &str, descriptor : &str) -> GeneralResult<String> {
     mangle(&[&"tyrga/Builtin", &proc, &descriptor])
 }
 
-fn make_jump(target : u16, target_namer : &Namer) -> GeneralResult<InsnPair> {
+fn make_jump(target : u16, target_name : &str) -> GeneralResult<InsnPair> {
     use crate::tenyr::InstructionType::Type3;
-    let kind = Type3(tenyr::Immediate::Expr(make_target(&target_namer(&target)?)));
+    let kind = Type3(tenyr::Immediate::Expr(make_target(&target_name)));
     let insn = Instruction { kind, z : Register::P, x : Register::P, ..tenyr::NOOP_TYPE3 };
     let dests = vec![ Destination::Address(target as usize) ];
     Ok((vec![ insn ], dests))
@@ -620,7 +620,7 @@ fn make_switch(
             dests.extend(d.concat());
 
             let far = (default + here) as u16;
-            let (i, d) = make_jump(far, target_namer)?;
+            let (i, d) = make_jump(far, &target_namer(&far)?)?;
             insns.extend(i);
             dests.extend(d);
 
@@ -667,7 +667,8 @@ fn make_switch(
             let (i, d) : (Vec<_>, Vec<_>) =
                 offsets
                     .into_iter()
-                    .map(|n| make_jump((n + here) as u16, target_namer))
+                    .map(|n| (n + here) as u16)
+                    .map(|far| make_jump(far, &target_namer(&far)?))
                     .collect::<Result<Vec<_>,_>>()?
                     .into_iter()
                     .unzip();
@@ -1070,7 +1071,7 @@ fn make_instructions<'a>(
         Conversion { from, to }       => no_branch(make_conversion(sm, from, to)?),
         Increment { index, value }    => no_branch(make_increment(sm, index, value, max_locals)?),
         Invocation { kind, index }    => no_branch(make_invocation(sm, kind, index, gc)?),
-        Jump { target }               => make_jump(target, target_namer),
+        Jump { target }               => make_jump(target, &target_namer(&target)?),
         LocalOp(op)                   => no_branch(make_mem_op(sm, op, max_locals)),
         Noop                          => no_branch(vec![ tenyr::NOOP_TYPE0 ]),
         StackOp { op, size }          => no_branch(make_stack_op(sm, op, size)),
