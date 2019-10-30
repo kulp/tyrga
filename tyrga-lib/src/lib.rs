@@ -14,6 +14,7 @@
 #![deny(unreachable_patterns)]
 #![deny(bare_trait_objects)]
 #![deny(unused_mut)]
+#![deny(unused_variables)]
 
 // make macros visible to later modules
 #[macro_use]
