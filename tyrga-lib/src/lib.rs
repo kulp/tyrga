@@ -204,7 +204,7 @@ fn test_expand() -> GeneralResult<()> {
 type Namer<'a> = dyn Fn(&dyn fmt::Display) -> GeneralResult<String> + 'a;
 type InsnPair = (Vec<Instruction>, Vec<Destination>);
 
-fn make_target(target : &dyn std::string::ToString) -> GeneralResult<exprtree::Atom> {
+fn make_target(target : &dyn std::string::ToString) -> exprtree::Atom {
     use exprtree::Atom::*;
     use exprtree::Expr;
     use exprtree::Operation::{Add, Sub};
@@ -212,7 +212,7 @@ fn make_target(target : &dyn std::string::ToString) -> GeneralResult<exprtree::A
 
     let a = Variable(target.to_string());
     let b = Expression(Rc::new(Expr { a : Variable(".".to_owned()), op : Add, b : Immediate(1) }));
-    Ok(Expression(Rc::new(Expr { a, op : Sub, b })))
+    Expression(Rc::new(Expr { a, op : Sub, b }))
 }
 
 fn make_int_branch(
@@ -226,7 +226,7 @@ fn make_int_branch(
     use Register::P;
 
     let (temp_reg, sequence) = comp(sm)?;
-    let imm = tenyr::Immediate::Expr(make_target(&target_namer(&target)?)?);
+    let imm = tenyr::Immediate::Expr(make_target(&target_namer(&target)?));
     let branch =
         if invert   { tenyr_insn!(   P <- (imm) &~ temp_reg + P     ) }
         else        { tenyr_insn!(   P <- (imm) &  temp_reg + P     ) };
@@ -248,7 +248,7 @@ fn make_builtin_name(proc : &str, descriptor : &str) -> GeneralResult<String> {
 
 fn make_jump(target : u16, target_namer : &Namer) -> GeneralResult<InsnPair> {
     use crate::tenyr::InstructionType::Type3;
-    let kind = Type3(tenyr::Immediate::Expr(make_target(&target_namer(&target)?)?));
+    let kind = Type3(tenyr::Immediate::Expr(make_target(&target_namer(&target)?)));
     let insn = Instruction { kind, z : Register::P, x : Register::P, ..tenyr::NOOP_TYPE3 };
     let dests = vec![ Destination::Address(target as usize) ];
     Ok((vec![ insn ], dests))
@@ -295,7 +295,7 @@ fn make_yield(
         v.push(Instruction { dd : StoreRight, ..index_local(sm, reg, i.into(), max_locals) })
     }
     v.extend(sm.empty());
-    let ex = tenyr::Immediate::Expr(make_target(&target_namer(&"epilogue")?)?);
+    let ex = tenyr::Immediate::Expr(make_target(&target_namer(&"epilogue")?));
     v.push(tenyr_insn!( P <- (ex) + P )?);
 
     Ok((v, vec![])) // leaving the method is not a Destination we care about
@@ -1008,7 +1008,7 @@ fn make_varaction<'a>(
         let ((reg, gets), base, drops) = match kind {
             VarKind::Static =>
                 (   (Register::P, vec![]),
-                    make_target(&format("static")?)?,
+                    make_target(&format("static")?),
                     0,
                 ),
             VarKind::Field =>
