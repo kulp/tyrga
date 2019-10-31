@@ -993,12 +993,11 @@ fn make_varaction<'a>(
         let len = util::field_type(&fr)?.size();
 
         let make_off = |base, i| {
-            use exprtree::Operation::Add;
-            use std::rc::Rc;
-            use tenyr::Immediate20;
-
-            let e = exprtree::Expr { a : base, b : Atom::Immediate(i), op : Add };
-            Immediate20::Expr(Atom::Expression(Rc::new(e)))
+            let a = base;
+            let b = Atom::Immediate(i);
+            let op = exprtree::Operation::Add;
+            let e = exprtree::Expr { a, b, op };
+            tenyr::Immediate20::Expr(Atom::Expression(std::rc::Rc::new(e)))
         };
 
         let op_depth = match op { VarOp::Get => 0, VarOp::Put => 1 };
