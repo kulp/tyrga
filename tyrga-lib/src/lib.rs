@@ -1056,8 +1056,8 @@ fn make_instructions<'a>(
     let branching = |x| x;
     let no_branch = |x| Ok((x, vec![Destination::Successor]));
 
-    let make_jump   = |target| Ok(make_jump(target, &namer(&target)?));
-    let make_noop   = || vec![tenyr::NOOP_TYPE0];
+    let make_jump   = |_sm, target| Ok(make_jump(target, &namer(&target)?));
+    let make_noop   = |_sm| vec![tenyr::NOOP_TYPE0];
     let make_branch = |sm, ops, way, target| make_branch(sm, ops, way, target, &namer(&target)?);
     let make_yield  = |sm, kind| make_yield(sm, kind, &namer(&"epilogue")?, max_locals);
 
@@ -1071,9 +1071,9 @@ fn make_instructions<'a>(
         Conversion { from, to         } => no_branch( make_conversion ( sm, from, to                 )?),
         Increment  { index, value     } => no_branch( make_increment  ( sm, index, value, max_locals )?),
         Invocation { kind, index      } => no_branch( make_invocation ( sm, kind, index, gc          )?),
-        Jump       { target           } => branching( make_jump       ( target                       ) ),
+        Jump       { target           } => branching( make_jump       ( sm, target                   ) ),
         LocalOp    { 0 : op           } => no_branch( make_mem_op     ( sm, op, max_locals           ) ),
-        Noop       {                  } => no_branch( make_noop       (                              ) ),
+        Noop       {                  } => no_branch( make_noop       ( sm                           ) ),
         StackOp    { op, size         } => no_branch( make_stack_op   ( sm, op, size                 ) ),
         Switch     { 0 : params       } => branching( make_switch     ( sm, params, namer, addr      ) ),
         VarAction  { op, kind, index  } => no_branch( make_varaction  ( sm, op, kind, index, gc      )?),
