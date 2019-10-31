@@ -1053,24 +1053,25 @@ fn make_instructions<'a>(
     let no_branch = |x| Ok((x, vec![Destination::Successor]));
     let branching = |x| x;
     let make_noop = || vec![ tenyr::NOOP_TYPE0 ];
+    let make_jump = |x, y| Ok(make_jump(x, y));
 
     match op {
-        Allocation { 0 : details      }  => no_branch(     make_allocation ( sm, details, gc                    )?   ),
-        Arithmetic { kind, op         }  => no_branch(     make_arithmetic ( sm, kind, op                       )?   ),
-        ArrayOp    { 0 : aop          }  => no_branch(     make_array_op   ( sm, aop                            )?   ),
-        Branch     { ops, way, target }  => branching(     make_branch     ( sm, ops, way, target, target_namer )    ),
-        Compare    { kind, nans       }  => no_branch(     make_compare    ( sm, kind, nans                     )?   ),
-        Constant   { 0 : details      }  => no_branch(     make_constant   ( sm, gc, details                    )?   ),
-        Conversion { from, to         }  => no_branch(     make_conversion ( sm, from, to                       )?   ),
-        Increment  { index, value     }  => no_branch(     make_increment  ( sm, index, value, max_locals       )?   ),
-        Invocation { kind, index      }  => no_branch(     make_invocation ( sm, kind, index, gc                )?   ),
-        Jump       { target           }  => branching( Ok( make_jump       ( target, &target_namer(&target)?    )  ) ),
-        LocalOp    { 0 : op           }  => no_branch(     make_mem_op     ( sm, op, max_locals                 )    ),
-        Noop       {                  }  => no_branch(     make_noop       (                                    )    ),
-        StackOp    { op, size         }  => no_branch(     make_stack_op   ( sm, op, size                       )    ),
-        Switch     { 0 : params       }  => branching(     make_switch     ( sm, params, target_namer, addr     )    ),
-        VarAction  { op, kind, index  }  => no_branch(     make_varaction  ( sm, op, kind, index, gc            )?   ),
-        Yield      { kind             }  => branching(     make_yield      ( sm, kind, target_namer, max_locals )    ),
+        Allocation { 0 : details      }  => no_branch( make_allocation ( sm, details, gc                    )? ),
+        Arithmetic { kind, op         }  => no_branch( make_arithmetic ( sm, kind, op                       )? ),
+        ArrayOp    { 0 : aop          }  => no_branch( make_array_op   ( sm, aop                            )? ),
+        Branch     { ops, way, target }  => branching( make_branch     ( sm, ops, way, target, target_namer )  ),
+        Compare    { kind, nans       }  => no_branch( make_compare    ( sm, kind, nans                     )? ),
+        Constant   { 0 : details      }  => no_branch( make_constant   ( sm, gc, details                    )? ),
+        Conversion { from, to         }  => no_branch( make_conversion ( sm, from, to                       )? ),
+        Increment  { index, value     }  => no_branch( make_increment  ( sm, index, value, max_locals       )? ),
+        Invocation { kind, index      }  => no_branch( make_invocation ( sm, kind, index, gc                )? ),
+        Jump       { target           }  => branching( make_jump       ( target, &target_namer(&target)?    )  ),
+        LocalOp    { 0 : op           }  => no_branch( make_mem_op     ( sm, op, max_locals                 )  ),
+        Noop       {                  }  => no_branch( make_noop       (                                    )  ),
+        StackOp    { op, size         }  => no_branch( make_stack_op   ( sm, op, size                       )  ),
+        Switch     { 0 : params       }  => branching( make_switch     ( sm, params, target_namer, addr     )  ),
+        VarAction  { op, kind, index  }  => no_branch( make_varaction  ( sm, op, kind, index, gc            )? ),
+        Yield      { kind             }  => branching( make_yield      ( sm, kind, target_namer, max_locals )  ),
 
         Unhandled( .. ) =>
             unimplemented!("unhandled operation {:?}", op)
