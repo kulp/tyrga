@@ -219,14 +219,14 @@ fn make_int_branch(
     sm : &mut StackManager,
     invert : bool,
     target : u16,
-    target_namer : &Namer,
+    target_name : &str,
     mut comp : impl FnMut(&mut StackManager) -> GeneralResult<(Register, Vec<Instruction>)>
 ) -> GeneralResult<InsnPair>
 {
     use Register::P;
 
     let (temp_reg, sequence) = comp(sm)?;
-    let imm = tenyr::Immediate::Expr(make_target(&target_namer(&target)?));
+    let imm = tenyr::Immediate::Expr(make_target(&target_name));
     let branch =
         if invert   { tenyr_insn!(   P <- (imm) &~ temp_reg + P     ) }
         else        { tenyr_insn!(   P <- (imm) &  temp_reg + P     ) };
@@ -281,7 +281,7 @@ fn make_call(
 fn make_yield(
     sm : &mut StackManager,
     kind : JType,
-    target_namer : &Namer,
+    target_name : &str,
     max_locals : u16,
 ) -> GeneralResult<InsnPair> {
     use tenyr::MemoryOpType::StoreRight;
@@ -295,7 +295,7 @@ fn make_yield(
         v.push(Instruction { dd : StoreRight, ..index_local(sm, reg, i.into(), max_locals) })
     }
     v.extend(sm.empty());
-    let ex = tenyr::Immediate::Expr(make_target(&target_namer(&"epilogue")?));
+    let ex = tenyr::Immediate::Expr(make_target(&target_name));
     v.push(tenyr_insn!( P <- (ex) + P )?);
 
     Ok((v, vec![])) // leaving the method is not a Destination we care about
@@ -538,7 +538,7 @@ fn make_branch(
     ops : OperandCount,
     way : Comparison,
     target : u16,
-    target_namer : &Namer,
+    target_name : &str,
 ) -> GeneralResult<InsnPair> {
     use tenyr::*;
 
@@ -552,7 +552,7 @@ fn make_branch(
     };
     let invert = way == jvmtypes::Comparison::Ne;
 
-    make_int_branch(sm, invert, target, target_namer, |sm| {
+    make_int_branch(sm, invert, target, target_name, |sm| {
         use OperandCount::{Single, Double};
 
         let mut v = Vec::new();
@@ -605,13 +605,15 @@ fn make_switch(
             let (i, d) : (Vec<_>, Vec<_>) =
                 pairs
                     .into_iter()
-                    .map(|(imm, target)|
-                        make_int_branch(sm, false, (target + here) as u16, target_namer,
+                    .map(|(imm, target)| {
+                        let far = (target + here) as u16;
+                        let target_name = &target_namer(&far)?;
+                        make_int_branch(sm, false, far, target_name,
                             |sm| Ok((
                                 temp_reg,
                                 expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0)?, imm)?
                             ))
-                        ))
+                        )})
                     .collect::<Result<Vec<_>,_>>()?
                     .into_iter()
                     .unzip();
@@ -650,10 +652,11 @@ fn make_switch(
             };
 
             let far = (default + here) as u16;
+            let target_name = &target_namer(&far)?;
             let (lo_insns, lo_dests) =
-                make_int_branch(sm, false, far, target_namer, maker(&Type1, low))?;
+                make_int_branch(sm, false, far, target_name, maker(&Type1, low))?;
             let (hi_insns, hi_dests) =
-                make_int_branch(sm, false, far, target_namer, maker(&Type2, high))?;
+                make_int_branch(sm, false, far, target_name, maker(&Type2, high))?;
 
             insns.extend(lo_insns);
             insns.extend(hi_insns);
@@ -1053,26 +1056,28 @@ fn make_instructions<'a>(
     let branching = |x| x;
     let no_branch = |x| Ok((x, vec![Destination::Successor]));
 
-    let make_jump = |x, y| Ok(make_jump(x, y));
-    let make_noop = || vec![tenyr::NOOP_TYPE0];
+    let make_jump   = |target| Ok(make_jump(target, &target_namer(&target)?));
+    let make_noop   = || vec![tenyr::NOOP_TYPE0];
+    let make_branch = |sm, ops, way, target| make_branch(sm, ops, way, target, &target_namer(&target)?);
+    let make_yield  = |sm, kind| make_yield(sm, kind, &target_namer(&"epilogue")?, max_locals);
 
     match op {
-        Allocation { 0 : details      } => no_branch( make_allocation ( sm, details, gc                    )?),
-        Arithmetic { kind, op         } => no_branch( make_arithmetic ( sm, kind, op                       )?),
-        ArrayOp    { 0 : aop          } => no_branch( make_array_op   ( sm, aop                            )?),
-        Branch     { ops, way, target } => branching( make_branch     ( sm, ops, way, target, target_namer ) ),
-        Compare    { kind, nans       } => no_branch( make_compare    ( sm, kind, nans                     )?),
-        Constant   { 0 : details      } => no_branch( make_constant   ( sm, gc, details                    )?),
-        Conversion { from, to         } => no_branch( make_conversion ( sm, from, to                       )?),
-        Increment  { index, value     } => no_branch( make_increment  ( sm, index, value, max_locals       )?),
-        Invocation { kind, index      } => no_branch( make_invocation ( sm, kind, index, gc                )?),
-        Jump       { target           } => branching( make_jump       ( target, &target_namer(&target)?    ) ),
-        LocalOp    { 0 : op           } => no_branch( make_mem_op     ( sm, op, max_locals                 ) ),
-        Noop       {                  } => no_branch( make_noop       (                                    ) ),
-        StackOp    { op, size         } => no_branch( make_stack_op   ( sm, op, size                       ) ),
-        Switch     { 0 : params       } => branching( make_switch     ( sm, params, target_namer, addr     ) ),
-        VarAction  { op, kind, index  } => no_branch( make_varaction  ( sm, op, kind, index, gc            )?),
-        Yield      { kind             } => branching( make_yield      ( sm, kind, target_namer, max_locals ) ),
+        Allocation { 0 : details      } => no_branch( make_allocation ( sm, details, gc                )?),
+        Arithmetic { kind, op         } => no_branch( make_arithmetic ( sm, kind, op                   )?),
+        ArrayOp    { 0 : aop          } => no_branch( make_array_op   ( sm, aop                        )?),
+        Branch     { ops, way, target } => branching( make_branch     ( sm, ops, way, target           ) ),
+        Compare    { kind, nans       } => no_branch( make_compare    ( sm, kind, nans                 )?),
+        Constant   { 0 : details      } => no_branch( make_constant   ( sm, gc, details                )?),
+        Conversion { from, to         } => no_branch( make_conversion ( sm, from, to                   )?),
+        Increment  { index, value     } => no_branch( make_increment  ( sm, index, value, max_locals   )?),
+        Invocation { kind, index      } => no_branch( make_invocation ( sm, kind, index, gc            )?),
+        Jump       { target           } => branching( make_jump       ( target                         ) ),
+        LocalOp    { 0 : op           } => no_branch( make_mem_op     ( sm, op, max_locals             ) ),
+        Noop       {                  } => no_branch( make_noop       (                                ) ),
+        StackOp    { op, size         } => no_branch( make_stack_op   ( sm, op, size                   ) ),
+        Switch     { 0 : params       } => branching( make_switch     ( sm, params, target_namer, addr ) ),
+        VarAction  { op, kind, index  } => no_branch( make_varaction  ( sm, op, kind, index, gc        )?),
+        Yield      { kind             } => branching( make_yield      ( sm, kind                       ) ),
 
         Unhandled  { ..               } => unimplemented!("unhandled operation {:?}", op)
     }
