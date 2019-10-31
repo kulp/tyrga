@@ -583,7 +583,7 @@ fn make_branch(
 fn make_switch(
     sm : &mut StackManager,
     params : SwitchParams,
-    target_namer : &Namer,
+    namer : &Namer,
     addr : usize,
 ) -> GeneralResult<InsnPair> {
     use jvmtypes::SwitchParams::{Lookup, Table};
@@ -607,7 +607,7 @@ fn make_switch(
                     .into_iter()
                     .map(|(imm, target)| {
                         let far = (target + here) as u16;
-                        let target_name = &target_namer(&far)?;
+                        let target_name = &namer(&far)?;
                         make_int_branch(sm, false, far, target_name,
                             |sm| Ok((
                                 temp_reg,
@@ -622,7 +622,7 @@ fn make_switch(
             dests.extend(d.concat());
 
             let far = (default + here) as u16;
-            let (i, d) = make_jump(far, &target_namer(&far)?);
+            let (i, d) = make_jump(far, &namer(&far)?);
             insns.extend(i);
             dests.extend(d);
 
@@ -652,7 +652,7 @@ fn make_switch(
             };
 
             let far = (default + here) as u16;
-            let target_name = &target_namer(&far)?;
+            let target_name = &namer(&far)?;
             let (lo_insns, lo_dests) =
                 make_int_branch(sm, false, far, target_name, maker(&Type1, low))?;
             let (hi_insns, hi_dests) =
@@ -671,7 +671,7 @@ fn make_switch(
                 offsets
                     .into_iter()
                     .map(|n| (n + here) as u16)
-                    .map(|far| Ok(make_jump(far, &target_namer(&far)?)))
+                    .map(|far| Ok(make_jump(far, &namer(&far)?)))
                     .collect::<GeneralResult<Vec<_>>>()?
                     .into_iter()
                     .unzip();
@@ -1041,7 +1041,7 @@ fn make_varaction<'a>(
 fn make_instructions<'a>(
     sm : &mut StackManager,
     (addr, op) : (usize, Operation),
-    target_namer : &Namer,
+    namer : &Namer,
     gc : &(impl ContextConstantGetter<'a> + Contextualizer<'a>),
     max_locals : u16,
 ) -> GeneralResult<InsnPair>
@@ -1056,28 +1056,28 @@ fn make_instructions<'a>(
     let branching = |x| x;
     let no_branch = |x| Ok((x, vec![Destination::Successor]));
 
-    let make_jump   = |target| Ok(make_jump(target, &target_namer(&target)?));
+    let make_jump   = |target| Ok(make_jump(target, &namer(&target)?));
     let make_noop   = || vec![tenyr::NOOP_TYPE0];
-    let make_branch = |sm, ops, way, target| make_branch(sm, ops, way, target, &target_namer(&target)?);
-    let make_yield  = |sm, kind| make_yield(sm, kind, &target_namer(&"epilogue")?, max_locals);
+    let make_branch = |sm, ops, way, target| make_branch(sm, ops, way, target, &namer(&target)?);
+    let make_yield  = |sm, kind| make_yield(sm, kind, &namer(&"epilogue")?, max_locals);
 
     match op {
-        Allocation { 0 : details      } => no_branch( make_allocation ( sm, details, gc                )?),
-        Arithmetic { kind, op         } => no_branch( make_arithmetic ( sm, kind, op                   )?),
-        ArrayOp    { 0 : aop          } => no_branch( make_array_op   ( sm, aop                        )?),
-        Branch     { ops, way, target } => branching( make_branch     ( sm, ops, way, target           ) ),
-        Compare    { kind, nans       } => no_branch( make_compare    ( sm, kind, nans                 )?),
-        Constant   { 0 : details      } => no_branch( make_constant   ( sm, gc, details                )?),
-        Conversion { from, to         } => no_branch( make_conversion ( sm, from, to                   )?),
-        Increment  { index, value     } => no_branch( make_increment  ( sm, index, value, max_locals   )?),
-        Invocation { kind, index      } => no_branch( make_invocation ( sm, kind, index, gc            )?),
-        Jump       { target           } => branching( make_jump       ( target                         ) ),
-        LocalOp    { 0 : op           } => no_branch( make_mem_op     ( sm, op, max_locals             ) ),
-        Noop       {                  } => no_branch( make_noop       (                                ) ),
-        StackOp    { op, size         } => no_branch( make_stack_op   ( sm, op, size                   ) ),
-        Switch     { 0 : params       } => branching( make_switch     ( sm, params, target_namer, addr ) ),
-        VarAction  { op, kind, index  } => no_branch( make_varaction  ( sm, op, kind, index, gc        )?),
-        Yield      { kind             } => branching( make_yield      ( sm, kind                       ) ),
+        Allocation { 0 : details      } => no_branch( make_allocation ( sm, details, gc              )?),
+        Arithmetic { kind, op         } => no_branch( make_arithmetic ( sm, kind, op                 )?),
+        ArrayOp    { 0 : aop          } => no_branch( make_array_op   ( sm, aop                      )?),
+        Branch     { ops, way, target } => branching( make_branch     ( sm, ops, way, target         ) ),
+        Compare    { kind, nans       } => no_branch( make_compare    ( sm, kind, nans               )?),
+        Constant   { 0 : details      } => no_branch( make_constant   ( sm, gc, details              )?),
+        Conversion { from, to         } => no_branch( make_conversion ( sm, from, to                 )?),
+        Increment  { index, value     } => no_branch( make_increment  ( sm, index, value, max_locals )?),
+        Invocation { kind, index      } => no_branch( make_invocation ( sm, kind, index, gc          )?),
+        Jump       { target           } => branching( make_jump       ( target                       ) ),
+        LocalOp    { 0 : op           } => no_branch( make_mem_op     ( sm, op, max_locals           ) ),
+        Noop       {                  } => no_branch( make_noop       (                              ) ),
+        StackOp    { op, size         } => no_branch( make_stack_op   ( sm, op, size                 ) ),
+        Switch     { 0 : params       } => branching( make_switch     ( sm, params, namer, addr      ) ),
+        VarAction  { op, kind, index  } => no_branch( make_varaction  ( sm, op, kind, index, gc      )?),
+        Yield      { kind             } => branching( make_yield      ( sm, kind                     ) ),
 
         Unhandled  { ..               } => unimplemented!("unhandled operation {:?}", op)
     }
