@@ -1000,22 +1000,14 @@ fn make_varaction<'a>(
             tenyr::Immediate20::Expr(Atom::Expression(std::rc::Rc::new(e)))
         };
 
-        let op_depth = match op { VarOp::Get => 0, VarOp::Put => 1 };
+        let op_depth = match op { VarOp::Get => 0, VarOp::Put => len.into() };
 
         let format = |suff|
             GeneralResult::Ok(format!("@{}", mangle(&[ &fr, &suff ])?));
 
-        let ((reg, gets), base, drops) = match kind {
-            VarKind::Static =>
-                (   (Register::P, vec![]),
-                    make_target(&format("static")?),
-                    0,
-                ),
-            VarKind::Field =>
-                (   sm.get((op_depth * len).into()),
-                    Atom::Variable(format("field_offset")?),
-                    1, // drop object reference
-                ),
+        let (drops, (reg, gets), base) = match kind {
+            VarKind::Static => ( 0, (Register::P, vec![]), make_target(  &format("static"      )?) ),
+            VarKind::Field  => ( 1, sm.get(op_depth)     , Atom::Variable(format("field_offset")?) ),
         };
         insns.extend(gets);
 
