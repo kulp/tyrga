@@ -101,8 +101,7 @@ fn expand_immediate_load(
             use tenyr::Opcode::{Add, BitwiseOr};
 
             let adder  = Gen { y : Register::A, op : Add , imm : 0_u8.into() };
-            let reserve = sm.reserve(1).into_iter();
-            let (temp, gets) = sm.get(0);
+            let (temp, gets) = sm.reserve_one();
             let pack = make_imm(temp, imm)?.into_iter();
             let (op, a, b, c) = match kind {
                 // the Type3 case should never be reached, but provides generality
@@ -118,7 +117,6 @@ fn expand_immediate_load(
             let release = sm.release(1).into_iter();
 
             std::iter::empty()
-                .chain(reserve)
                 .chain(gets)
                 .chain(pack)
                 .chain(operate)
@@ -315,9 +313,8 @@ fn make_constant<'a>(
             |v, &value| {
                 use Register::A;
 
+                let (reg, gets) = sm.reserve_one();
                 let mut v = v?;
-                v.extend(sm.reserve(1));
-                let (reg, gets) = sm.get(0);
                 v.extend(gets);
                 let insn = Instruction { z : reg, x : A, ..tenyr::NOOP_TYPE3 };
                 v.extend(expand_immediate_load(sm, insn, value)?);
@@ -520,10 +517,7 @@ fn make_increment(
     use tenyr::MemoryOpType;
     use util::index_local;
 
-    let mut v = Vec::new();
-    v.extend(sm.reserve(1));
-    let (temp_reg, gets) = sm.get(0);
-    v.extend(gets);
+    let (temp_reg, mut v) = sm.reserve_one();
     let insn = index_local(sm, temp_reg, index.into(), max_locals);
     v.push(Instruction { dd : MemoryOpType::LoadRight, ..insn.clone() });
     v.push(tenyr_insn!( temp_reg <- temp_reg + (value) )?);
@@ -591,13 +585,8 @@ fn make_switch(
     let here = addr as i32;
 
     let mut dests = Vec::new();
-    let mut insns = Vec::new();
-    let (top, gets) = sm.get(0);
-
-    insns.extend(gets);
-    insns.extend(sm.reserve(1)); // need a persistent temporary
-
-    let (temp_reg, gets) = sm.get(0);
+    let (top, mut insns) = sm.get(0);
+    let (temp_reg, gets) = sm.reserve_one(); // need a persistent temporary
     insns.extend(gets);
 
     match params {
@@ -718,8 +707,7 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<V
         Load(k) => {
             kind = k;
             let (idx, arr) = array_params(sm, &mut v)?;
-            v.extend(sm.reserve(1));
-            let (res, gets) = sm.get(0);
+            let (res, gets) = sm.reserve_one();
             v.extend(gets);
             (idx, arr, res, LoadRight)
         },
@@ -765,9 +753,8 @@ fn make_invocation_virtual(
     let stack_count = param_count + 1; // extra "1" for `this`
 
     insns.extend(sm.freeze(stack_count));
-    insns.extend(sm.reserve(1));
 
-    let (temp, gets) = sm.get(0);
+    let (temp, gets) = sm.reserve_one();
     insns.extend(gets);
     let far = format!("@{}", mangle(&[method_name, &"vslot"])?);
     let off = Immediate20::Expr(exprtree::Atom::Variable(far));
@@ -902,11 +889,9 @@ fn make_compare(
 {
     use std::convert::TryInto;
 
-    let mut v = sm.reserve(1);
     let ch : char = kind.try_into()?;
 
-    let (gc, gets) = sm.get(0);
-    v.extend(gets);
+    let (gc, mut v) = sm.reserve_one();
     let n = match nans {
         Some(NanComparisons::Greater) => 1,
         Some(NanComparisons::Less) => -1,
@@ -950,8 +935,7 @@ fn make_conversion(
         },
         (Int, Long) => {
             let (low, get_actions) = sm.get(0);
-            let reserve_actions = sm.reserve(1);
-            let (top, get_second) = sm.get(0);
+            let (top, get_second) = sm.reserve_one();
 
             let moves = tenyr_insn_list!(
                 top <- low      ;
@@ -960,7 +944,6 @@ fn make_conversion(
 
             let insns = std::iter::empty()
                 .chain(get_actions)
-                .chain(reserve_actions)
                 .chain(get_second)
                 .chain(moves)
                 .collect();
