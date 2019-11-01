@@ -1022,11 +1022,14 @@ fn make_varaction<'a>(
         };
 
         for it in iter {
-            let imm = make_off(base.clone(), it);
+            use crate::tenyr::InstructionType::Type3;
+
+            let x = reg;
+            let kind = Type3(make_off(base.clone(), it));
             insns.extend(sm.reserve(prior));
-            let (top, gets) = sm.get(0);
+            let (z, gets) = sm.get(0);
             insns.extend(gets);
-            insns.push(Instruction { dd : memop, ..tenyr_insn!( top <- [reg + (imm)] )? });
+            insns.push(Instruction { dd : memop, z, x, kind });
             insns.extend(sm.release(post));
         }
 
