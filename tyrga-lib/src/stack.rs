@@ -117,6 +117,16 @@ impl Manager {
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn reserve(&mut self, n : u16) -> StackActions { self.adjust(i32::from(n)) }
 
+    /// reserves one slot, pushing the pick point down, and returning the top
+    /// register for convenience
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
+    pub fn reserve_one(&mut self) -> (Register, StackActions) {
+        let act = self.reserve(1);
+        let (reg, rest) = self.get(0);
+        assert!(rest.is_empty());
+        (reg, act)
+    }
+
     /// releases a given number of slots, pulling the pick point up
     #[must_use = "StackActions must be implemented to maintain stack discipline"]
     pub fn release(&mut self, n : u16) -> StackActions { self.adjust(-i32::from(n)) }
