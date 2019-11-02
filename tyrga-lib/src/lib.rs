@@ -582,40 +582,28 @@ fn make_switch(
 ) -> GeneralResult<InsnPair> {
     use jvmtypes::SwitchParams::{Lookup, Table};
 
-    let here = addr as i32;
+    let there = |x| (x + (addr as i32)) as u16;
 
-    let mut dests = Vec::new();
     let (top, mut insns) = sm.get(0);
     let (temp_reg, gets) = sm.reserve_one(); // need a persistent temporary
     insns.extend(gets);
 
     match params {
         Lookup { default, pairs } => {
-            let (i, d) : (Vec<_>, Vec<_>) =
-                pairs
-                    .into_iter()
-                    .map(|(imm, target)| {
-                        let far = (target + here) as u16;
-                        let target_name = &namer(&far)?;
-                        make_int_branch(sm, false, far, target_name,
-                            |sm| Ok((
-                                temp_reg,
-                                expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0)?, imm)?
-                            ))
-                        )})
-                    .collect::<Result<Vec<_>,_>>()?
-                    .into_iter()
-                    .unzip();
+            let make = |(imm, target)|
+                make_int_branch(sm, false, there(target), &namer(&there(target))?,
+                    |sm| Ok((temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0)?, imm)?)));
 
-            insns.extend(i.concat());
-            dests.extend(d.concat());
-
-            let far = (default + here) as u16;
-            let (i, d) = make_jump(far, &namer(&far)?);
-            insns.extend(i);
-            dests.extend(d);
-
-            Ok((insns, dests))
+            pairs
+                .into_iter()
+                .map(make)
+                .chain(std::iter::once(Ok(make_jump(there(default), &namer(&there(default))?))))
+                .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
+                    let (i, d) = tup?;
+                    insns.extend(i);
+                    dests.extend(d);
+                    Ok((insns, dests))
+                })
         },
         Table { default, low, high, offsets } => {
             use tenyr::*;
@@ -640,40 +628,29 @@ fn make_switch(
                 }
             };
 
-            let far = (default + here) as u16;
-            let target_name = &namer(&far)?;
-            let (lo_insns, lo_dests) =
-                make_int_branch(sm, false, far, target_name, maker(&Type1, low))?;
-            let (hi_insns, hi_dests) =
-                make_int_branch(sm, false, far, target_name, maker(&Type2, high))?;
-
-            insns.extend(lo_insns);
-            insns.extend(hi_insns);
+            let mut default_maker = |maker|
+                GeneralResult::Ok(make_int_branch(sm, false, there(default), &namer(&there(default))?, maker)?);
 
             let insn = {
                 use Register::P;
                 tenyr_insn!( P <- top - 0 + P )
             };
-            insns.extend(expand_immediate_load(sm, insn?, low)?);
 
-            let (i, d) : (Vec<_>, Vec<_>) =
-                offsets
+            std::iter::empty()
+                .chain(std::iter::once(default_maker(maker(&Type1, low))))
+                .chain(std::iter::once(default_maker(maker(&Type2, high))))
+                .chain(std::iter::once(Ok((expand_immediate_load(sm, insn?, low)?, vec![]))))
+                .chain(offsets
                     .into_iter()
-                    .map(|n| (n + here) as u16)
-                    .map(|far| Ok(make_jump(far, &namer(&far)?)))
-                    .collect::<GeneralResult<Vec<_>>>()?
-                    .into_iter()
-                    .unzip();
-
-            insns.extend(i.concat());
-            dests.extend(d.concat());
-
-            dests.extend(lo_dests);
-            dests.extend(hi_dests);
-
-            insns.extend(sm.release(1)); // release temporary
-
-            Ok((insns, dests))
+                    .map(|far| GeneralResult::Ok(make_jump(there(far), &namer(&there(far))?)))
+                )
+                .chain(std::iter::once(Ok((sm.release(1), vec![])))) // release temporary
+                .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
+                    let (i, d) = tup?;
+                    insns.extend(i);
+                    dests.extend(d);
+                    GeneralResult::Ok((insns, dests))
+                })
         },
     }
 }
