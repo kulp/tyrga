@@ -641,14 +641,14 @@ fn make_switch(
                 .chain(std::iter::once(Ok((expand_immediate_load(sm, insn?, low)?, vec![]))))
                 .chain(offsets
                     .into_iter()
-                    .map(|far| GeneralResult::Ok(make_jump(there(far), &namer(&there(far))?)))
+                    .map(|far| Ok(make_jump(there(far), &namer(&there(far))?)))
                 )
                 .chain(std::iter::once(Ok((sm.release(1), vec![])))) // release temporary
                 .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
                     let (i, d) = tup?;
                     insns.extend(i);
                     dests.extend(d);
-                    GeneralResult::Ok((insns, dests))
+                    Ok((insns, dests))
                 })
         },
     }
