@@ -576,7 +576,7 @@ fn make_branch(
 fn make_switch(
     sm : &mut StackManager,
     params : SwitchParams,
-    namer : impl Fn(&dyn fmt::Display) -> GeneralResult<String>,
+    namer : impl Fn(&dyn Display) -> GeneralResult<String>,
     addr : usize,
 ) -> GeneralResult<InsnPair> {
     use jvmtypes::SwitchParams::{Lookup, Table};
@@ -1003,7 +1003,7 @@ fn make_varaction<'a>(
 fn make_instructions<'a>(
     sm : &mut StackManager,
     (addr, op) : (usize, Operation),
-    namer : impl Fn(&dyn fmt::Display) -> GeneralResult<String>,
+    namer : impl Fn(&dyn Display) -> GeneralResult<String>,
     gc : &(impl ContextConstantGetter<'a> + Contextualizer<'a>),
     max_locals : u16,
 ) -> GeneralResult<InsnPair>
@@ -1066,7 +1066,7 @@ fn test_make_instruction() -> GeneralResult<()> {
 
     let mut sm = StackManager::new(STACK_REGS);
     let op = Operation::Constant(Explicit(ExplicitConstant { kind : JType::Int, value : 5 }));
-    let namer = |x : &dyn fmt::Display| Ok(format!("{}:{}", "test", x.to_string()));
+    let namer = |x : &dyn Display| Ok(format!("{}:{}", "test", x.to_string()));
     let insn = make_instructions(&mut sm, (0, op), namer, &Useless, 0)?;
     let imm = 5_u8.into();
     let rhs = Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad };
@@ -1489,7 +1489,7 @@ pub struct Method {
     epilogue : tenyr::BasicBlock,
 }
 
-impl fmt::Display for Method {
+impl Display for Method {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, ".global {}", self.name)?;
         writeln!(f, "{}:", self.name)?;
