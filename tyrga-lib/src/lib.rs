@@ -282,14 +282,13 @@ fn make_yield(
     max_locals : u16,
 ) -> GeneralResult<InsnPair> {
     use tenyr::MemoryOpType::StoreRight;
-    use util::index_local;
     use Register::P;
 
     let mut v = Vec::new();
     for i in (0 .. kind.size()).rev() { // get deepest first
         let (reg, gets) = sm.get(i.into());
         v.extend(gets);
-        v.push(Instruction { dd : StoreRight, ..index_local(sm, reg, i.into(), max_locals) })
+        v.push(Instruction { dd : StoreRight, ..sm.index_local(reg, i.into(), max_locals) })
     }
     v.extend(sm.empty());
     let ex = tenyr::Immediate::Expr(make_target(target_name));
@@ -501,7 +500,7 @@ fn make_mem_op(
     for i in (0 .. size).rev() {
         let (reg, gets) = sm.get(i);
         v.extend(gets);
-        v.push(Instruction { dd, ..util::index_local(sm, reg, (idx + i).into(), max_locals) })
+        v.push(Instruction { dd, ..sm.index_local(reg, (idx + i).into(), max_locals) })
     }
     v.extend(sm.release(after.unwrap_or(0).into()));
     v
@@ -514,10 +513,9 @@ fn make_increment(
     max_locals : u16,
 ) -> GeneralResult<Vec<Instruction>> {
     use tenyr::MemoryOpType;
-    use util::index_local;
 
     let (temp_reg, mut v) = sm.reserve_one();
-    let insn = index_local(sm, temp_reg, index.into(), max_locals);
+    let insn = sm.index_local(temp_reg, index.into(), max_locals);
     v.push(Instruction { dd : MemoryOpType::LoadRight, ..insn.clone() });
     v.push(tenyr_insn!( temp_reg <- temp_reg + (value) )?);
     v.push(Instruction { dd : MemoryOpType::StoreRight, ..insn });
@@ -1112,10 +1110,7 @@ fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
 mod util {
     use crate::jvmtypes::JType;
     use crate::mangling;
-    use crate::tenyr::Instruction;
-    use crate::tenyr::Register;
     use crate::GeneralResult;
-    use crate::StackManager;
     use classfile_parser::constant_info::ConstantInfo;
     use classfile_parser::constant_info::FieldRefConstant;
     use classfile_parser::constant_info::{ClassConstant, MethodRefConstant, NameAndTypeConstant};
@@ -1274,9 +1269,12 @@ mod util {
         }
     }
 
-    pub(in super) fn index_local(sm : &StackManager, reg : Register, idx : i32, max_locals : u16) -> Instruction {
-        let saved : u16 = super::SAVE_SLOTS.into();
-        sm.get_frame_offset(reg, idx - i32::from(saved + max_locals))
+}
+
+impl StackManager {
+    pub fn index_local(&self, reg : Register, idx : i32, max_locals : u16) -> Instruction {
+        let saved : u16 = SAVE_SLOTS.into();
+        self.get_frame_offset(reg, idx - i32::from(saved + max_locals))
     }
 }
 
