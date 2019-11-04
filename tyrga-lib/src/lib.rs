@@ -580,6 +580,7 @@ fn make_switch(
     addr : usize,
 ) -> GeneralResult<InsnPair> {
     use jvmtypes::SwitchParams::{Lookup, Table};
+    use std::iter::once;
 
     let there = |x| (x + (addr as i32)) as u16;
 
@@ -596,7 +597,7 @@ fn make_switch(
             pairs
                 .into_iter()
                 .map(make)
-                .chain(std::iter::once(Ok(make_jump(there(default), &namer(&there(default))?))))
+                .chain(once(Ok(make_jump(there(default), &namer(&there(default))?))))
                 .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
                     let (i, d) = tup?;
                     insns.extend(i);
@@ -638,11 +639,11 @@ fn make_switch(
             let offsets = offsets.into_iter().map(|far| Ok(make_jump(there(far), &namer(&there(far))?)));
 
             std::iter::empty()
-                .chain(std::iter::once(default_maker(maker(&Type1, low))))
-                .chain(std::iter::once(default_maker(maker(&Type2, high))))
-                .chain(std::iter::once(Ok((expand_immediate_load(sm, insn?, low)?, vec![]))))
+                .chain(once(default_maker(maker(&Type1, low))))
+                .chain(once(default_maker(maker(&Type2, high))))
+                .chain(once(Ok((expand_immediate_load(sm, insn?, low)?, vec![]))))
                 .chain(offsets)
-                .chain(std::iter::once(Ok((sm.release(1), vec![])))) // release temporary
+                .chain(once(Ok((sm.release(1), vec![])))) // release temporary
                 .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
                     let (i, d) = tup?;
                     insns.extend(i);
