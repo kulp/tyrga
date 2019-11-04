@@ -102,7 +102,7 @@ fn expand_immediate_load(
 
             let adder  = Gen { y : Register::A, op : Add , imm : 0_u8.into() };
             let (temp, gets) = sm.reserve_one();
-            let pack = make_imm(temp, imm)?.into_iter();
+            let pack = make_imm(temp, imm)?;
             let (op, a, b, c) = match kind {
                 // the Type3 case should never be reached, but provides generality
                 Type3(_) => (BitwiseOr, insn.x, Register::A, temp),
@@ -114,7 +114,7 @@ fn expand_immediate_load(
             let operate = once(Instruction { kind : Type0(gen), x : a, dd : NoLoad, z : insn.z });
             let kind = Type0(Gen { y : c, ..adder });
             let add = once(Instruction { kind, x : insn.z, ..insn });
-            let release = sm.release(1).into_iter();
+            let release = sm.release(1);
 
             std::iter::empty()
                 .chain(gets)
@@ -1173,7 +1173,7 @@ mod util {
             let ss = get_string(gc, ni).ok_or("no such name")?;
             if let NameAndType(nt) = gc.get_constant(nat) {
                 let nt = gc.contextualize(nt);
-                Ok(std::iter::once(ss).chain(nt.pieces()?.into_iter()).collect())
+                Ok(std::iter::once(ss).chain(nt.pieces()?).collect())
             } else {
                 Err("invalid ConstantInfo kind".into())
             }
