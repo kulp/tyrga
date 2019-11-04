@@ -1208,6 +1208,15 @@ mod util {
         nested : Rc<T>,
     }
 
+    impl<'a, T> Context<'a, T> {
+        pub fn get_class(&self, index : u16) -> GeneralResult<Context<'a, &'a ClassConstant>> {
+            match self.get_constant(index) {
+                classfile_parser::constant_info::ConstantInfo::Class(cl) => Ok(self.contextualize(cl)),
+                _ => Err("not a class".into()),
+            }
+        }
+    }
+
     impl<'a, T> Contextualizer<'a> for Context<'a, T> {
         fn contextualize<U>(&self, nested : U) -> Context<'a, U> {
             Context { get_constant : self.get_constant.clone(), nested : Rc::new(nested) }
@@ -1311,15 +1320,6 @@ fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
 }
 
 fn mangle(list : &[&dyn Manglable]) -> GeneralResult<String> { list.mangle() }
-
-fn get_class<'a, T>(ctx : util::Context<'a, T>, index : u16)
-    -> GeneralResult<Context<'a, &'a ClassConstant>>
-{
-    match ctx.get_constant(index) {
-        classfile_parser::constant_info::ConstantInfo::Class(cl) => Ok(ctx.contextualize(cl)),
-        _ => Err("not a class".into()),
-    }
-}
 
 fn make_label(
         class : &Context<'_, &ClassConstant>,
@@ -1438,14 +1438,11 @@ fn test_parse_classes() -> GeneralResult<()>
     }
 
     fn test_stack_map_table(path : &std::path::Path) -> GeneralResult<()> {
-        use util::get_constant_getter;
-
         let class = parse_class(path)?;
         let methods = class.methods.iter();
         for method in methods.filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
             let sm = StackManager::new(STACK_REGS);
-            let get_constant = get_constant_getter(&class);
-            let class = get_class(get_constant, class.this_class)?;
+            let class = util::get_constant_getter(&class).get_class(class.this_class)?;
             let max_locals = get_method_code(method)?.max_locals;
             let method = class.contextualize(method);
             let bbs = make_blocks_for_method(&class, &method, &sm, max_locals)?;
@@ -1687,16 +1684,13 @@ fn write_field_list(
 
 /// Emits tenyr assembly language corresponding to the given input class.
 pub fn translate_class(class : ClassFile, outfile : &mut dyn Write) -> GeneralResult<()> {
-    use util::get_constant_getter;
-
     if class.major_version < 50 {
         return Err("need classfile version ≥50.0 for StackMapTable attributes".into());
     }
 
     let fields = &class.fields;
     let methods = &class.methods;
-    let get_constant = get_constant_getter(&class);
-    let class = get_class(get_constant, class.this_class)?;
+    let class = util::get_constant_getter(&class).get_class(class.this_class)?;
 
     write_method_table(&class, methods, outfile)?;
     write_vslot_list(&class, methods, outfile)?;
