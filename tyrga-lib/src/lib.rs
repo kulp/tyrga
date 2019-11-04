@@ -635,14 +635,13 @@ fn make_switch(
                 tenyr_insn!( P <- top - 0 + P )
             };
 
+            let offsets = offsets.into_iter().map(|far| Ok(make_jump(there(far), &namer(&there(far))?)));
+
             std::iter::empty()
                 .chain(std::iter::once(default_maker(maker(&Type1, low))))
                 .chain(std::iter::once(default_maker(maker(&Type2, high))))
                 .chain(std::iter::once(Ok((expand_immediate_load(sm, insn?, low)?, vec![]))))
-                .chain(offsets
-                    .into_iter()
-                    .map(|far| Ok(make_jump(there(far), &namer(&there(far))?)))
-                )
+                .chain(offsets)
                 .chain(std::iter::once(Ok((sm.release(1), vec![])))) // release temporary
                 .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
                     let (i, d) = tup?;
