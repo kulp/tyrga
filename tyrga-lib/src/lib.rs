@@ -199,7 +199,6 @@ fn test_expand() -> GeneralResult<()> {
     Ok(())
 }
 
-type Namer<'a> = dyn Fn(&dyn fmt::Display) -> GeneralResult<String> + 'a;
 type InsnPair = (Vec<Instruction>, Vec<Destination>);
 
 fn make_target(target : &dyn std::string::ToString) -> exprtree::Atom {
@@ -577,7 +576,7 @@ fn make_branch(
 fn make_switch(
     sm : &mut StackManager,
     params : SwitchParams,
-    namer : &Namer,
+    namer : impl Fn(&dyn fmt::Display) -> GeneralResult<String>,
     addr : usize,
 ) -> GeneralResult<InsnPair> {
     use jvmtypes::SwitchParams::{Lookup, Table};
@@ -1004,7 +1003,7 @@ fn make_varaction<'a>(
 fn make_instructions<'a>(
     sm : &mut StackManager,
     (addr, op) : (usize, Operation),
-    namer : &Namer,
+    namer : impl Fn(&dyn fmt::Display) -> GeneralResult<String>,
     gc : &(impl ContextConstantGetter<'a> + Contextualizer<'a>),
     max_locals : u16,
 ) -> GeneralResult<InsnPair>
@@ -1068,7 +1067,7 @@ fn test_make_instruction() -> GeneralResult<()> {
     let mut sm = StackManager::new(STACK_REGS);
     let op = Operation::Constant(Explicit(ExplicitConstant { kind : JType::Int, value : 5 }));
     let namer = |x : &dyn fmt::Display| Ok(format!("{}:{}", "test", x.to_string()));
-    let insn = make_instructions(&mut sm, (0, op), &namer, &Useless, 0)?;
+    let insn = make_instructions(&mut sm, (0, op), namer, &Useless, 0)?;
     let imm = 5_u8.into();
     let rhs = Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad };
     assert_eq!(insn.0, vec![ rhs ]);
@@ -1410,7 +1409,7 @@ fn make_blocks_for_method<'a, 'b>(
             ops .range(which.clone())
                 // TODO obviate clone by doing .remove() (no .drain on BTreeMap ?)
                 .map(|(&u, o)| (u, o.clone()))
-                .map(|x| make_instructions(&mut sm, x, &|y| make_label(class, method, y), class, max_locals))
+                .map(|x| make_instructions(&mut sm, x, |y| make_label(class, method, y), class, max_locals))
                 .collect();
         let (bb, ee) = make_basic_block(class, method, block?, which)?;
         let mut out = Vec::new();
