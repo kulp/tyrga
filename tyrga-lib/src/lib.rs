@@ -201,7 +201,7 @@ fn test_expand() -> GeneralResult<()> {
 
 type InsnPair = (Vec<Instruction>, Vec<Destination>);
 
-fn make_target(target : &dyn std::string::ToString) -> exprtree::Atom {
+fn make_target(target : impl std::string::ToString) -> exprtree::Atom {
     use exprtree::Atom::*;
     use exprtree::Expr;
     use exprtree::Operation::{Add, Sub};
@@ -223,7 +223,7 @@ fn make_int_branch(
     use Register::P;
 
     let (temp_reg, sequence) = comp(sm)?;
-    let imm = tenyr::Immediate::Expr(make_target(&target_name));
+    let imm = tenyr::Immediate::Expr(make_target(target_name));
     let branch =
         if invert   { tenyr_insn!(   P <- (imm) &~ temp_reg + P     ) }
         else        { tenyr_insn!(   P <- (imm) &  temp_reg + P     ) };
@@ -245,7 +245,7 @@ fn make_builtin_name(proc : &str, descriptor : &str) -> GeneralResult<String> {
 
 fn make_jump(target : u16, target_name : &str) -> InsnPair {
     use crate::tenyr::InstructionType::Type3;
-    let kind = Type3(tenyr::Immediate::Expr(make_target(&target_name)));
+    let kind = Type3(tenyr::Immediate::Expr(make_target(target_name)));
     let insn = Instruction { kind, z : Register::P, x : Register::P, ..tenyr::NOOP_TYPE3 };
     let dests = vec![ Destination::Address(target as usize) ];
     (vec![ insn ], dests)
@@ -292,7 +292,7 @@ fn make_yield(
         v.push(Instruction { dd : StoreRight, ..index_local(sm, reg, i.into(), max_locals) })
     }
     v.extend(sm.empty());
-    let ex = tenyr::Immediate::Expr(make_target(&target_name));
+    let ex = tenyr::Immediate::Expr(make_target(target_name));
     v.push(tenyr_insn!( P <- (ex) + P )?);
 
     Ok((v, vec![])) // leaving the method is not a Destination we care about
@@ -300,7 +300,7 @@ fn make_yield(
 
 fn make_constant<'a>(
     sm : &mut StackManager,
-    gc : &impl ContextConstantGetter<'a>,
+    gc : impl ContextConstantGetter<'a>,
     details : Indirection<ExplicitConstant>,
 ) -> GeneralResult<Vec<Instruction>>
 {
@@ -713,7 +713,7 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<V
 fn make_invocation_virtual(
     sm : &mut StackManager,
     descriptor : &str,
-    method_name : &dyn Manglable,
+    method_name : impl Manglable,
 ) -> GeneralResult<Vec<Instruction>>
 {
     use tenyr::Immediate20;
@@ -732,7 +732,7 @@ fn make_invocation_virtual(
 
     let (temp, gets) = sm.reserve_one();
     insns.extend(gets);
-    let far = format!("@{}", mangle(&[method_name, &"vslot"])?);
+    let far = format!("@{}", mangle(&[&method_name, &"vslot"])?);
     let off = Immediate20::Expr(exprtree::Atom::Variable(far));
 
     insns.extend(tenyr_insn_list!(
@@ -751,11 +751,11 @@ fn make_invocation<'a>(
     sm : &mut StackManager,
     kind : InvokeKind,
     index : u16,
-    gc : &(impl ContextConstantGetter<'a> + Contextualizer<'a>),
+    gc : impl ContextConstantGetter<'a> + Contextualizer<'a>,
 ) -> GeneralResult<Vec<Instruction>>
 {
     let get_method_parts = || {
-        let get_string = |n| util::get_string(gc, n);
+        let get_string = |n| util::get_string(&gc, n);
 
         if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
             if let ConstantInfo::Class(cl) = gc.get_constant(mr.class_index) {
@@ -784,7 +784,7 @@ fn make_invocation<'a>(
         // TODO vet handling of Virtual against JVM spec
         InvokeKind::Virtual => {
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
-                make_invocation_virtual(sm, &descriptor, &gc.contextualize(mr))
+                make_invocation_virtual(sm, &descriptor, gc.contextualize(mr))
             } else {
                 Err("bad constant kind".into())
             }
@@ -812,7 +812,7 @@ fn make_stack_op(
 fn make_allocation<'a>(
     sm : &mut StackManager,
     details : AllocationKind,
-    gc : &impl ContextConstantGetter<'a>,
+    gc : impl ContextConstantGetter<'a>,
 ) -> GeneralResult<Vec<Instruction>>
 {
     match details {
@@ -846,7 +846,7 @@ fn make_allocation<'a>(
         AllocationKind::Element { index } => {
             let class = gc.get_constant(index);
             if let ConstantInfo::Class(cc) = class {
-                let name = util::get_string(gc, cc.name_index).ok_or("no class name")?;
+                let name = util::get_string(&gc, cc.name_index).ok_or("no class name")?;
                 let desc = format!("()L{};", name);
                 let call = mangle(&[&name, &"new"])?;
                 make_call(sm, &call, &desc)
@@ -940,7 +940,7 @@ fn make_varaction<'a>(
     op : VarOp,
     kind : VarKind,
     index : u16,
-    gc : &(impl ContextConstantGetter<'a> + Contextualizer<'a>),
+    gc : impl ContextConstantGetter<'a> + Contextualizer<'a>,
 ) -> GeneralResult<Vec<Instruction>>
 {
     use classfile_parser::constant_info::ConstantInfo::FieldRef;
@@ -968,7 +968,7 @@ fn make_varaction<'a>(
             GeneralResult::Ok(format!("@{}", mangle(&[ &fr, &suff ])?));
 
         let (drops, (reg, gets), base) = match kind {
-            VarKind::Static => ( 0, (Register::P, vec![]), make_target(  &format("static"      )?) ),
+            VarKind::Static => ( 0, (Register::P, vec![]), make_target(   format("static"      )?) ),
             VarKind::Field  => ( 1, sm.get(op_depth)     , Atom::Variable(format("field_offset")?) ),
         };
         insns.extend(gets);
@@ -1004,7 +1004,7 @@ fn make_instructions<'a>(
     sm : &mut StackManager,
     (addr, op) : (usize, Operation),
     namer : impl Fn(&dyn Display) -> GeneralResult<String>,
-    gc : &(impl ContextConstantGetter<'a> + Contextualizer<'a>),
+    gc : impl ContextConstantGetter<'a> + Contextualizer<'a>,
     max_locals : u16,
 ) -> GeneralResult<InsnPair>
 {
@@ -1067,7 +1067,7 @@ fn test_make_instruction() -> GeneralResult<()> {
     let mut sm = StackManager::new(STACK_REGS);
     let op = Operation::Constant(Explicit(ExplicitConstant { kind : JType::Int, value : 5 }));
     let namer = |x : &dyn Display| Ok(format!("{}:{}", "test", x.to_string()));
-    let insn = make_instructions(&mut sm, (0, op), namer, &Useless, 0)?;
+    let insn = make_instructions(&mut sm, (0, op), namer, Useless, 0)?;
     let imm = 5_u8.into();
     let rhs = Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad };
     assert_eq!(insn.0, vec![ rhs ]);
@@ -1331,10 +1331,10 @@ fn get_class<'a, T>(ctx : util::Context<'a, T>, index : u16)
 fn make_label(
         class : &Context<'_, &ClassConstant>,
         method : &Context<'_, &MethodInfo>,
-        suffix : &dyn Display,
+        suffix : impl Display,
     ) -> GeneralResult<String>
 {
-    Ok(format!(".L{}", mangle(&[ class, method, &format!("__{}", &suffix) ])?))
+    Ok(format!(".L{}", mangle(&[ class, method, &format!("__{}", suffix) ])?))
 }
 
 fn make_basic_block(
@@ -1363,7 +1363,7 @@ fn make_basic_block(
         exits.extend(exs.iter().filter_map(does_branch).filter(|e| !range.contains(e)));
         insns.extend(ins);
     }
-    let label = make_label(class, method, &range.start)?;
+    let label = make_label(class, method, range.start)?;
 
     if includes_successor {
         exits.insert(range.end);
@@ -1409,7 +1409,7 @@ fn make_blocks_for_method<'a, 'b>(
             ops .range(which.clone())
                 // TODO obviate clone by doing .remove() (no .drain on BTreeMap ?)
                 .map(|(&u, o)| (u, o.clone()))
-                .map(|x| make_instructions(&mut sm, x, |y| make_label(class, method, y), class, max_locals))
+                .map(|x| make_instructions(&mut sm, x, |y| make_label(class, method, y), class.clone(), max_locals))
                 .collect();
         let (bb, ee) = make_basic_block(class, method, block?, which)?;
         let mut out = Vec::new();
@@ -1587,7 +1587,7 @@ fn translate_method<'a, 'b>(
         let name = "prologue";
         let off = -(max_locals_i32 - i32::from(count_params(&descriptor)?) + i32::from(SAVE_SLOTS));
         let insns = vec![ tenyr_insn!( sp <-  sp + (off) )? ];
-        let label = make_label(class, method, &name)?;
+        let label = make_label(class, method, name)?;
         tenyr::BasicBlock { label, insns }
     };
 
@@ -1598,7 +1598,7 @@ fn translate_method<'a, 'b>(
         let rp = Register::P;
         let mv = if off != 0 { Some(tenyr_insn!( sp <-  sp + (off) )?) } else { None };
         let insns = mv.into_iter().chain(std::iter::once(tenyr_insn!( rp <- [sp + (down)] )?)).collect();
-        let label = make_label(class, method, &name)?;
+        let label = make_label(class, method, name)?;
         tenyr::BasicBlock { label, insns }
     };
 
