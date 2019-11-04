@@ -755,15 +755,13 @@ fn make_invocation<'a>(
 ) -> GeneralResult<Vec<Instruction>>
 {
     let get_method_parts = || {
-        let get_string = |n| util::get_string(&gc, n);
-
         if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
             if let ConstantInfo::Class(cl) = gc.get_constant(mr.class_index) {
                 if let ConstantInfo::NameAndType(nt) = gc.get_constant(mr.name_and_type_index) {
                     return GeneralResult::Ok((
-                            get_string(cl.name_index).ok_or("bad class name")?,
-                            get_string(nt.name_index).ok_or("bad method name")?,
-                            get_string(nt.descriptor_index).ok_or("bad method descriptor")?,
+                            gc.get_string(cl.name_index).ok_or("bad class name")?,
+                            gc.get_string(nt.name_index).ok_or("bad method name")?,
+                            gc.get_string(nt.descriptor_index).ok_or("bad method descriptor")?,
                         ))
                 }
             }
@@ -846,7 +844,7 @@ fn make_allocation<'a>(
         AllocationKind::Element { index } => {
             let class = gc.get_constant(index);
             if let ConstantInfo::Class(cc) = class {
-                let name = util::get_string(&gc, cc.name_index).ok_or("no class name")?;
+                let name = gc.get_string(cc.name_index).ok_or("no class name")?;
                 let desc = format!("()L{};", name);
                 let call = mangle(&[&name, &"new"])?;
                 make_call(sm, &call, &desc)
@@ -1153,7 +1151,7 @@ mod util {
 
     impl Manglable for Context<'_, &ClassConstant> {
         fn pieces(&self) -> GeneralResult<Vec<String>> {
-            Ok(vec![ get_string(self, self.as_ref().name_index).ok_or_else(|| "no name".to_string())? ])
+            Ok(vec![ self.get_string(self.as_ref().name_index).ok_or_else(|| "no name".to_string())? ])
         }
     }
 
@@ -1170,7 +1168,7 @@ mod util {
 
         if let Class(ni) = gc.get_constant(ci) {
             let ni = ni.name_index;
-            let ss = get_string(gc, ni).ok_or("no such name")?;
+            let ss = gc.get_string(ni).ok_or("no such name")?;
             if let NameAndType(nt) = gc.get_constant(nat) {
                 let nt = gc.contextualize(nt);
                 Ok(std::iter::once(ss).chain(nt.pieces()?).collect())
@@ -1202,6 +1200,13 @@ mod util {
 
     pub(in super) trait ContextConstantGetter<'a> {
         fn get_constant(&self, index : u16) -> &'a ConstantInfo;
+        fn get_string(&self, i : u16) -> Option<String> {
+            if let classfile_parser::constant_info::ConstantInfo::Utf8(u) = self.get_constant(i) {
+                Some(u.utf8_string.to_string())
+            } else {
+                None
+            }
+        }
     }
 
     #[derive(Clone)]
@@ -1231,14 +1236,6 @@ mod util {
         Context { get_constant : Rc::new(gc), nested : Rc::new(nested) }
     }
 
-    pub(in super) fn get_string<'a>(g : &impl ContextConstantGetter<'a>, i : u16) -> Option<String> {
-        if let classfile_parser::constant_info::ConstantInfo::Utf8(u) = g.get_constant(i) {
-            Some(u.utf8_string.to_string())
-        } else {
-            None
-        }
-    }
-
     pub(in super) trait Manglable {
         fn pieces(&self) -> GeneralResult<Vec<String>>;
         fn stringify(&self) -> GeneralResult<String> {
@@ -1252,8 +1249,8 @@ mod util {
     impl<T : Described> Manglable for Context<'_, &T> {
         fn pieces(&self) -> GeneralResult<Vec<String>> {
             Ok(vec![
-                get_string(self, self.as_ref().name_index()      ).ok_or("no name")?,
-                get_string(self, self.as_ref().descriptor_index()).ok_or("no desc")?,
+                self.get_string(self.as_ref().name_index()      ).ok_or("no name")?,
+                self.get_string(self.as_ref().descriptor_index()).ok_or("no desc")?,
             ])
         }
     }
@@ -1267,7 +1264,7 @@ mod util {
     pub(in super) fn field_type(fr : &Context<'_, &FieldRefConstant>) -> GeneralResult<JType> {
         use classfile_parser::constant_info::ConstantInfo::NameAndType;
         if let NameAndType(nt) = fr.get_constant(fr.as_ref().name_and_type_index) {
-            get_string(fr, nt.descriptor_index)
+            fr.get_string(nt.descriptor_index)
                 .and_then(|x| x.chars().next())
                 .ok_or("bad descriptor")
                 .and_then(JType::try_from)
@@ -1573,7 +1570,7 @@ fn translate_method<'a, 'b>(
 {
     let mr = method.as_ref();
     let total_locals = get_method_code(mr)?.max_locals;
-    let descriptor = util::get_string(class, mr.descriptor_index).ok_or("method descriptor missing")?;
+    let descriptor = class.get_string(mr.descriptor_index).ok_or("method descriptor missing")?;
     let num_returns = count_returns(&descriptor)?.into();
     // Pretend we have at least as many locals as we have return-slots, so we have somewhere to
     // store our results when we Yield.
@@ -1671,7 +1668,7 @@ fn write_field_list(
     ) -> GeneralResult<()>
 {
     let tuples = fields.iter().filter(selector).map(|f| {
-        let s = util::get_string(class, f.descriptor_index).ok_or("missing descriptor")?;
+        let s = class.get_string(f.descriptor_index).ok_or("missing descriptor")?;
         let desc = s.chars().next().ok_or("empty descriptor")?;
         let size = args::field_size(desc)?.into();
         let name = mangle(&[ class, &class.contextualize(f), &suff ])?;
