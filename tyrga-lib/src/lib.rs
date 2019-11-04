@@ -1187,8 +1187,6 @@ mod util {
         }
     }
 
-    pub(in super) type ConstantGetter<'a> = dyn Fn(u16) -> &'a ConstantInfo + 'a;
-
     pub(in super) trait Contextualizer<'a> {
         fn contextualize<U>(&self, nested : U) -> Context<'a, U>;
     }
@@ -1206,7 +1204,7 @@ mod util {
 
     #[derive(Clone)]
     pub(in super) struct Context<'a, T> {
-        get_constant : Rc<ConstantGetter<'a>>,
+        get_constant : Rc<dyn Fn(u16) -> &'a ConstantInfo + 'a>,
         nested : Rc<T>,
     }
 
