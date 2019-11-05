@@ -65,23 +65,27 @@ fn expand_immediate_load(
     sm : &mut StackManager,
     insn : Instruction,
     imm : i32,
-) -> GeneralResult<Vec<Instruction>> {
+) -> Vec<Instruction> {
     use tenyr::InsnGeneral as Gen;
     use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::NoLoad;
     use SmallestImmediate::*;
 
+    // The make_imm helper function has a fallible interface, but cannot actually fail. It uses
+    // GeneralResult in order to accommodate the use of `?` by the tenyr_insn* macros, but the
+    // inputs provided to those macros in this case will not cause Err to be raised.
     fn make_imm(temp_reg : Register, imm : SmallestImmediate) -> GeneralResult<Vec<Instruction>> {
         use Register::A;
 
         let result = match imm {
             Imm12(imm) => // This path is fairly useless, but it completes generality
-                vec![ tenyr_insn!( temp_reg <- A | A + (imm) )? ],
+                vec![ tenyr_insn!( temp_reg <- A | A + (imm) )? ], // cannot fail
             Imm20(imm) =>
-                vec![ tenyr_insn!( temp_reg <- (imm) )? ],
+                vec![ tenyr_insn!( temp_reg <- (imm) )? ], // cannot fail
             Imm32(imm) => {
                 let bot = tenyr::Immediate12::try_from_bits((imm & 0xfff) as u16)?; // cannot fail
 
+                // The following instructions will not fail
                 tenyr_insn_list!(
                     temp_reg <- (imm >> 12)         ;
                     temp_reg <- temp_reg ^^ (bot)   ;
@@ -91,7 +95,7 @@ fn expand_immediate_load(
         Ok(result)
     };
 
-    let v = match (insn.kind, imm.into()) {
+    match (insn.kind, imm.into()) {
         (Type3(..), Imm12(imm)) => vec![ Instruction { kind : Type3(imm.into()), ..insn } ],
         (Type3(..), Imm20(imm)) => vec![ Instruction { kind : Type3(imm), ..insn } ],
         (Type0(g) , Imm12(imm)) => vec![ Instruction { kind : Type0(Gen { imm, ..g }), ..insn } ],
@@ -104,7 +108,7 @@ fn expand_immediate_load(
 
             let adder  = Gen { y : Register::A, op : Add , imm : 0_u8.into() };
             let (temp, gets) = sm.reserve_one();
-            let pack = make_imm(temp, imm)?;
+            let pack = make_imm(temp, imm).expect("internal inconsistency in immediate representation");
             let (op, a, b, c) = match kind {
                 // the Type3 case should never be reached, but provides generality
                 Type3(_) => (BitwiseOr, insn.x, Register::A, temp),
@@ -126,9 +130,7 @@ fn expand_immediate_load(
                 .chain(release)
                 .collect()
         },
-    };
-
-    Ok(v)
+    }
 }
 
 #[test]
@@ -143,7 +145,7 @@ fn test_expand() -> GeneralResult<()> {
     {
         let imm = 867_5309; // 0x845fed
         let insn = tenyr_insn!( D -> [C * B] )?;
-        let vv = expand_immediate_load(&mut sm, insn, imm)?;
+        let vv = expand_immediate_load(&mut sm, insn, imm);
         let rhs = 0xffff_ffed_u32 as i32;
         let expect = tenyr_insn_list!(
              C  <-  0x845       ;
@@ -158,7 +160,7 @@ fn test_expand() -> GeneralResult<()> {
     {
         let imm = 123;
         let insn = tenyr_insn!( D -> [C + 0] )?;
-        let vv = expand_immediate_load(&mut sm, insn, imm)?;
+        let vv = expand_immediate_load(&mut sm, insn, imm);
         let expect = tenyr_insn_list!(
              D  -> [C + 123]    ;
         );
@@ -170,7 +172,7 @@ fn test_expand() -> GeneralResult<()> {
     {
         let imm = 867_5309; // 0x845fed
         let insn = tenyr_insn!( D -> [C + 0] )?;
-        let vv = expand_immediate_load(&mut sm, insn, imm)?;
+        let vv = expand_immediate_load(&mut sm, insn, imm);
         let rhs = 0xffff_ffed_u32 as i32;
         let expect = tenyr_insn_list!(
              C  <-  0x845       ;
@@ -185,7 +187,7 @@ fn test_expand() -> GeneralResult<()> {
     {
         let imm = 123;
         let insn = tenyr_insn!( D -> [C * B] )?;
-        let vv = expand_immediate_load(&mut sm, insn, imm)?;
+        let vv = expand_immediate_load(&mut sm, insn, imm);
         let expect = tenyr_insn_list!(
              D  -> [C  *  B + 123]  ;
         );
@@ -309,29 +311,28 @@ fn make_constant<'a>(
 
     let mut make = |slice : &[_]| {
         slice.iter().fold(
-            GeneralResult::Ok(vec![]),
-            |v, &value| {
+            Vec::new(),
+            |mut v, &value| {
                 use Register::A;
 
                 let (reg, gets) = sm.reserve_one();
-                let mut v = v?;
                 v.extend(gets);
                 let insn = Instruction { z : reg, x : A, ..tenyr::NOOP_TYPE3 };
-                v.extend(expand_immediate_load(sm, insn, value)?);
-                Ok(v)
+                v.extend(expand_immediate_load(sm, insn, value));
+                v
             })
     };
 
     match details {
         Explicit(ExplicitConstant { kind, value }) =>
             match kind {
-                JType::Object => make(&[ 0 ]), // all Object constants are nulls
-                JType::Int    => make(&[ value.into() ]),
-                JType::Long   => make(&[ 0, value.into() ]),
-                JType::Float  => make(&[ f32::from(value).to_bits() as i32 ]),
+                JType::Object => Ok(make(&[ 0 ])), // all Object constants are nulls
+                JType::Int    => Ok(make(&[ value.into() ])),
+                JType::Long   => Ok(make(&[ 0, value.into() ])),
+                JType::Float  => Ok(make(&[ f32::from(value).to_bits() as i32 ])),
                 JType::Double => {
                     let bits = f64::from(value).to_bits();
-                    make(&[ (bits >> 32) as i32, bits as i32 ])
+                    Ok(make(&[ (bits >> 32) as i32, bits as i32 ]))
                 },
                 _ => Err("encountered impossible Constant configuration".into()),
             },
@@ -339,17 +340,19 @@ fn make_constant<'a>(
             use ConstantInfo::*;
             let c = gc.get_constant(index);
             match c {
-                Integer(IntegerConstant { value }) => make(&[ *value ]),
-                Long   (   LongConstant { value }) => make(&[ (*value >> 32) as i32, *value as i32 ]),
-                Float  (  FloatConstant { value }) => make(&[ value.to_bits() as i32 ]),
+                Integer(IntegerConstant { value }) => Ok(make(&[ *value ])),
+                Long   (   LongConstant { value }) => Ok(make(&[ (*value >> 32) as i32, *value as i32 ])),
+                Float  (  FloatConstant { value }) => Ok(make(&[ value.to_bits() as i32 ])),
                 Double ( DoubleConstant { value }) => {
                     let bits = value.to_bits();
-                    make(&[ (bits >> 32) as i32, bits as i32 ])
+                    Ok(make(&[ (bits >> 32) as i32, bits as i32 ]))
                 },
                 Class       (       ClassConstant { .. }) |
                 String      (      StringConstant { .. }) |
                 MethodHandle(MethodHandleConstant { .. }) |
                 MethodType  (MethodTypeConstant   { .. }) =>
+                    // Some of these will return Err in the future under certain circumstances, so
+                    // do not be tempted to make the containing function infallible
                     unimplemented!("unhandled Constant configuration"),
 
                 _ => Err("encountered impossible Constant configuration".into()),
@@ -592,7 +595,7 @@ fn make_switch(
         Lookup { default, pairs } => {
             let make = |(imm, target)|
                 make_int_branch(sm, false, there(target), &namer(&there(target))?,
-                    |sm| Ok((temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0)?, imm)?)));
+                    |sm| Ok((temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0)?, imm))));
 
             pairs
                 .into_iter()
@@ -623,7 +626,7 @@ fn make_switch(
                         x : top,
                         dd : MemoryOpType::NoLoad,
                     };
-                    let insns = expand_immediate_load(sm, insn, imm)?;
+                    let insns = expand_immediate_load(sm, insn, imm);
                     Ok((temp_reg, insns))
                 }
             };
@@ -641,7 +644,7 @@ fn make_switch(
             std::iter::empty()
                 .chain(once(default_maker(maker(&Type1, low))))
                 .chain(once(default_maker(maker(&Type2, high))))
-                .chain(once(Ok((expand_immediate_load(sm, insn?, low)?, vec![]))))
+                .chain(once(Ok((expand_immediate_load(sm, insn?, low), vec![]))))
                 .chain(offsets)
                 .chain(once(Ok((sm.release(1), vec![])))) // release temporary
                 .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
