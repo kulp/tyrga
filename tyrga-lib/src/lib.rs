@@ -44,7 +44,7 @@ use classfile_parser::ClassFile;
 use args::{count_params, count_returns};
 use jvmtypes::*;
 use tenyr::{Instruction, Register, SmallestImmediate};
-use util::{Context, ContextConstantGetter, Contextualizer, Manglable};
+use util::{Context, Contextualizer, Manglable};
 
 type StackManager = stack::Manager;
 
@@ -301,7 +301,7 @@ fn make_yield(
 
 fn make_constant<'a>(
     sm : &mut StackManager,
-    gc : impl ContextConstantGetter<'a>,
+    gc : impl Contextualizer<'a>,
     details : Indirection<ExplicitConstant>,
 ) -> GeneralResult<Vec<Instruction>>
 {
@@ -810,7 +810,7 @@ fn make_stack_op(
 fn make_allocation<'a>(
     sm : &mut StackManager,
     details : AllocationKind,
-    gc : impl ContextConstantGetter<'a>,
+    gc : impl Contextualizer<'a>,
 ) -> GeneralResult<Vec<Instruction>>
 {
     match details {
@@ -1053,10 +1053,8 @@ fn test_make_instruction() -> GeneralResult<()> {
     use Instruction;
     use Register::{A, B};
     struct Useless;
-    impl<'a> ContextConstantGetter<'a> for Useless {
-        fn get_constant(&self, _ : u16) -> &'a ConstantInfo { &Unusable }
-    }
     impl<'a> Contextualizer<'a> for Useless {
+        fn get_constant(&self, _ : u16) -> &'a ConstantInfo { &Unusable }
         fn contextualize<U>(&self, _ : U) -> Context<'a, U> {
             unreachable!("this code is for testing only")
         }
@@ -1187,11 +1185,8 @@ mod util {
         }
     }
 
-    pub(in super) trait Contextualizer<'a> : ContextConstantGetter<'a> {
+    pub(in super) trait Contextualizer<'a> {
         fn contextualize<U>(&self, nested : U) -> Context<'a, U>;
-    }
-
-    pub(in super) trait ContextConstantGetter<'a> {
         fn get_constant(&self, index : u16) -> &'a ConstantInfo;
         fn get_string(&self, i : u16) -> Option<String> {
             if let classfile_parser::constant_info::ConstantInfo::Utf8(u) = self.get_constant(i) {
@@ -1221,9 +1216,6 @@ mod util {
         fn contextualize<U>(&self, nested : U) -> Context<'a, U> {
             Context { get_constant : self.get_constant.clone(), nested : Rc::new(nested) }
         }
-    }
-
-    impl<'a, T> ContextConstantGetter<'a> for Context<'a, T> {
         fn get_constant(&self, index : u16) -> &'a ConstantInfo {
             (self.get_constant)(index)
         }
