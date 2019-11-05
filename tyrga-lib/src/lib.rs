@@ -71,15 +71,13 @@ fn expand_immediate_load(
     use tenyr::MemoryOpType::NoLoad;
     use SmallestImmediate::*;
 
-    // The make_imm helper function has a fallible interface, but cannot actually fail. It uses
-    // GeneralResult in order to accommodate the use of `?` by the tenyr_insn* macros, but the
-    // inputs provided to those macros in this case will not cause Err to be raised.
-    fn make_imm(temp_reg : Register, imm : SmallestImmediate) -> GeneralResult<Vec<Instruction>> {
-        use Register::A;
-
-        let result = match imm {
-            Imm12(imm) => // This path is fairly useless, but it completes generality
-                vec![ tenyr_insn!( temp_reg <- A | A + (imm) )? ], // cannot fail
+    // The make_imm helper has a fallible interface, but cannot actually fail. It uses Result in
+    // order to accommodate the use of `?` by the tenyr_insn* macros, but the inputs provided to
+    // those macros in this case will not cause Err to be raised.
+    let make_imm = |temp_reg, imm|
+        GeneralResult::Ok(match imm {
+            Imm12(_) =>
+                unimplemented!("Imm12 was supposed to be handled separately"),
             Imm20(imm) =>
                 vec![ tenyr_insn!( temp_reg <- (imm) )? ], // cannot fail
             Imm32(imm) => {
@@ -91,9 +89,7 @@ fn expand_immediate_load(
                     temp_reg <- temp_reg ^^ (bot)   ;
                 ).collect()
             },
-        };
-        Ok(result)
-    };
+        });
 
     match (insn.kind, imm.into()) {
         (Type3(..), Imm12(imm)) => vec![ Instruction { kind : Type3(imm.into()), ..insn } ],
