@@ -48,6 +48,8 @@ use util::{Context, ContextConstantGetter, Contextualizer, Manglable};
 
 type StackManager = stack::Manager;
 
+pub type GeneralResult<T> = Result<T, Box<dyn Error>>;
+
 const STACK_REGS : &[Register] = {
     use Register::*;
     &[B, C, D, E, F, G, H, I, J, K, L, M, N, O]
@@ -1071,8 +1073,6 @@ fn test_make_instruction() -> GeneralResult<()> {
 
     Ok(())
 }
-
-pub type GeneralResult<T> = Result<T, Box<dyn Error>>;
 
 fn derive_ranges<'a>(max : usize, table : impl IntoIterator<Item=&'a StackMapFrame>)
     -> Vec<Range<usize>>
