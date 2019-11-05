@@ -1221,7 +1221,7 @@ mod util {
 
     }
 
-    impl<'a, T> Contextualizer<'a> for Context<'a, T> {
+    impl<'a, T> Contextualizer<'a> for &Context<'a, T> {
         fn contextualize<U>(&self, nested : U) -> Context<'a, U> {
             Context { constant_getter : self.constant_getter.clone(), nested : Rc::new(nested) }
         }
@@ -1390,7 +1390,7 @@ fn make_blocks_for_method<'a, 'b>(
             ops .range(which.clone())
                 // TODO obviate clone by doing .remove() (no .drain on BTreeMap ?)
                 .map(|(&u, o)| (u, o.clone()))
-                .map(|x| make_instructions(&mut sm, x, |y| make_label(class, method, y), class.clone(), max_locals))
+                .map(|x| make_instructions(&mut sm, x, |y| make_label(class, method, y), class, max_locals))
                 .collect();
         let (bb, ee) = make_basic_block(class, method, block?, which)?;
         let mut out = Vec::new();
@@ -1430,10 +1430,10 @@ fn test_parse_classes() -> GeneralResult<()>
         let methods = class.methods.iter();
         for method in methods.filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
             let sm = StackManager::new(STACK_REGS);
-            let class = util::get_constant_getter(&class).get_class(class.this_class)?;
+            let class = &util::get_constant_getter(&class).get_class(class.this_class)?;
             let max_locals = get_method_code(method)?.max_locals;
             let method = class.contextualize(method);
-            let bbs = make_blocks_for_method(&class, &method, &sm, max_locals)?;
+            let bbs = make_blocks_for_method(class, &method, &sm, max_locals)?;
             for bb in &bbs {
                 eprintln!("{}", bb);
             }
@@ -1678,10 +1678,10 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn Write) -> GeneralRe
 
     let fields = &class.fields;
     let methods = &class.methods;
-    let class = util::get_constant_getter(&class).get_class(class.this_class)?;
+    let class = &util::get_constant_getter(&class).get_class(class.this_class)?;
 
-    write_method_table(&class, methods, outfile)?;
-    write_vslot_list(&class, methods, outfile)?;
+    write_method_table(class, methods, outfile)?;
+    write_vslot_list(class, methods, outfile)?;
 
     let is_static = |f : &&FieldInfo| f.access_flags.contains(FieldAccessFlags::STATIC);
     let print_field = |outfile : &mut dyn Write, slot_name : &str, offset, _size, width| {
@@ -1689,17 +1689,17 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn Write) -> GeneralRe
         writeln!(outfile, "    .set    {:width$}, {}", slot_name, offset, width=width)?;
         Ok(())
     };
-    write_field_list(&class, fields, outfile, "field_offset", |f| ! is_static(f), print_field)?;
+    write_field_list(class, fields, outfile, "field_offset", |f| ! is_static(f), print_field)?;
     let print_static = |outfile : &mut dyn Write, slot_name : &str, _offset, size, width| {
         writeln!(outfile, "    .global {}", slot_name)?;
         writeln!(outfile, "    {:width$}: .zero {}", slot_name, size, width=width)?;
         Ok(())
     };
-    write_field_list(&class, fields, outfile, "static", &is_static, &print_static)?;
+    write_field_list(class, fields, outfile, "static", &is_static, &print_static)?;
 
     for method in methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let method = class.contextualize(method);
-        let mm = translate_method(&class, &method)?;
+        let mm = translate_method(class, &method)?;
         writeln!(outfile, "{}", mm)?;
     }
 
