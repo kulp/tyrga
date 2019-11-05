@@ -751,7 +751,7 @@ fn make_invocation<'a>(
     sm : &mut StackManager,
     kind : InvokeKind,
     index : u16,
-    gc : impl ContextConstantGetter<'a> + Contextualizer<'a>,
+    gc : impl Contextualizer<'a>,
 ) -> GeneralResult<Vec<Instruction>>
 {
     let get_method_parts = || {
@@ -938,7 +938,7 @@ fn make_varaction<'a>(
     op : VarOp,
     kind : VarKind,
     index : u16,
-    gc : impl ContextConstantGetter<'a> + Contextualizer<'a>,
+    gc : impl Contextualizer<'a>,
 ) -> GeneralResult<Vec<Instruction>>
 {
     use classfile_parser::constant_info::ConstantInfo::FieldRef;
@@ -1002,7 +1002,7 @@ fn make_instructions<'a>(
     sm : &mut StackManager,
     (addr, op) : (usize, Operation),
     namer : impl Fn(&dyn Display) -> GeneralResult<String>,
-    gc : impl ContextConstantGetter<'a> + Contextualizer<'a>,
+    gc : impl Contextualizer<'a>,
     max_locals : u16,
 ) -> GeneralResult<InsnPair>
 {
@@ -1187,7 +1187,7 @@ mod util {
         }
     }
 
-    pub(in super) trait Contextualizer<'a> {
+    pub(in super) trait Contextualizer<'a> : ContextConstantGetter<'a> {
         fn contextualize<U>(&self, nested : U) -> Context<'a, U>;
     }
 
