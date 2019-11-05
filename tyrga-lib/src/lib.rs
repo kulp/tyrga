@@ -959,8 +959,6 @@ fn make_varaction<'a>(
             }
         }
 
-        let mut insns = Vec::new();
-
         let len = {
             use classfile_parser::constant_info::ConstantInfo::NameAndType;
             use std::convert::TryFrom;
@@ -991,11 +989,10 @@ fn make_varaction<'a>(
         let format = |suff|
             GeneralResult::Ok(format!("@{}", mangle(&[ &gc.contextualize(fr), &suff ])?));
 
-        let (drops, (reg, gets), base) = match kind {
+        let (drops, (reg, mut insns), base) = match kind {
             VarKind::Static => ( 0, (Register::P, vec![]), make_target(   format("static"      )?) ),
             VarKind::Field  => ( 1, sm.get(op_depth)     , Atom::Variable(format("field_offset")?) ),
         };
-        insns.extend(gets);
 
         let mut range = 0_i32..len.into();
         let mut reversed = range.clone().rev();
