@@ -782,6 +782,12 @@ fn make_invocation<'a>(
         // TODO vet handling of Virtual against JVM spec
         InvokeKind::Virtual => {
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
+                impl Manglable for Context<'_, &MethodRefConstant> {
+                    fn pieces(&self) -> GeneralResult<Vec<String>> {
+                        util::from_nat(self, self.as_ref().class_index, self.as_ref().name_and_type_index)
+                    }
+                }
+
                 make_invocation_virtual(sm, &descriptor, gc.contextualize(mr))
             } else {
                 Err("bad constant kind".into())
@@ -947,10 +953,30 @@ fn make_varaction<'a>(
     if let FieldRef(fr) = gc.get_constant(index) {
         use exprtree::Atom;
 
-        let fr = gc.contextualize(fr);
+        impl Manglable for Context<'_, &FieldRefConstant> {
+            fn pieces(&self) -> GeneralResult<Vec<String>> {
+                util::from_nat(self, self.as_ref().class_index, self.as_ref().name_and_type_index)
+            }
+        }
+
         let mut insns = Vec::new();
 
-        let len = util::field_type(&fr)?.size();
+        let len = {
+            use classfile_parser::constant_info::ConstantInfo::NameAndType;
+            use std::convert::TryFrom;
+
+            let r = match gc.get_constant(fr.name_and_type_index) {
+                NameAndType(nt) =>
+                    gc.get_string(nt.descriptor_index)
+                        .and_then(|x| x.chars().next())
+                        .ok_or("bad descriptor")
+                        .and_then(JType::try_from)
+                        .map_err(Into::into),
+                _ => GeneralResult::Err("unexpected kind".into()),
+            };
+
+            r?.size()
+        };
 
         let make_off = |base, i| {
             let a = base;
@@ -963,7 +989,7 @@ fn make_varaction<'a>(
         let op_depth = match op { VarOp::Get => 0, VarOp::Put => len.into() };
 
         let format = |suff|
-            GeneralResult::Ok(format!("@{}", mangle(&[ &fr, &suff ])?));
+            GeneralResult::Ok(format!("@{}", mangle(&[ &gc.contextualize(fr), &suff ])?));
 
         let (drops, (reg, gets), base) = match kind {
             VarKind::Static => ( 0, (Register::P, vec![]), make_target(   format("static"      )?) ),
@@ -1106,16 +1132,13 @@ fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
 }
 
 mod util {
-    use crate::jvmtypes::JType;
     use crate::mangling;
     use crate::GeneralResult;
     use classfile_parser::constant_info::ConstantInfo;
-    use classfile_parser::constant_info::FieldRefConstant;
-    use classfile_parser::constant_info::{ClassConstant, MethodRefConstant, NameAndTypeConstant};
+    use classfile_parser::constant_info::{ClassConstant, NameAndTypeConstant};
     use classfile_parser::field_info::FieldInfo;
     use classfile_parser::method_info::MethodInfo;
     use classfile_parser::ClassFile;
-    use std::convert::TryFrom;
     use std::rc::Rc;
 
     // Previously, NAME_SEPARATOR was a colon, but in the JVM a colon is
@@ -1156,7 +1179,7 @@ mod util {
         fn pieces(&self) -> GeneralResult<Vec<String>> { (self.as_ref() as &str).pieces() }
     }
 
-    fn from_nat<T>(gc : &Context<'_, &T>, ci : u16, nat : u16) -> GeneralResult<Vec<String>> {
+    pub(in super) fn from_nat<T>(gc : &Context<'_, &T>, ci : u16, nat : u16) -> GeneralResult<Vec<String>> {
         use classfile_parser::constant_info::ConstantInfo::{Class, NameAndType};
 
         if let Class(ni) = gc.get_constant(ci) {
@@ -1170,18 +1193,6 @@ mod util {
             }
         } else {
             Err("invalid ConstantInfo kind".into())
-        }
-    }
-
-    impl Manglable for Context<'_, &FieldRefConstant> {
-        fn pieces(&self) -> GeneralResult<Vec<String>> {
-            from_nat(self, self.as_ref().class_index, self.as_ref().name_and_type_index)
-        }
-    }
-
-    impl Manglable for Context<'_, &MethodRefConstant> {
-        fn pieces(&self) -> GeneralResult<Vec<String>> {
-            from_nat(self, self.as_ref().class_index, self.as_ref().name_and_type_index)
         }
     }
 
@@ -1252,19 +1263,6 @@ mod util {
     impl Manglable for &[&dyn Manglable] {
         fn pieces(&self) -> GeneralResult<Vec<String>> {
             self.iter().map(|x| x.stringify()).collect() // TODO flatten
-        }
-    }
-
-    pub(in super) fn field_type(fr : &Context<'_, &FieldRefConstant>) -> GeneralResult<JType> {
-        use classfile_parser::constant_info::ConstantInfo::NameAndType;
-        if let NameAndType(nt) = fr.get_constant(fr.as_ref().name_and_type_index) {
-            fr.get_string(nt.descriptor_index)
-                .and_then(|x| x.chars().next())
-                .ok_or("bad descriptor")
-                .and_then(JType::try_from)
-                .map_err(Into::into)
-        } else {
-            Err("unexpected kind".into())
         }
     }
 
