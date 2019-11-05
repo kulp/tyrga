@@ -1199,7 +1199,7 @@ mod util {
 
     #[derive(Clone)]
     pub(in super) struct Context<'a, T> {
-        get_constant : Rc<dyn Fn(u16) -> &'a ConstantInfo + 'a>,
+        constant_getter : Rc<dyn Fn(u16) -> &'a ConstantInfo + 'a>,
         nested : Rc<T>,
     }
 
@@ -1214,10 +1214,10 @@ mod util {
 
     impl<'a, T> Contextualizer<'a> for Context<'a, T> {
         fn contextualize<U>(&self, nested : U) -> Context<'a, U> {
-            Context { get_constant : self.get_constant.clone(), nested : Rc::new(nested) }
+            Context { constant_getter : self.constant_getter.clone(), nested : Rc::new(nested) }
         }
         fn get_constant(&self, index : u16) -> &'a ConstantInfo {
-            (self.get_constant)(index)
+            (self.constant_getter)(index)
         }
     }
 
@@ -1227,7 +1227,7 @@ mod util {
 
     pub(in super) fn get_constant_getter<'a>(nested : &'a ClassFile) -> Context<'a, &ClassFile> {
         let gc = move |n| &nested.const_pool[usize::from(n) - 1];
-        Context { get_constant : Rc::new(gc), nested : Rc::new(nested) }
+        Context { constant_getter : Rc::new(gc), nested : Rc::new(nested) }
     }
 
     pub(in super) trait Manglable {
