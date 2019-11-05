@@ -784,7 +784,7 @@ fn make_invocation<'a>(
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
                 impl Manglable for Context<'_, &MethodRefConstant> {
                     fn pieces(&self) -> GeneralResult<Vec<String>> {
-                        util::from_nat(self, self.as_ref().class_index, self.as_ref().name_and_type_index)
+                        self.get_pieces(self.as_ref().class_index, self.as_ref().name_and_type_index)
                     }
                 }
 
@@ -955,7 +955,7 @@ fn make_varaction<'a>(
 
         impl Manglable for Context<'_, &FieldRefConstant> {
             fn pieces(&self) -> GeneralResult<Vec<String>> {
-                util::from_nat(self, self.as_ref().class_index, self.as_ref().name_and_type_index)
+                self.get_pieces(self.as_ref().class_index, self.as_ref().name_and_type_index)
             }
         }
 
@@ -1176,23 +1176,6 @@ mod util {
         fn pieces(&self) -> GeneralResult<Vec<String>> { (self.as_ref() as &str).pieces() }
     }
 
-    pub(in super) fn from_nat<T>(gc : &Context<'_, &T>, ci : u16, nat : u16) -> GeneralResult<Vec<String>> {
-        use classfile_parser::constant_info::ConstantInfo::{Class, NameAndType};
-
-        if let Class(ni) = gc.get_constant(ci) {
-            let ni = ni.name_index;
-            let ss = gc.get_string(ni).ok_or("no such name")?;
-            if let NameAndType(nt) = gc.get_constant(nat) {
-                let nt = gc.contextualize(nt);
-                Ok(std::iter::once(ss).chain(nt.pieces()?).collect())
-            } else {
-                Err("invalid ConstantInfo kind".into())
-            }
-        } else {
-            Err("invalid ConstantInfo kind".into())
-        }
-    }
-
     pub(in super) trait Contextualizer<'a> {
         fn contextualize<U>(&self, nested : U) -> Context<'a, U>;
         fn get_constant(&self, index : u16) -> &'a ConstantInfo;
@@ -1218,6 +1201,24 @@ mod util {
                 _ => Err("not a class".into()),
             }
         }
+
+        pub fn get_pieces(&self, ci : u16, nat : u16) -> GeneralResult<Vec<String>> {
+            use classfile_parser::constant_info::ConstantInfo::{Class, NameAndType};
+
+            if let Class(ni) = self.get_constant(ci) {
+                let ni = ni.name_index;
+                let ss = self.get_string(ni).ok_or("no such name")?;
+                if let NameAndType(nt) = self.get_constant(nat) {
+                    let nt = self.contextualize(nt);
+                    Ok(std::iter::once(ss).chain(nt.pieces()?).collect())
+                } else {
+                    Err("invalid ConstantInfo kind".into())
+                }
+            } else {
+                Err("invalid ConstantInfo kind".into())
+            }
+        }
+
     }
 
     impl<'a, T> Contextualizer<'a> for Context<'a, T> {
