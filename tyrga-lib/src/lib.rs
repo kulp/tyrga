@@ -825,17 +825,17 @@ fn make_allocation<'a>(
             match (kind, dims) {
                 (Explicit(kind), 1) => {
                     let mut pre = match kind.size() {
-                        1 => Ok(vec![]),
+                        1 => vec![],
                         // insert an instruction that doubles the top-of-stack count
                         2 => {
                             let mut v = Vec::new();
                             let (top, gets) = sm.get(0);
                             v.extend(gets);
                             v.push(tenyr_insn!( top <- top + top ));
-                            Ok(v)
+                            v
                         },
-                        _ => Err("impossible size"),
-                    }?;
+                        _ => panic!("impossible size"),
+                    };
                     let descriptor = "(I)Ljava.lang.Object;";
                     let name = make_builtin_name("alloc", descriptor)?;
                     let v = make_call(sm, &name, descriptor)?;
