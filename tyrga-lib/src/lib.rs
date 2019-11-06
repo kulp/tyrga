@@ -267,7 +267,7 @@ fn make_call(
     let far = format!("@+{}", target);
     let off = tenyr::Immediate20::Expr(exprtree::Atom::Variable(far));
     insns.extend(tenyr_insn_list!(
-        [sp] <- P + 1   ;
+        [sp] <- P + 1i8 ;
         P <- P + (off)  ;
     ));
 
@@ -591,7 +591,7 @@ fn make_switch(
         Lookup { default, pairs } => {
             let make = |(imm, target)|
                 make_int_branch(sm, false, there(target), &namer(&there(target))?,
-                    |sm| Ok((temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0), imm))));
+                    |sm| Ok((temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0i8), imm))));
 
             pairs
                 .into_iter()
@@ -632,7 +632,7 @@ fn make_switch(
 
             let insn = {
                 use Register::P;
-                tenyr_insn!( P <- top - 0 + P )
+                tenyr_insn!( P <- top - 0i8 + P )
             };
 
             let offsets = offsets.into_iter().map(|far| Ok(make_jump(there(far), &namer(&there(far))?)));
@@ -735,8 +735,8 @@ fn make_invocation_virtual(
     let off = Immediate20::Expr(exprtree::Atom::Variable(far));
 
     insns.extend(tenyr_insn_list!(
-            temp <- [obj - 1]   ;
-            [sp] <- P + 1       ;
+            temp <- [obj - 1i8] ;
+            [sp] <- P + 1i8     ;
             P <- [temp + (off)] ;
         ));
     insns.extend(sm.release(1));
@@ -917,8 +917,8 @@ fn make_conversion(
             let (top, get_second) = sm.reserve_one();
 
             let moves = tenyr_insn_list!(
-                top <- low      ;
-                low <- top @ 31 ;
+                top <- low          ;
+                low <- top @ 31u8   ;
             );
 
             let insns = std::iter::empty()
