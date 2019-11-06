@@ -147,7 +147,7 @@ macro_rules! tenyr_rhs {
             use $crate::tenyr::*;
             let kind = $crate::tenyr::InstructionType::Type3(tenyr_imm!($imm));
             let base = Instruction { kind, ..$crate::tenyr::NOOP_TYPE0 };
-            Ok(Instruction { $( x : $x, )? ..base }) as $crate::tenyr::InsnResult
+            Instruction { $( x : $x, )? ..base }
         }
     };
     ( $( $x:ident + )? $imm:literal ) => {
@@ -155,7 +155,7 @@ macro_rules! tenyr_rhs {
             use $crate::tenyr::*;
             let kind = $crate::tenyr::InstructionType::Type3(tenyr_imm!($imm));
             let base = Instruction { kind, ..$crate::tenyr::NOOP_TYPE0 };
-            Ok(Instruction { $( x : $x, )? ..base }) as $crate::tenyr::InsnResult
+            Instruction { $( x : $x, )? ..base }
         }
     };
     ( $( $x:ident - )? ( $imm:expr ) ) => {
@@ -163,7 +163,7 @@ macro_rules! tenyr_rhs {
             use $crate::tenyr::*;
             let kind = $crate::tenyr::InstructionType::Type3(tenyr_imm!(-($imm)));
             let base = Instruction { kind, ..$crate::tenyr::NOOP_TYPE0 };
-            Ok(Instruction { $( x : $x, )? ..base }) as $crate::tenyr::InsnResult
+            Instruction { $( x : $x, )? ..base }
         }
     };
     ( $( $x:ident - )? $imm:literal ) => {
@@ -171,13 +171,13 @@ macro_rules! tenyr_rhs {
             use $crate::tenyr::*;
             let kind = $crate::tenyr::InstructionType::Type3(tenyr_imm!(-($imm)));
             let base = Instruction { kind, ..$crate::tenyr::NOOP_TYPE0 };
-            Ok(Instruction { $( x : $x, )? ..base }) as $crate::tenyr::InsnResult
+            Instruction { $( x : $x, )? ..base }
         }
     };
     ( $x:ident $( $rest:tt )* ) => {
         {
             use $crate::tenyr::*;
-            Ok(Instruction { z : Register::A, x : $x, dd : MemoryOpType::NoLoad, ..tenyr_get_op!(tenyr_type013 $( $rest )*) }) as $crate::tenyr::InsnResult
+            Instruction { z : Register::A, x : $x, dd : MemoryOpType::NoLoad, ..tenyr_get_op!(tenyr_type013 $( $rest )*) }
         }
     };
     ( ( $imm:expr ) $( $rest:tt )+ ) => {
@@ -186,9 +186,9 @@ macro_rules! tenyr_rhs {
             let base = tenyr_get_op!(tenyr_type2 $( $rest )*);
             if let $crate::tenyr::InstructionType::Type2(gen) = base.kind {
                 let kind = $crate::tenyr::InstructionType::Type2(InsnGeneral { imm : tenyr_imm!($imm), ..gen });
-                Ok(Instruction { kind, ..base }) as $crate::tenyr::InsnResult
+                Instruction { kind, ..base }
             } else {
-                Err("internal error - did not get expected Type2".into())
+                panic!("internal error - did not get expected Type2")
             }
         }
     };
@@ -198,9 +198,9 @@ macro_rules! tenyr_rhs {
             let base = tenyr_get_op!(tenyr_type2 $( $rest )*);
             if let $crate::tenyr::InstructionType::Type2(gen) = base.kind {
                 let kind = $crate::tenyr::InstructionType::Type2(InsnGeneral { imm : tenyr_imm!($imm), ..gen });
-                Ok(Instruction { kind, ..base }) as $crate::tenyr::InsnResult
+                Instruction { kind, ..base }
             } else {
-                Err("internal error - did not get expected Type2".into())
+                panic!("internal error - did not get expected Type2")
             }
         }
     };
@@ -209,10 +209,10 @@ macro_rules! tenyr_rhs {
 /// Parses a large subset of tenyr assembly language into `Instruction` objects
 #[macro_export]
 macro_rules! tenyr_insn {
-    (   $z:ident   <- [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::LoadRight , ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
-    ( [ $z:ident ] <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreLeft , ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
-    (   $z:ident   -> [ $( $rhs:tt )+ ] ) => { Ok(Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreRight, ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
-    (   $z:ident   <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z,                                               ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
+    (   $z:ident   <- [ $( $rhs:tt )+ ] ) => { Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::LoadRight , ..tenyr_rhs!( $( $rhs )+ ) } };
+    ( [ $z:ident ] <-   $( $rhs:tt )+   ) => { Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreLeft , ..tenyr_rhs!( $( $rhs )+ ) } };
+    (   $z:ident   -> [ $( $rhs:tt )+ ] ) => { Instruction { z : $z, dd : $crate::tenyr::MemoryOpType::StoreRight, ..tenyr_rhs!( $( $rhs )+ ) } };
+    (   $z:ident   <-   $( $rhs:tt )+   ) => { Instruction { z : $z,                                               ..tenyr_rhs!( $( $rhs )+ ) } };
 }
 
 #[test]
@@ -271,12 +271,12 @@ fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
 #[macro_export]
 macro_rules! tenyr_insn_list {
     () => { std::iter::empty() };
-    ( $lhs:tt <- $a:tt $op:tt$op2:tt $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $a $op$op2 $b $( + $c )?  )?).chain(tenyr_insn_list!($( $tok )*)) };
-    ( $lhs:tt <- $a:tt $op:tt        $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $a $op     $b $( + $c )?  )?).chain(tenyr_insn_list!($( $tok )*)) };
-    ( $lhs:tt <- $a:tt $op:tt$op2:tt $b:tt $( - $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $a $op$op2 $b $( - $c )?  )?).chain(tenyr_insn_list!($( $tok )*)) };
-    ( $lhs:tt <- $a:tt $op:tt        $b:tt $( - $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $a $op     $b $( - $c )?  )?).chain(tenyr_insn_list!($( $tok )*)) };
-    ( $lhs:tt <- $rhs:tt                                 ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $rhs                      )?).chain(tenyr_insn_list!($( $tok )*)) };
-    ( $lhs:tt -> $rhs:tt                                 ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs -> $rhs                      )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <- $a:tt $op:tt$op2:tt $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $a $op$op2 $b $( + $c )?  )).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <- $a:tt $op:tt        $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $a $op     $b $( + $c )?  )).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <- $a:tt $op:tt$op2:tt $b:tt $( - $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $a $op$op2 $b $( - $c )?  )).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <- $a:tt $op:tt        $b:tt $( - $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $a $op     $b $( - $c )?  )).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <- $rhs:tt                                 ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $rhs                      )).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt -> $rhs:tt                                 ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs -> $rhs                      )).chain(tenyr_insn_list!($( $tok )*)) };
 }
 
 #[test]

@@ -79,7 +79,7 @@ fn expand_immediate_load(
             Imm12(_) =>
                 unimplemented!("Imm12 was supposed to be handled separately"),
             Imm20(imm) =>
-                vec![ tenyr_insn!( temp_reg <- (imm) )? ], // cannot fail
+                vec![ tenyr_insn!( temp_reg <- (imm) ) ], // cannot fail
             Imm32(imm) => {
                 let bot = tenyr::Immediate12::try_from_bits((imm & 0xfff) as u16)?; // cannot fail
 
@@ -140,7 +140,7 @@ fn test_expand() -> GeneralResult<()> {
 
     {
         let imm = 867_5309; // 0x845fed
-        let insn = tenyr_insn!( D -> [C * B] )?;
+        let insn = tenyr_insn!( D -> [C * B] );
         let vv = expand_immediate_load(&mut sm, insn, imm);
         let rhs = 0xffff_ffed_u32 as i32;
         let expect = tenyr_insn_list!(
@@ -228,7 +228,7 @@ fn make_int_branch(
         if invert   { tenyr_insn!(   P <- (imm) &~ temp_reg + P     ) }
         else        { tenyr_insn!(   P <- (imm) &  temp_reg + P     ) };
     let mut v = sequence;
-    v.push(branch?);
+    v.push(branch);
     let dest = vec![
         Destination::Successor,
         Destination::Address(target.into()),
@@ -292,7 +292,7 @@ fn make_yield(
     }
     v.extend(sm.empty());
     let ex = tenyr::Immediate::Expr(make_target(target_name));
-    v.push(tenyr_insn!( P <- (ex) + P )?);
+    v.push(tenyr_insn!( P <- (ex) + P ));
 
     Ok((v, vec![])) // leaving the method is not a Destination we care about
 }
@@ -362,7 +362,7 @@ fn make_negation(sm : &mut StackManager) -> GeneralResult<Vec<Instruction>> {
     let mut v = Vec::new();
     let (y, gets) = sm.get(0);
     v.extend(gets);
-    v.push(tenyr_insn!( y <- A - y )?);
+    v.push(tenyr_insn!( y <- A - y ));
     Ok(v)
 }
 
@@ -518,7 +518,7 @@ fn make_increment(
     let (temp_reg, mut v) = sm.reserve_one();
     let insn = sm.index_local(temp_reg, index.into(), max_locals);
     v.push(Instruction { dd : MemoryOpType::LoadRight, ..insn.clone() });
-    v.push(tenyr_insn!( temp_reg <- temp_reg + (value) )?);
+    v.push(tenyr_insn!( temp_reg <- temp_reg + (value) ));
     v.push(Instruction { dd : MemoryOpType::StoreRight, ..insn });
     v.extend(sm.release(1));
 
@@ -591,7 +591,7 @@ fn make_switch(
         Lookup { default, pairs } => {
             let make = |(imm, target)|
                 make_int_branch(sm, false, there(target), &namer(&there(target))?,
-                    |sm| Ok((temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0)?, imm))));
+                    |sm| Ok((temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0), imm))));
 
             pairs
                 .into_iter()
@@ -640,7 +640,7 @@ fn make_switch(
             std::iter::empty()
                 .chain(once(default_maker(maker(&Type1, low))))
                 .chain(once(default_maker(maker(&Type2, high))))
-                .chain(once(Ok((expand_immediate_load(sm, insn?, low), vec![]))))
+                .chain(once(Ok((expand_immediate_load(sm, insn, low), vec![]))))
                 .chain(offsets)
                 .chain(once(Ok((sm.release(1), vec![])))) // release temporary
                 .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
@@ -831,7 +831,7 @@ fn make_allocation<'a>(
                             let mut v = Vec::new();
                             let (top, gets) = sm.get(0);
                             v.extend(gets);
-                            v.push(tenyr_insn!( top <- top + top )?);
+                            v.push(tenyr_insn!( top <- top + top ));
                             Ok(v)
                         },
                         _ => Err("impossible size"),
@@ -876,7 +876,7 @@ fn make_compare(
         Some(NanComparisons::Less) => -1,
         _ => 0,
     };
-    v.push(tenyr_insn!( gc <- (n) )?);
+    v.push(tenyr_insn!( gc <- (n) ));
 
     let desc = format!("({}{}I)I", ch, ch);
     let insns = make_call(sm, &make_builtin_name("cmp", &desc)?, &desc)?;
@@ -1563,7 +1563,7 @@ fn translate_method<'a, 'b>(
     let prologue = {
         let name = "prologue";
         let off = -(max_locals_i32 - i32::from(count_params(&descriptor)?) + i32::from(SAVE_SLOTS));
-        let insns = vec![ tenyr_insn!( sp <-  sp + (off) )? ];
+        let insns = vec![ tenyr_insn!( sp <-  sp + (off) ) ];
         let label = make_label(class, method, name)?;
         tenyr::BasicBlock { label, insns }
     };
@@ -1573,8 +1573,8 @@ fn translate_method<'a, 'b>(
         let off = i32::from(SAVE_SLOTS) + i32::from(total_locals) - i32::from(num_returns);
         let down = i32::from(num_returns) - max_locals_i32;
         let rp = Register::P;
-        let mv = if off != 0 { Some(tenyr_insn!( sp <-  sp + (off) )?) } else { None };
-        let insns = mv.into_iter().chain(std::iter::once(tenyr_insn!( rp <- [sp + (down)] )?)).collect();
+        let mv = if off != 0 { Some(tenyr_insn!( sp <-  sp + (off) )) } else { None };
+        let insns = mv.into_iter().chain(std::iter::once(tenyr_insn!( rp <- [sp + (down)] ))).collect();
         let label = make_label(class, method, name)?;
         tenyr::BasicBlock { label, insns }
     };
