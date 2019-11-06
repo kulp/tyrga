@@ -572,6 +572,33 @@ fn make_branch(
     })
 }
 
+fn make_switch_lookup(
+    sm : &mut StackManager,
+    namer : impl Fn(&dyn Display) -> GeneralResult<String>,
+    there : impl Fn(i32) -> u16,
+    default : i32,
+    pairs : Vec<(i32, i32)>,
+) -> GeneralResult<InsnPair> {
+    let (top, mut insns) = sm.get(0);
+    let (temp_reg, gets) = sm.reserve_one(); // need a persistent temporary
+    insns.extend(gets);
+
+    let make = |(imm, target)|
+        make_int_branch(sm, false, there(target), &namer(&there(target))?,
+            |sm| Ok((temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0)?, imm))));
+
+    pairs
+        .into_iter()
+        .map(make)
+        .chain(std::iter::once(Ok(make_jump(there(default), &namer(&there(default))?))))
+        .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
+            let (i, d) = tup?;
+            insns.extend(i);
+            dests.extend(d);
+            Ok((insns, dests))
+        })
+}
+
 fn make_switch(
     sm : &mut StackManager,
     params : SwitchParams,
@@ -583,31 +610,16 @@ fn make_switch(
 
     let there = |x| (x + (addr as i32)) as u16;
 
-    let (top, mut insns) = sm.get(0);
-    let (temp_reg, gets) = sm.reserve_one(); // need a persistent temporary
-    insns.extend(gets);
-
     match params {
-        Lookup { default, pairs } => {
-            let make = |(imm, target)|
-                make_int_branch(sm, false, there(target), &namer(&there(target))?,
-                    |sm| Ok((temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0)?, imm))));
-
-            pairs
-                .into_iter()
-                .map(make)
-                .chain(once(Ok(make_jump(there(default), &namer(&there(default))?))))
-                .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
-                    let (i, d) = tup?;
-                    insns.extend(i);
-                    dests.extend(d);
-                    Ok((insns, dests))
-                })
-        },
+        Lookup { default, pairs } => make_switch_lookup(sm, namer, there, default, pairs),
         Table { default, low, high, offsets } => {
             use tenyr::*;
             use tenyr::InstructionType::{Type1, Type2};
             type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
+
+            let (top, mut insns) = sm.get(0);
+            let (temp_reg, gets) = sm.reserve_one(); // need a persistent temporary
+            insns.extend(gets);
 
             let maker = |kind : &'static InsnType, imm : i32| {
                 move |sm : &mut StackManager| {
