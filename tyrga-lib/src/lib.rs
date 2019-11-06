@@ -599,6 +599,67 @@ fn make_switch_lookup(
         })
 }
 
+fn make_switch_table(
+    sm : &mut StackManager,
+    namer : impl Fn(&dyn Display) -> GeneralResult<String>,
+    there : impl Fn(i32) -> u16,
+    default : i32,
+    low : i32,
+    high : i32,
+    offsets : Vec<i32>,
+) -> GeneralResult<InsnPair> {
+    use std::iter::once;
+    use tenyr::*;
+    use tenyr::InstructionType::{Type1, Type2};
+
+    type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
+
+    let (top, mut insns) = sm.get(0);
+    let (temp_reg, gets) = sm.reserve_one(); // need a persistent temporary
+    insns.extend(gets);
+
+    let maker = |kind : &'static InsnType, imm : i32| {
+        move |sm : &mut StackManager| {
+            let insn = Instruction {
+                kind : kind(
+                    InsnGeneral {
+                        y : Register::A,
+                        op : Opcode::CompareLt,
+                        imm : 0_u8.into(), // placeholder
+                    }),
+                z : temp_reg,
+                x : top,
+                dd : MemoryOpType::NoLoad,
+            };
+            let insns = expand_immediate_load(sm, insn, imm);
+            Ok((temp_reg, insns))
+        }
+    };
+
+    let mut default_maker = |maker|
+        GeneralResult::Ok(make_int_branch(sm, false, there(default), &namer(&there(default))?, maker)?);
+
+    let insn = {
+        use Register::P;
+        tenyr_insn!( P <- top - 0 + P )
+    };
+
+    let offsets = offsets.into_iter().map(|far| Ok(make_jump(there(far), &namer(&there(far))?)));
+
+    std::iter::empty()
+        .chain(once(default_maker(maker(&Type1, low))))
+        .chain(once(default_maker(maker(&Type2, high))))
+        .chain(once(Ok((expand_immediate_load(sm, insn?, low), vec![]))))
+        .chain(offsets)
+        .chain(once(Ok((sm.release(1), vec![])))) // release temporary
+        .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
+            let (i, d) = tup?;
+            insns.extend(i);
+            dests.extend(d);
+            Ok((insns, dests))
+        })
+}
+
 fn make_switch(
     sm : &mut StackManager,
     params : SwitchParams,
@@ -606,62 +667,12 @@ fn make_switch(
     addr : usize,
 ) -> GeneralResult<InsnPair> {
     use jvmtypes::SwitchParams::{Lookup, Table};
-    use std::iter::once;
 
     let there = |x| (x + (addr as i32)) as u16;
 
     match params {
         Lookup { default, pairs } => make_switch_lookup(sm, namer, there, default, pairs),
-        Table { default, low, high, offsets } => {
-            use tenyr::*;
-            use tenyr::InstructionType::{Type1, Type2};
-            type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
-
-            let (top, mut insns) = sm.get(0);
-            let (temp_reg, gets) = sm.reserve_one(); // need a persistent temporary
-            insns.extend(gets);
-
-            let maker = |kind : &'static InsnType, imm : i32| {
-                move |sm : &mut StackManager| {
-                    let insn = Instruction {
-                        kind : kind(
-                            InsnGeneral {
-                                y : Register::A,
-                                op : Opcode::CompareLt,
-                                imm : 0_u8.into(), // placeholder
-                            }),
-                        z : temp_reg,
-                        x : top,
-                        dd : MemoryOpType::NoLoad,
-                    };
-                    let insns = expand_immediate_load(sm, insn, imm);
-                    Ok((temp_reg, insns))
-                }
-            };
-
-            let mut default_maker = |maker|
-                GeneralResult::Ok(make_int_branch(sm, false, there(default), &namer(&there(default))?, maker)?);
-
-            let insn = {
-                use Register::P;
-                tenyr_insn!( P <- top - 0 + P )
-            };
-
-            let offsets = offsets.into_iter().map(|far| Ok(make_jump(there(far), &namer(&there(far))?)));
-
-            std::iter::empty()
-                .chain(once(default_maker(maker(&Type1, low))))
-                .chain(once(default_maker(maker(&Type2, high))))
-                .chain(once(Ok((expand_immediate_load(sm, insn?, low), vec![]))))
-                .chain(offsets)
-                .chain(once(Ok((sm.release(1), vec![])))) // release temporary
-                .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
-                    let (i, d) = tup?;
-                    insns.extend(i);
-                    dests.extend(d);
-                    Ok((insns, dests))
-                })
-        },
+        Table { default, low, high, offsets } => make_switch_table(sm, namer, there, default, low, high, offsets),
     }
 }
 
