@@ -671,8 +671,10 @@ fn make_switch(
     let there = |x| (x + (addr as i32)) as u16;
 
     match params {
-        Lookup { default, pairs } => make_switch_lookup(sm, namer, there, default, pairs),
-        Table { default, low, high, offsets } => make_switch_table(sm, namer, there, default, low, high, offsets),
+        Lookup { default, pairs } =>
+            make_switch_lookup(sm, namer, there, default, pairs),
+        Table { default, low, high, offsets } =>
+            make_switch_table(sm, namer, there, default, low, high, offsets),
     }
 }
 
