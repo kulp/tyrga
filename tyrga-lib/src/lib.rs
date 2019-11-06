@@ -1554,6 +1554,7 @@ fn test_count_params() -> GeneralResult<()> {
     assert_eq!(1, count_params("([[[I)I")?);
     assert_eq!(0, count_params("()Lplaceholder;")?);
     assert_eq!(0, count_params("()D")?);
+    assert!(count_params("(").is_err());
     Ok(())
 }
 
@@ -1565,6 +1566,7 @@ fn test_count_returns() -> GeneralResult<()> {
     assert_eq!(1, count_returns("([[[I)I")?);
     assert_eq!(1, count_returns("()Lplaceholder;")?);
     assert_eq!(2, count_returns("()D")?);
+    assert!(count_returns("(").is_err());
     Ok(())
 }
 
