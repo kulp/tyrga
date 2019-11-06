@@ -155,7 +155,7 @@ fn test_expand() -> GeneralResult<()> {
 
     {
         let imm = 123;
-        let insn = tenyr_insn!( D -> [C + 0] )?;
+        let insn = tenyr_insn!( D -> [C + 0] );
         let vv = expand_immediate_load(&mut sm, insn, imm);
         let expect = tenyr_insn_list!(
              D  -> [C + 123]    ;
@@ -167,7 +167,7 @@ fn test_expand() -> GeneralResult<()> {
 
     {
         let imm = 867_5309; // 0x845fed
-        let insn = tenyr_insn!( D -> [C + 0] )?;
+        let insn = tenyr_insn!( D -> [C + 0] );
         let vv = expand_immediate_load(&mut sm, insn, imm);
         let rhs = 0xffff_ffed_u32 as i32;
         let expect = tenyr_insn_list!(
@@ -182,7 +182,7 @@ fn test_expand() -> GeneralResult<()> {
 
     {
         let imm = 123;
-        let insn = tenyr_insn!( D -> [C * B] )?;
+        let insn = tenyr_insn!( D -> [C * B] );
         let vv = expand_immediate_load(&mut sm, insn, imm);
         let expect = tenyr_insn_list!(
              D  -> [C  *  B + 123]  ;
@@ -1089,7 +1089,7 @@ fn test_make_instruction() -> GeneralResult<()> {
     let imm = 5_u8.into();
     let rhs = Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad };
     assert_eq!(insn.0, vec![ rhs ]);
-    assert_eq!(insn.0[0], tenyr_insn!( B <- 5 )?);
+    assert_eq!(insn.0[0], tenyr_insn!( B <- 5 ));
 
     Ok(())
 }
