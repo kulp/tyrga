@@ -1505,22 +1505,21 @@ impl Display for Method {
 }
 
 mod args {
-    use crate::GeneralResult;
     use crate::JType;
     use std::convert::TryFrom;
 
-    pub fn field_size(ch : char) -> GeneralResult<u8> {
-        JType::try_from(ch).map(JType::size).map_err(Into::into)
+    pub fn field_size(ch : char) -> Result<u8, &'static str> {
+        JType::try_from(ch).map(JType::size)
     }
 
-    fn count_internal(s : &str) -> GeneralResult<u8> {
-        fn eat(s : &str) -> GeneralResult<usize> {
+    fn count_internal(s : &str) -> Result<u8, String> {
+        fn eat(s : &str) -> Result<usize, String> {
             let ch = s.chars().next().ok_or("string ended too soon")?;
             match ch {
                 'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'D' | 'J' | 'V' => Ok(1),
                 'L' => Ok(1 + s.find(';').ok_or("string ended too soon")?),
                 '[' => Ok(1 + eat(&s[1..])?),
-                _ => Err(format!("unexpected character {}", ch).into()),
+                _ => Err(format!("unexpected character {}", ch)),
             }
         }
 
@@ -1533,14 +1532,14 @@ mod args {
     }
 
     // JVM limitations restrict the count of method parameters to 255 at most
-    pub fn count_params(descriptor : &str) -> GeneralResult<u8> {
+    pub fn count_params(descriptor : &str) -> Result<u8, String> {
         let open = 1; // byte index of open parenthesis is 0
         let close = descriptor.rfind(')').ok_or("descriptor missing closing parenthesis")?;
         count_internal(&descriptor[open..close])
     }
 
     // JVM limitations restrict the count of return values to 1 at most, of size 2 at most
-    pub fn count_returns(descriptor : &str) -> GeneralResult<u8> {
+    pub fn count_returns(descriptor : &str) -> Result<u8, String> {
         let close = descriptor.rfind(')').ok_or("descriptor missing closing parenthesis")?;
         count_internal(&descriptor[close+1..])
     }
