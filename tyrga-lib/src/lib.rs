@@ -691,7 +691,7 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<V
         let (idx, gets) = sm.get(0);
         v.extend(gets);
         v.extend(sm.release(2));
-        GeneralResult::Ok((idx, arr))
+        (idx, arr)
     };
     let kind;
     let (x, y, z, dd) = match op {
@@ -706,7 +706,7 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<V
         }
         Load(k) => {
             kind = k;
-            let (idx, arr) = array_params(sm, &mut v)?;
+            let (idx, arr) = array_params(sm, &mut v);
             let (res, gets) = sm.reserve_one();
             v.extend(gets);
             (idx, arr, res, LoadRight)
@@ -716,7 +716,7 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<V
             let (val, gets) = sm.get(0);
             v.extend(gets);
             v.extend(sm.release(1));
-            let (idx, arr) = array_params(sm, &mut v)?;
+            let (idx, arr) = array_params(sm, &mut v);
             (idx, arr, val, StoreRight)
         },
     };
