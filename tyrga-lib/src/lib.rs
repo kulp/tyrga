@@ -678,7 +678,7 @@ fn make_switch(
     }
 }
 
-fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<Vec<Instruction>> {
+fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> Vec<Instruction> {
     use jvmtypes::ArrayOperation::{Load, Store, GetLength};
     use tenyr::{InsnGeneral, Opcode};
     use tenyr::InstructionType::{Type1, Type3};
@@ -702,7 +702,7 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<V
             let (top, gets) = sm.get(0);
             v.extend(gets);
             v.push(Instruction { kind : Type3((-1_i8).into()), dd : LoadRight, z : top, x : top });
-            return Ok(v); // bail out early
+            return v; // bail out early
         }
         Load(k) => {
             kind = k;
@@ -723,15 +723,15 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<V
     // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
     // per 32-bit tenyr word)
     let (op, imm) = match kind.size() {
-        1 => Ok((Opcode::BitwiseOr, 0_u8)),
-        2 => Ok((Opcode::ShiftLeft, 1_u8)),
-        _ => Err("bad kind size"),
-    }?;
+        1 => (Opcode::BitwiseOr, 0_u8),
+        2 => (Opcode::ShiftLeft, 1_u8),
+        _ => unreachable!(), // impossible size
+    };
     let imm = imm.into();
     let kind = Type1(InsnGeneral { y, op, imm });
     let insn = Instruction { kind, z, x, dd };
     v.push(insn);
-    Ok(v)
+    v
 }
 
 fn make_invocation_virtual(
@@ -1071,7 +1071,7 @@ fn make_instructions<'a>(
     match op {
         Allocation { 0 : details      } => no_branch( make_allocation ( sm, details, gc              )?),
         Arithmetic { kind, op         } => no_branch( make_arithmetic ( sm, kind, op                 )?),
-        ArrayOp    { 0 : aop          } => no_branch( make_array_op   ( sm, aop                      )?),
+        ArrayOp    { 0 : aop          } => no_branch( make_array_op   ( sm, aop                      ) ),
         Branch     { ops, way, target } => branching( make_branch     ( sm, ops, way, target         ) ),
         Compare    { kind, nans       } => no_branch( make_compare    ( sm, kind, nans               )?),
         Constant   { 0 : details      } => no_branch( make_constant   ( sm, gc, details              )?),
