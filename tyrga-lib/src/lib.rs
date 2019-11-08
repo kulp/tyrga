@@ -239,7 +239,7 @@ fn make_int_branch(
 // number of slots of data we will save between locals and stack
 const SAVE_SLOTS : u8 = 1;
 
-fn make_builtin_name(proc : &str, descriptor : &str) -> GeneralResult<String> {
+fn make_builtin_name(proc : &str, descriptor : &str) -> String {
     mangle(&[&"tyrga/Builtin", &proc, &descriptor])
 }
 
@@ -443,7 +443,7 @@ fn make_arithmetic_call(
         Xor  => "Xor",
     };
 
-    make_call(sm, &make_builtin_name(&proc.to_lowercase(), &descriptor)?, &descriptor)
+    make_call(sm, &make_builtin_name(&proc.to_lowercase(), &descriptor), &descriptor)
 }
 
 fn make_arithmetic(
@@ -756,7 +756,7 @@ fn make_invocation_virtual(
 
     let (temp, gets) = sm.reserve_one();
     insns.extend(gets);
-    let far = format!("@{}", mangle(&[&method_name, &"vslot"])?);
+    let far = format!("@{}", mangle(&[&method_name, &"vslot"]));
     let off = Immediate20::Expr(exprtree::Atom::Variable(far));
 
     insns.extend(tenyr_insn_list!(
@@ -795,7 +795,7 @@ fn make_invocation<'a>(
     };
 
     let (class, method, descriptor) = get_method_parts()?;
-    let name = &mangle(&[ &class, &method, &descriptor ])?;
+    let name = &mangle(&[ &class, &method, &descriptor ]);
 
     match kind {
         // TODO fully handle Special (this is dumb partial handling)
@@ -807,7 +807,7 @@ fn make_invocation<'a>(
         InvokeKind::Virtual => {
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
                 impl Manglable for Context<'_, &MethodRefConstant> {
-                    fn pieces(&self) -> GeneralResult<Vec<String>> {
+                    fn pieces(&self) -> Vec<String> {
                         self.get_pieces(self.as_ref().class_index, self.as_ref().name_and_type_index)
                     }
                 }
@@ -862,7 +862,7 @@ fn make_allocation<'a>(
                         _ => Err("impossible size"),
                     }?;
                     let descriptor = "(I)Ljava.lang.Object;";
-                    let name = make_builtin_name("alloc", descriptor)?;
+                    let name = make_builtin_name("alloc", descriptor);
                     let v = make_call(sm, &name, descriptor)?;
                     pre.extend(v);
                     Ok(pre)
@@ -876,7 +876,7 @@ fn make_allocation<'a>(
             if let ConstantInfo::Class(cc) = class {
                 let name = gc.get_string(cc.name_index).ok_or("no class name")?;
                 let desc = format!("()L{};", name);
-                let call = mangle(&[&name, &"new"])?;
+                let call = mangle(&[&name, &"new"]);
                 make_call(sm, &call, &desc)
             } else {
                 Err("invalid ConstantInfo kind".into())
@@ -904,7 +904,7 @@ fn make_compare(
     v.push(tenyr_insn!( gc <- (n) )?);
 
     let desc = format!("({}{}I)I", ch, ch);
-    let insns = make_call(sm, &make_builtin_name("cmp", &desc)?, &desc)?;
+    let insns = make_call(sm, &make_builtin_name("cmp", &desc), &desc)?;
     v.extend(insns);
     Ok(v)
 }
@@ -958,7 +958,7 @@ fn make_conversion(
             let ch_to   : char = to  .try_into()?;
             let name = format!("into_{}", ch_to); // TODO improve naming
             let desc = format!("({}){}", ch_from, ch_to);
-            Ok(make_call(sm, &make_builtin_name(&name, &desc)?, &desc)?)
+            Ok(make_call(sm, &make_builtin_name(&name, &desc), &desc)?)
         },
     }
 }
@@ -978,7 +978,7 @@ fn make_varaction<'a>(
         use exprtree::Atom;
 
         impl Manglable for Context<'_, &FieldRefConstant> {
-            fn pieces(&self) -> GeneralResult<Vec<String>> {
+            fn pieces(&self) -> Vec<String> {
                 self.get_pieces(self.as_ref().class_index, self.as_ref().name_and_type_index)
             }
         }
@@ -1011,7 +1011,7 @@ fn make_varaction<'a>(
         let op_depth = match op { VarOp::Get => 0, VarOp::Put => len.into() };
 
         let format = |suff|
-            GeneralResult::Ok(format!("@{}", mangle(&[ &gc.contextualize(fr), &suff ])?));
+            GeneralResult::Ok(format!("@{}", mangle(&[ &gc.contextualize(fr), &suff ])));
 
         let (drops, (reg, mut insns), base) = match kind {
             VarKind::Static => ( 0, (Register::P, vec![]), make_target(   format("static"      )?) ),
@@ -1187,17 +1187,17 @@ mod util {
     }
 
     impl Manglable for Context<'_, &ClassConstant> {
-        fn pieces(&self) -> GeneralResult<Vec<String>> {
-            Ok(vec![ self.get_string(self.as_ref().name_index).ok_or_else(|| "no name".to_string())? ])
+        fn pieces(&self) -> Vec<String> {
+            vec![ self.get_string(self.as_ref().name_index).expect("invalid constant pool string reference") ]
         }
     }
 
     impl Manglable for &str {
-        fn pieces(&self) -> GeneralResult<Vec<String>> { Ok(vec![ self.to_string() ]) }
+        fn pieces(&self) -> Vec<String> { vec![ self.to_string() ] }
     }
 
     impl Manglable for String {
-        fn pieces(&self) -> GeneralResult<Vec<String>> { (self.as_ref() as &str).pieces() }
+        fn pieces(&self) -> Vec<String> { (self.as_ref() as &str).pieces() }
     }
 
     pub(in super) trait Contextualizer<'a> {
@@ -1226,20 +1226,20 @@ mod util {
             }
         }
 
-        pub fn get_pieces(&self, ci : u16, nat : u16) -> GeneralResult<Vec<String>> {
+        pub fn get_pieces(&self, ci : u16, nat : u16) -> Vec<String> {
             use classfile_parser::constant_info::ConstantInfo::{Class, NameAndType};
 
             if let Class(ni) = self.get_constant(ci) {
                 let ni = ni.name_index;
-                let ss = self.get_string(ni).ok_or("no such name")?;
+                let ss = self.get_string(ni).expect("invalid constant pool string reference");
                 if let NameAndType(nt) = self.get_constant(nat) {
                     let nt = self.contextualize(nt);
-                    Ok(std::iter::once(ss).chain(nt.pieces()?).collect())
+                    std::iter::once(ss).chain(nt.pieces()).collect()
                 } else {
-                    Err("invalid ConstantInfo kind".into())
+                    panic!("invalid constant pool name-and-type reference")
                 }
             } else {
-                Err("invalid ConstantInfo kind".into())
+                panic!("invalid constant pool class reference")
             }
         }
 
@@ -1264,26 +1264,26 @@ mod util {
     }
 
     pub(in super) trait Manglable {
-        fn pieces(&self) -> GeneralResult<Vec<String>>;
-        fn stringify(&self) -> GeneralResult<String> {
-            Ok(self.pieces()?.join(NAME_SEPARATOR))
+        fn pieces(&self) -> Vec<String>;
+        fn stringify(&self) -> String {
+            self.pieces().join(NAME_SEPARATOR)
         }
-        fn mangle(&self) -> GeneralResult<String> {
-            Ok(mangling::mangle(self.stringify()?.bytes()))
+        fn mangle(&self) -> String {
+            mangling::mangle(self.stringify().bytes())
         }
     }
 
     impl<T : Described> Manglable for Context<'_, &T> {
-        fn pieces(&self) -> GeneralResult<Vec<String>> {
-            Ok(vec![
-                self.get_string(self.as_ref().name_index()      ).ok_or("no name")?,
-                self.get_string(self.as_ref().descriptor_index()).ok_or("no desc")?,
-            ])
+        fn pieces(&self) -> Vec<String> {
+            vec![
+                self.get_string(self.as_ref().name_index()      ).expect("invalid constant pool string reference"),
+                self.get_string(self.as_ref().descriptor_index()).expect("invalid constant pool string reference"),
+            ]
         }
     }
 
     impl Manglable for &[&dyn Manglable] {
-        fn pieces(&self) -> GeneralResult<Vec<String>> {
+        fn pieces(&self) -> Vec<String> {
             self.iter().map(|x| x.stringify()).collect() // TODO flatten
         }
     }
@@ -1331,7 +1331,7 @@ fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
     }
 }
 
-fn mangle(list : &[&dyn Manglable]) -> GeneralResult<String> { list.mangle() }
+fn mangle(list : &[&dyn Manglable]) -> String { list.mangle() }
 
 fn make_label(
         class : &Context<'_, &ClassConstant>,
@@ -1339,7 +1339,7 @@ fn make_label(
         suffix : impl Display,
     ) -> GeneralResult<String>
 {
-    Ok(format!(".L{}", mangle(&[ class, method, &format!("__{}", suffix) ])?))
+    Ok(format!(".L{}", mangle(&[ class, method, &format!("__{}", suffix) ])))
 }
 
 fn make_basic_block(
@@ -1606,7 +1606,7 @@ fn translate_method<'a, 'b>(
     };
 
     let blocks = make_blocks_for_method(class, method, sm, max_locals)?;
-    let name = mangle(&[ class, method ])?;
+    let name = mangle(&[ class, method ]);
     Ok(Method { name, prologue, blocks, epilogue })
 }
 
@@ -1619,7 +1619,7 @@ fn write_method_table(
     let label = ".Lmethod_table";
     writeln!(outfile, "{}:", label)?;
 
-    let names = methods.iter().map(|method| GeneralResult::Ok(mangle(&[ class, &class.contextualize(method) ])?) );
+    let names = methods.iter().map(|method| GeneralResult::Ok(mangle(&[ class, &class.contextualize(method) ])) );
     let lengths : GeneralResult<Vec<_>> =
         names.map(|s| { let s = s?; let len = s.len(); Ok((s, len)) }).collect();
     let lengths = lengths?;
@@ -1647,7 +1647,7 @@ fn write_vslot_list(
     let non_virtual = MethodAccessFlags::STATIC | MethodAccessFlags::PRIVATE;
 
     let virtuals = methods.iter().filter(|m| (m.access_flags & non_virtual).is_empty());
-    let names = virtuals.map(|m| GeneralResult::Ok(mangle(&[ class, &class.contextualize(m), &"vslot" ])?) );
+    let names = virtuals.map(|m| GeneralResult::Ok(mangle(&[ class, &class.contextualize(m), &"vslot" ])) );
     let lengths : GeneralResult<Vec<_>> =
         names.map(|s| { let s = s?; let len = s.len(); Ok((s, len)) }).collect();
     let lengths = lengths?;
@@ -1677,7 +1677,7 @@ fn write_field_list(
         let s = class.get_string(f.descriptor_index).ok_or("missing descriptor")?;
         let desc = s.chars().next().ok_or("empty descriptor")?;
         let size = args::field_size(desc)?.into();
-        let name = mangle(&[ class, &class.contextualize(f), &suff ])?;
+        let name = mangle(&[ class, &class.contextualize(f), &suff ]);
         Ok((size, f, name))
     });
 
