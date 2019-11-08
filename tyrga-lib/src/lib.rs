@@ -1334,12 +1334,12 @@ fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
 fn mangle(list : &[&dyn Manglable]) -> String { list.mangle() }
 
 fn make_label(
-        class : &Context<'_, &ClassConstant>,
-        method : &Context<'_, &MethodInfo>,
-        suffix : impl Display,
-    ) -> GeneralResult<String>
+    class : &Context<'_, &ClassConstant>,
+    method : &Context<'_, &MethodInfo>,
+    suffix : impl Display,
+) -> String
 {
-    Ok(format!(".L{}", mangle(&[ class, method, &format!("__{}", suffix) ])))
+    format!(".L{}", mangle(&[ class, method, &format!("__{}", suffix) ]))
 }
 
 fn make_basic_block(
@@ -1368,7 +1368,7 @@ fn make_basic_block(
         exits.extend(exs.iter().filter_map(does_branch).filter(|e| !range.contains(e)));
         insns.extend(ins);
     }
-    let label = make_label(class, method, range.start)?;
+    let label = make_label(class, method, range.start);
 
     if includes_successor {
         exits.insert(range.end);
@@ -1414,7 +1414,7 @@ fn make_blocks_for_method<'a, 'b>(
             ops .range(which.clone())
                 // TODO obviate clone by doing .remove() (no .drain on BTreeMap ?)
                 .map(|(&u, o)| (u, o.clone()))
-                .map(|x| make_instructions(&mut sm, x, |y| make_label(class, method, y), class, max_locals))
+                .map(|x| make_instructions(&mut sm, x, |y| Ok(make_label(class, method, y)), class, max_locals))
                 .collect();
         let (bb, ee) = make_basic_block(class, method, block?, which)?;
         let mut out = Vec::new();
@@ -1590,7 +1590,7 @@ fn translate_method<'a, 'b>(
         let name = "prologue";
         let off = -(max_locals_i32 - i32::from(count_params(&descriptor)?) + i32::from(SAVE_SLOTS));
         let insns = vec![ tenyr_insn!( sp <-  sp + (off) )? ];
-        let label = make_label(class, method, name)?;
+        let label = make_label(class, method, name);
         tenyr::BasicBlock { label, insns }
     };
 
@@ -1601,7 +1601,7 @@ fn translate_method<'a, 'b>(
         let rp = Register::P;
         let mv = if off != 0 { Some(tenyr_insn!( sp <-  sp + (off) )?) } else { None };
         let insns = mv.into_iter().chain(std::iter::once(tenyr_insn!( rp <- [sp + (down)] )?)).collect();
-        let label = make_label(class, method, name)?;
+        let label = make_label(class, method, name);
         tenyr::BasicBlock { label, insns }
     };
 
