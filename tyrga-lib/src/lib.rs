@@ -1269,7 +1269,7 @@ mod util {
             Ok(self.pieces()?.join(NAME_SEPARATOR))
         }
         fn mangle(&self) -> GeneralResult<String> {
-            mangling::mangle(self.stringify()?.bytes())
+            Ok(mangling::mangle(self.stringify()?.bytes()))
         }
     }
 
