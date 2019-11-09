@@ -259,7 +259,7 @@ fn make_call(
     use Register::P;
 
     let mut insns = Vec::new();
-    insns.extend(sm.freeze(count_params(descriptor)?.into()));
+    insns.extend(sm.freeze(count_params(descriptor).into()));
 
     // Save return address through current stack pointer (callee will
     // decrement stack pointer)
@@ -271,7 +271,7 @@ fn make_call(
         P <- P + (off)  ;
     ));
 
-    insns.extend(sm.thaw(count_returns(descriptor)?.into()));
+    insns.extend(sm.thaw(count_returns(descriptor).into()));
     Ok(insns)
 }
 
@@ -747,7 +747,7 @@ fn make_invocation_virtual(
     // Save return address through current stack pointer (callee will
     // decrement stack pointer)
     let sp = sm.get_stack_ptr();
-    let param_count = u16::from(count_params(descriptor)?);
+    let param_count = u16::from(count_params(descriptor));
     let (obj, gets) = sm.get(param_count);
     insns.extend(gets);
     let stack_count = param_count + 1; // extra "1" for `this`
@@ -766,7 +766,7 @@ fn make_invocation_virtual(
         ));
     insns.extend(sm.release(1));
 
-    insns.extend(sm.thaw(count_returns(descriptor)?.into()));
+    insns.extend(sm.thaw(count_returns(descriptor).into()));
 
     Ok(insns)
 }
@@ -1532,41 +1532,49 @@ mod args {
     }
 
     // JVM limitations restrict the count of method parameters to 255 at most
-    pub fn count_params(descriptor : &str) -> Result<u8, String> {
+    pub fn count_params(descriptor : &str) -> u8 {
         let open = 1; // byte index of open parenthesis is 0
-        let close = descriptor.rfind(')').ok_or("descriptor missing closing parenthesis")?;
-        count_internal(&descriptor[open..close])
+        let close = descriptor.rfind(')').expect("descriptor missing closing parenthesis");
+        count_internal(&descriptor[open..close]).expect("parse error in descriptor")
     }
 
     // JVM limitations restrict the count of return values to 1 at most, of size 2 at most
-    pub fn count_returns(descriptor : &str) -> Result<u8, String> {
-        let close = descriptor.rfind(')').ok_or("descriptor missing closing parenthesis")?;
-        count_internal(&descriptor[close+1..])
+    pub fn count_returns(descriptor : &str) -> u8 {
+        let close = descriptor.rfind(')').expect("descriptor missing closing parenthesis");
+        count_internal(&descriptor[close+1..]).expect("parse error in descriptor")
     }
 }
 
 #[test]
-fn test_count_params() -> GeneralResult<()> {
-    assert_eq!(3, count_params("(III)V")?);
-    assert_eq!(4, count_params("(JD)I")?);
-    assert_eq!(2, count_params("(Lmetasyntactic;Lvariable;)I")?);
-    assert_eq!(1, count_params("([[[I)I")?);
-    assert_eq!(0, count_params("()Lplaceholder;")?);
-    assert_eq!(0, count_params("()D")?);
-    assert!(count_params("(").is_err());
-    Ok(())
+fn test_count_params() {
+    assert_eq!(3, count_params("(III)V"));
+    assert_eq!(4, count_params("(JD)I"));
+    assert_eq!(2, count_params("(Lmetasyntactic;Lvariable;)I"));
+    assert_eq!(1, count_params("([[[I)I"));
+    assert_eq!(0, count_params("()Lplaceholder;"));
+    assert_eq!(0, count_params("()D"));
 }
 
 #[test]
-fn test_count_returns() -> GeneralResult<()> {
-    assert_eq!(0, count_returns("(III)V")?);
-    assert_eq!(1, count_returns("(JD)I")?);
-    assert_eq!(1, count_returns("(Lmetasyntactic;Lvariable;)I")?);
-    assert_eq!(1, count_returns("([[[I)I")?);
-    assert_eq!(1, count_returns("()Lplaceholder;")?);
-    assert_eq!(2, count_returns("()D")?);
-    assert!(count_returns("(").is_err());
-    Ok(())
+#[should_panic]
+fn test_count_params_panic() {
+    let _ = count_params("(");
+}
+
+#[test]
+fn test_count_returns() {
+    assert_eq!(0, count_returns("(III)V"));
+    assert_eq!(1, count_returns("(JD)I"));
+    assert_eq!(1, count_returns("(Lmetasyntactic;Lvariable;)I"));
+    assert_eq!(1, count_returns("([[[I)I"));
+    assert_eq!(1, count_returns("()Lplaceholder;"));
+    assert_eq!(2, count_returns("()D"));
+}
+
+#[test]
+#[should_panic]
+fn test_count_returns_panic() {
+    let _ = count_returns("(");
 }
 
 fn translate_method<'a, 'b>(
@@ -1577,7 +1585,7 @@ fn translate_method<'a, 'b>(
     let mr = method.as_ref();
     let total_locals = get_method_code(mr)?.max_locals;
     let descriptor = class.get_string(mr.descriptor_index).ok_or("method descriptor missing")?;
-    let num_returns = count_returns(&descriptor)?.into();
+    let num_returns = count_returns(&descriptor).into();
     // Pretend we have at least as many locals as we have return-slots, so we have somewhere to
     // store our results when we Yield.
     let max_locals = total_locals.max(num_returns);
@@ -1588,7 +1596,7 @@ fn translate_method<'a, 'b>(
 
     let prologue = {
         let name = "prologue";
-        let off = -(max_locals_i32 - i32::from(count_params(&descriptor)?) + i32::from(SAVE_SLOTS));
+        let off = -(max_locals_i32 - i32::from(count_params(&descriptor)) + i32::from(SAVE_SLOTS));
         let insns = vec![ tenyr_insn!( sp <-  sp + (off) )? ];
         let label = make_label(class, method, name);
         tenyr::BasicBlock { label, insns }
