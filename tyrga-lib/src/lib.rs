@@ -1343,11 +1343,11 @@ fn make_label(
 }
 
 fn make_basic_block(
-        class : &Context<'_, &ClassConstant>,
-        method : &Context<'_, &MethodInfo>,
-        list : impl IntoIterator<Item=InsnPair>,
-        range : &Range<usize>
-    ) -> GeneralResult<(tenyr::BasicBlock, BTreeSet<usize>)>
+    class : &Context<'_, &ClassConstant>,
+    method : &Context<'_, &MethodInfo>,
+    list : impl IntoIterator<Item=InsnPair>,
+    range : &Range<usize>
+) -> (tenyr::BasicBlock, BTreeSet<usize>)
 {
     use Destination::{Address, Successor};
     use tenyr::BasicBlock;
@@ -1374,7 +1374,7 @@ fn make_basic_block(
         exits.insert(range.end);
     }
 
-    Ok((BasicBlock { label, insns }, exits))
+    (BasicBlock { label, insns }, exits)
 }
 
 // The incoming StackManager represents a "prototype" StackManager which should be empty, and
@@ -1416,7 +1416,7 @@ fn make_blocks_for_method<'a, 'b>(
                 .map(|(&u, o)| (u, o.clone()))
                 .map(|x| make_instructions(&mut sm, x, |y| Ok(make_label(class, method, y)), class, max_locals))
                 .collect();
-        let (bb, ee) = make_basic_block(class, method, block?, which)?;
+        let (bb, ee) = make_basic_block(class, method, block?, which);
         let mut out = Vec::new();
         out.push(bb);
 
