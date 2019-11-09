@@ -27,7 +27,7 @@
 //! let input = "abc/123x".as_bytes();
 //! let expect = "_3abc04_2f3132331x";
 //!
-//! let output = mangling::mangle(input.to_vec()).unwrap();
+//! let output = mangling::mangle(input.to_vec());
 //! assert_eq!(output, expect);
 //!
 //! let reverse = mangling::demangle(expect).unwrap();
@@ -60,50 +60,34 @@ const MANGLE_LIST : &[(&str, &str)] = &[
 ];
 
 #[test]
-fn test_mangle() -> ManglingResult<()> {
+fn test_mangle() {
     for (unmangled, mangled) in MANGLE_LIST {
-        assert_eq!(&mangle(unmangled.bytes())?, mangled);
+        assert_eq!(&mangle(unmangled.bytes()), mangled);
     }
-    Ok(())
 }
 
 /// Takes an `IntoIterator` over `u8` and produces a `String` that is safe to
 /// use as an identifier in the tenyr assembly language.
-pub fn mangle(name : impl IntoIterator<Item=u8>) -> ManglingResult<String> {
+pub fn mangle(name : impl IntoIterator<Item=u8>) -> String {
     use std::rc::Rc;
     use std::cell::Cell;
 
-    #[derive(Copy, Clone, Debug)]
-    enum What {
-        Invalid,
-        Word,
-        NonWord,
-    }
-    #[derive(Copy, Clone, Debug)]
-    enum How {
-        Initial,
-        Begin,
-        Continue,
-    }
     type Many = Rc<Cell<usize>>;
 
     let begin_ok = |x : char| x.is_ascii_alphabetic() || x == '_';
     let within_ok = |x : char| begin_ok(x) || x.is_ascii_digit();
 
-    let start = (What::Invalid, How::Initial, Rc::new(Cell::new(0)));
+    let start = (None, true, Rc::new(Cell::new(0))); // word v. nonword ; begin v. nonbegin ; count
     // For now, we need to collect into a vector so that Rc<> pointers are viewed after all updates
     // have occurred, rather than just as they are created.
-    let result : Vec<_> = name.into_iter().scan(start, |st : &mut (What, How, Many), item| {
-            use What::*;
-            use How::*;
+    let result : Vec<_> = name.into_iter().scan(start, |st : &mut (Option<bool>, bool, Many), item| {
             let ch = char::from(item);
             let increment = || { let c = Rc::clone(&st.2); c.set(c.get() + 1); c };
-            *st = match (&*st, begin_ok(ch), within_ok(ch)) {
-                ((Word,    ..), _, true ) => (Word   , Continue, increment()),
-                ((NonWord, ..), false, _) => (NonWord, Continue, increment()),
-
-                (_, true , _)             => (Word   , Begin, Rc::new(Cell::new(1))),
-                (_, false, _)             => (NonWord, Begin, Rc::new(Cell::new(1))),
+            let switch = || Rc::new(Cell::new(1));
+            *st = match (st.0, begin_ok(ch), within_ok(ch)) {
+                (Some(tf @ true) , _    , true) |
+                (Some(tf @ false), false, _   ) => (Some(tf), false, increment()),
+                (_               , tf   , _   ) => (Some(tf), true , switch()   ),
             };
             Some((st.clone(), item))
         }).collect();
@@ -114,21 +98,24 @@ pub fn mangle(name : impl IntoIterator<Item=u8>) -> ManglingResult<String> {
         out
     };
     let result = result.into_iter()
-        .try_fold(out, |mut vec, ((what, how, count), ch)| {
-            match (what, how) {
-                (What::Word   , How::Begin) => vec.extend(count.get().to_string().bytes()),
-                (What::NonWord, How::Begin) => vec.extend(format!("0{}_", count.get()).bytes()),
+        .fold(out, |mut vec, ((wordlike, beginning, count), ch)| {
+            match (wordlike, beginning) {
+                (Some(true) , true) => vec.extend(count.get().to_string().bytes()),
+                (Some(false), true) => vec.extend(format!("0{}_", count.get()).bytes()),
                 _ => {},
             };
-            match what {
-                What::Word    => vec.push(ch),
-                What::NonWord => vec.extend(&hexify(ch)),
-                _ => return Err("Bad state encountered during mangle"),
+            match wordlike {
+                Some(true)  => vec.push(ch),
+                Some(false) => vec.extend(&hexify(ch)),
+                None => unreachable!(), // fold will not iterate unless result has items
             };
-            Ok(vec)
+            vec
         });
 
-    String::from_utf8(result?).map_err(Into::into)
+    // This unsafe block is demonstrated safe because our constructed Vec contains only bytes which
+    // either match is_ascii_alphabetic or is_ascii_digit, or which are the result of converting to
+    // hexadecimal.
+    unsafe { String::from_utf8_unchecked(result) }
 }
 
 #[test]
@@ -190,7 +177,7 @@ pub fn demangle(name : &str) -> ManglingResult<Vec<u8>> {
 quickcheck! {
     #[allow(clippy::result_unwrap_used)]
     fn test_demangled_mangle(rs : Vec<u8>) -> bool {
-        rs == demangle(&mangle(rs.clone()).unwrap()).unwrap()
+        rs == demangle(&mangle(rs.clone())).unwrap()
     }
 }
 

@@ -239,7 +239,7 @@ fn make_int_branch(
 // number of slots of data we will save between locals and stack
 const SAVE_SLOTS : u8 = 1;
 
-fn make_builtin_name(proc : &str, descriptor : &str) -> GeneralResult<String> {
+fn make_builtin_name(proc : &str, descriptor : &str) -> String {
     mangle(&[&"tyrga/Builtin", &proc, &descriptor])
 }
 
@@ -259,7 +259,7 @@ fn make_call(
     use Register::P;
 
     let mut insns = Vec::new();
-    insns.extend(sm.freeze(count_params(descriptor)?.into()));
+    insns.extend(sm.freeze(count_params(descriptor).into()));
 
     // Save return address through current stack pointer (callee will
     // decrement stack pointer)
@@ -271,7 +271,7 @@ fn make_call(
         P <- P + (off)  ;
     ));
 
-    insns.extend(sm.thaw(count_returns(descriptor)?.into()));
+    insns.extend(sm.thaw(count_returns(descriptor).into()));
     Ok(insns)
 }
 
@@ -443,7 +443,7 @@ fn make_arithmetic_call(
         Xor  => "Xor",
     };
 
-    make_call(sm, &make_builtin_name(&proc.to_lowercase(), &descriptor)?, &descriptor)
+    make_call(sm, &make_builtin_name(&proc.to_lowercase(), &descriptor), &descriptor)
 }
 
 fn make_arithmetic(
@@ -572,6 +572,94 @@ fn make_branch(
     })
 }
 
+fn make_switch_lookup(
+    sm : &mut StackManager,
+    namer : impl Fn(&dyn Display) -> GeneralResult<String>,
+    there : impl Fn(i32) -> u16,
+    default : i32,
+    pairs : Vec<(i32, i32)>,
+) -> GeneralResult<InsnPair> {
+    let (top, mut insns) = sm.get(0);
+    let (temp_reg, gets) = sm.reserve_one(); // need a persistent temporary
+    insns.extend(gets);
+
+    let make = |(imm, target)|
+        make_int_branch(sm, false, there(target), &namer(&there(target))?,
+            |sm| Ok((temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0i8), imm))));
+
+    pairs
+        .into_iter()
+        .map(make)
+        .chain(std::iter::once(Ok(make_jump(there(default), &namer(&there(default))?))))
+        .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
+            let (i, d) = tup?;
+            insns.extend(i);
+            dests.extend(d);
+            Ok((insns, dests))
+        })
+}
+
+fn make_switch_table(
+    sm : &mut StackManager,
+    namer : impl Fn(&dyn Display) -> GeneralResult<String>,
+    there : impl Fn(i32) -> u16,
+    default : i32,
+    low : i32,
+    high : i32,
+    offsets : Vec<i32>,
+) -> GeneralResult<InsnPair> {
+    use std::iter::once;
+    use tenyr::*;
+    use tenyr::InstructionType::{Type1, Type2};
+
+    type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
+
+    let (top, mut insns) = sm.get(0);
+    let (temp_reg, gets) = sm.reserve_one(); // need a persistent temporary
+    insns.extend(gets);
+
+    let maker = |kind : &'static InsnType, imm : i32| {
+        move |sm : &mut StackManager| {
+            let insn = Instruction {
+                kind : kind(
+                    InsnGeneral {
+                        y : Register::A,
+                        op : Opcode::CompareLt,
+                        imm : 0_u8.into(), // placeholder
+                    }),
+                z : temp_reg,
+                x : top,
+                dd : MemoryOpType::NoLoad,
+            };
+            let insns = expand_immediate_load(sm, insn, imm);
+            Ok((temp_reg, insns))
+        }
+    };
+
+    let mut default_maker = |maker|
+        GeneralResult::Ok(make_int_branch(sm, false, there(default), &namer(&there(default))?, maker)?);
+
+    let insn = {
+        use Register::P;
+        tenyr_insn!( P <- top - 0i8 + P )
+    };
+
+    let offsets = offsets.into_iter().map(|far| Ok(make_jump(there(far), &namer(&there(far))?)));
+
+    std::iter::empty()
+        .chain(once(default_maker(maker(&Type1, low))))
+        .chain(once(default_maker(maker(&Type2, high))))
+        .chain(once(Ok((expand_immediate_load(sm, insn, low), vec![]))))
+        .chain(offsets)
+        .chain(once(Ok((sm.release(1), vec![])))) // release temporary
+        .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
+            let (i, d) = tup?;
+            insns.extend(i);
+            dests.extend(d);
+            Ok((insns, dests))
+        })
+}
+
 fn make_switch(
     sm : &mut StackManager,
     params : SwitchParams,
@@ -579,81 +667,18 @@ fn make_switch(
     addr : usize,
 ) -> GeneralResult<InsnPair> {
     use jvmtypes::SwitchParams::{Lookup, Table};
-    use std::iter::once;
 
     let there = |x| (x + (addr as i32)) as u16;
 
-    let (top, mut insns) = sm.get(0);
-    let (temp_reg, gets) = sm.reserve_one(); // need a persistent temporary
-    insns.extend(gets);
-
     match params {
-        Lookup { default, pairs } => {
-            let make = |(imm, target)|
-                make_int_branch(sm, false, there(target), &namer(&there(target))?,
-                    |sm| Ok((temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0i8), imm))));
-
-            pairs
-                .into_iter()
-                .map(make)
-                .chain(once(Ok(make_jump(there(default), &namer(&there(default))?))))
-                .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
-                    let (i, d) = tup?;
-                    insns.extend(i);
-                    dests.extend(d);
-                    Ok((insns, dests))
-                })
-        },
-        Table { default, low, high, offsets } => {
-            use tenyr::*;
-            use tenyr::InstructionType::{Type1, Type2};
-            type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
-
-            let maker = |kind : &'static InsnType, imm : i32| {
-                move |sm : &mut StackManager| {
-                    let insn = Instruction {
-                        kind : kind(
-                            InsnGeneral {
-                                y : Register::A,
-                                op : Opcode::CompareLt,
-                                imm : 0_u8.into(), // placeholder
-                            }),
-                        z : temp_reg,
-                        x : top,
-                        dd : MemoryOpType::NoLoad,
-                    };
-                    let insns = expand_immediate_load(sm, insn, imm);
-                    Ok((temp_reg, insns))
-                }
-            };
-
-            let mut default_maker = |maker|
-                GeneralResult::Ok(make_int_branch(sm, false, there(default), &namer(&there(default))?, maker)?);
-
-            let insn = {
-                use Register::P;
-                tenyr_insn!( P <- top - 0i8 + P )
-            };
-
-            let offsets = offsets.into_iter().map(|far| Ok(make_jump(there(far), &namer(&there(far))?)));
-
-            std::iter::empty()
-                .chain(once(default_maker(maker(&Type1, low))))
-                .chain(once(default_maker(maker(&Type2, high))))
-                .chain(once(Ok((expand_immediate_load(sm, insn, low), vec![]))))
-                .chain(offsets)
-                .chain(once(Ok((sm.release(1), vec![])))) // release temporary
-                .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
-                    let (i, d) = tup?;
-                    insns.extend(i);
-                    dests.extend(d);
-                    Ok((insns, dests))
-                })
-        },
+        Lookup { default, pairs } =>
+            make_switch_lookup(sm, namer, there, default, pairs),
+        Table { default, low, high, offsets } =>
+            make_switch_table(sm, namer, there, default, low, high, offsets),
     }
 }
 
-fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<Vec<Instruction>> {
+fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> Vec<Instruction> {
     use jvmtypes::ArrayOperation::{Load, Store, GetLength};
     use tenyr::{InsnGeneral, Opcode};
     use tenyr::InstructionType::{Type1, Type3};
@@ -666,7 +691,7 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<V
         let (idx, gets) = sm.get(0);
         v.extend(gets);
         v.extend(sm.release(2));
-        GeneralResult::Ok((idx, arr))
+        (idx, arr)
     };
     let kind;
     let (x, y, z, dd) = match op {
@@ -677,11 +702,11 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<V
             let (top, gets) = sm.get(0);
             v.extend(gets);
             v.push(Instruction { kind : Type3((-1_i8).into()), dd : LoadRight, z : top, x : top });
-            return Ok(v); // bail out early
+            return v; // bail out early
         }
         Load(k) => {
             kind = k;
-            let (idx, arr) = array_params(sm, &mut v)?;
+            let (idx, arr) = array_params(sm, &mut v);
             let (res, gets) = sm.reserve_one();
             v.extend(gets);
             (idx, arr, res, LoadRight)
@@ -691,22 +716,22 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> GeneralResult<V
             let (val, gets) = sm.get(0);
             v.extend(gets);
             v.extend(sm.release(1));
-            let (idx, arr) = array_params(sm, &mut v)?;
+            let (idx, arr) = array_params(sm, &mut v);
             (idx, arr, val, StoreRight)
         },
     };
     // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
     // per 32-bit tenyr word)
     let (op, imm) = match kind.size() {
-        1 => Ok((Opcode::BitwiseOr, 0_u8)),
-        2 => Ok((Opcode::ShiftLeft, 1_u8)),
-        _ => Err("bad kind size"),
-    }?;
+        1 => (Opcode::BitwiseOr, 0_u8),
+        2 => (Opcode::ShiftLeft, 1_u8),
+        _ => unreachable!(), // impossible size
+    };
     let imm = imm.into();
     let kind = Type1(InsnGeneral { y, op, imm });
     let insn = Instruction { kind, z, x, dd };
     v.push(insn);
-    Ok(v)
+    v
 }
 
 fn make_invocation_virtual(
@@ -722,7 +747,7 @@ fn make_invocation_virtual(
     // Save return address through current stack pointer (callee will
     // decrement stack pointer)
     let sp = sm.get_stack_ptr();
-    let param_count = u16::from(count_params(descriptor)?);
+    let param_count = u16::from(count_params(descriptor));
     let (obj, gets) = sm.get(param_count);
     insns.extend(gets);
     let stack_count = param_count + 1; // extra "1" for `this`
@@ -731,7 +756,7 @@ fn make_invocation_virtual(
 
     let (temp, gets) = sm.reserve_one();
     insns.extend(gets);
-    let far = format!("@{}", mangle(&[&method_name, &"vslot"])?);
+    let far = format!("@{}", mangle(&[&method_name, &"vslot"]));
     let off = Immediate20::Expr(exprtree::Atom::Variable(far));
 
     insns.extend(tenyr_insn_list!(
@@ -741,7 +766,7 @@ fn make_invocation_virtual(
         ));
     insns.extend(sm.release(1));
 
-    insns.extend(sm.thaw(count_returns(descriptor)?.into()));
+    insns.extend(sm.thaw(count_returns(descriptor).into()));
 
     Ok(insns)
 }
@@ -770,7 +795,7 @@ fn make_invocation<'a>(
     };
 
     let (class, method, descriptor) = get_method_parts()?;
-    let name = &mangle(&[ &class, &method, &descriptor ])?;
+    let name = &mangle(&[ &class, &method, &descriptor ]);
 
     match kind {
         // TODO fully handle Special (this is dumb partial handling)
@@ -782,7 +807,7 @@ fn make_invocation<'a>(
         InvokeKind::Virtual => {
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
                 impl Manglable for Context<'_, &MethodRefConstant> {
-                    fn pieces(&self) -> GeneralResult<Vec<String>> {
+                    fn pieces(&self) -> Vec<String> {
                         self.get_pieces(self.as_ref().class_index, self.as_ref().name_and_type_index)
                     }
                 }
@@ -837,7 +862,7 @@ fn make_allocation<'a>(
                         _ => panic!("impossible size"),
                     };
                     let descriptor = "(I)Ljava.lang.Object;";
-                    let name = make_builtin_name("alloc", descriptor)?;
+                    let name = make_builtin_name("alloc", descriptor);
                     let v = make_call(sm, &name, descriptor)?;
                     pre.extend(v);
                     Ok(pre)
@@ -851,7 +876,7 @@ fn make_allocation<'a>(
             if let ConstantInfo::Class(cc) = class {
                 let name = gc.get_string(cc.name_index).ok_or("no class name")?;
                 let desc = format!("()L{};", name);
-                let call = mangle(&[&name, &"new"])?;
+                let call = mangle(&[&name, &"new"]);
                 make_call(sm, &call, &desc)
             } else {
                 Err("invalid ConstantInfo kind".into())
@@ -879,7 +904,7 @@ fn make_compare(
     v.push(tenyr_insn!( gc <- (n) ));
 
     let desc = format!("({}{}I)I", ch, ch);
-    let insns = make_call(sm, &make_builtin_name("cmp", &desc)?, &desc)?;
+    let insns = make_call(sm, &make_builtin_name("cmp", &desc), &desc)?;
     v.extend(insns);
     Ok(v)
 }
@@ -933,7 +958,7 @@ fn make_conversion(
             let ch_to   : char = to  .try_into()?;
             let name = format!("into_{}", ch_to); // TODO improve naming
             let desc = format!("({}){}", ch_from, ch_to);
-            Ok(make_call(sm, &make_builtin_name(&name, &desc)?, &desc)?)
+            Ok(make_call(sm, &make_builtin_name(&name, &desc), &desc)?)
         },
     }
 }
@@ -953,7 +978,7 @@ fn make_varaction<'a>(
         use exprtree::Atom;
 
         impl Manglable for Context<'_, &FieldRefConstant> {
-            fn pieces(&self) -> GeneralResult<Vec<String>> {
+            fn pieces(&self) -> Vec<String> {
                 self.get_pieces(self.as_ref().class_index, self.as_ref().name_and_type_index)
             }
         }
@@ -986,7 +1011,7 @@ fn make_varaction<'a>(
         let op_depth = match op { VarOp::Get => 0, VarOp::Put => len.into() };
 
         let format = |suff|
-            GeneralResult::Ok(format!("@{}", mangle(&[ &gc.contextualize(fr), &suff ])?));
+            GeneralResult::Ok(format!("@{}", mangle(&[ &gc.contextualize(fr), &suff ])));
 
         let (drops, (reg, mut insns), base) = match kind {
             VarKind::Static => ( 0, (Register::P, vec![]), make_target(   format("static"      )?) ),
@@ -1046,7 +1071,7 @@ fn make_instructions<'a>(
     match op {
         Allocation { 0 : details      } => no_branch( make_allocation ( sm, details, gc              )?),
         Arithmetic { kind, op         } => no_branch( make_arithmetic ( sm, kind, op                 )?),
-        ArrayOp    { 0 : aop          } => no_branch( make_array_op   ( sm, aop                      )?),
+        ArrayOp    { 0 : aop          } => no_branch( make_array_op   ( sm, aop                      ) ),
         Branch     { ops, way, target } => branching( make_branch     ( sm, ops, way, target         ) ),
         Compare    { kind, nans       } => no_branch( make_compare    ( sm, kind, nans               )?),
         Constant   { 0 : details      } => no_branch( make_constant   ( sm, gc, details              )?),
@@ -1162,17 +1187,17 @@ mod util {
     }
 
     impl Manglable for Context<'_, &ClassConstant> {
-        fn pieces(&self) -> GeneralResult<Vec<String>> {
-            Ok(vec![ self.get_string(self.as_ref().name_index).ok_or_else(|| "no name".to_string())? ])
+        fn pieces(&self) -> Vec<String> {
+            vec![ self.get_string(self.as_ref().name_index).expect("invalid constant pool string reference") ]
         }
     }
 
     impl Manglable for &str {
-        fn pieces(&self) -> GeneralResult<Vec<String>> { Ok(vec![ self.to_string() ]) }
+        fn pieces(&self) -> Vec<String> { vec![ self.to_string() ] }
     }
 
     impl Manglable for String {
-        fn pieces(&self) -> GeneralResult<Vec<String>> { (self.as_ref() as &str).pieces() }
+        fn pieces(&self) -> Vec<String> { (self.as_ref() as &str).pieces() }
     }
 
     pub(in super) trait Contextualizer<'a> {
@@ -1201,20 +1226,20 @@ mod util {
             }
         }
 
-        pub fn get_pieces(&self, ci : u16, nat : u16) -> GeneralResult<Vec<String>> {
+        pub fn get_pieces(&self, ci : u16, nat : u16) -> Vec<String> {
             use classfile_parser::constant_info::ConstantInfo::{Class, NameAndType};
 
             if let Class(ni) = self.get_constant(ci) {
                 let ni = ni.name_index;
-                let ss = self.get_string(ni).ok_or("no such name")?;
+                let ss = self.get_string(ni).expect("invalid constant pool string reference");
                 if let NameAndType(nt) = self.get_constant(nat) {
                     let nt = self.contextualize(nt);
-                    Ok(std::iter::once(ss).chain(nt.pieces()?).collect())
+                    std::iter::once(ss).chain(nt.pieces()).collect()
                 } else {
-                    Err("invalid ConstantInfo kind".into())
+                    panic!("invalid constant pool name-and-type reference")
                 }
             } else {
-                Err("invalid ConstantInfo kind".into())
+                panic!("invalid constant pool class reference")
             }
         }
 
@@ -1239,26 +1264,26 @@ mod util {
     }
 
     pub(in super) trait Manglable {
-        fn pieces(&self) -> GeneralResult<Vec<String>>;
-        fn stringify(&self) -> GeneralResult<String> {
-            Ok(self.pieces()?.join(NAME_SEPARATOR))
+        fn pieces(&self) -> Vec<String>;
+        fn stringify(&self) -> String {
+            self.pieces().join(NAME_SEPARATOR)
         }
-        fn mangle(&self) -> GeneralResult<String> {
-            mangling::mangle(self.stringify()?.bytes())
+        fn mangle(&self) -> String {
+            mangling::mangle(self.stringify().bytes())
         }
     }
 
     impl<T : Described> Manglable for Context<'_, &T> {
-        fn pieces(&self) -> GeneralResult<Vec<String>> {
-            Ok(vec![
-                self.get_string(self.as_ref().name_index()      ).ok_or("no name")?,
-                self.get_string(self.as_ref().descriptor_index()).ok_or("no desc")?,
-            ])
+        fn pieces(&self) -> Vec<String> {
+            vec![
+                self.get_string(self.as_ref().name_index()      ).expect("invalid constant pool string reference"),
+                self.get_string(self.as_ref().descriptor_index()).expect("invalid constant pool string reference"),
+            ]
         }
     }
 
     impl Manglable for &[&dyn Manglable] {
-        fn pieces(&self) -> GeneralResult<Vec<String>> {
+        fn pieces(&self) -> Vec<String> {
             self.iter().map(|x| x.stringify()).collect() // TODO flatten
         }
     }
@@ -1306,23 +1331,23 @@ fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
     }
 }
 
-fn mangle(list : &[&dyn Manglable]) -> GeneralResult<String> { list.mangle() }
+fn mangle(list : &[&dyn Manglable]) -> String { list.mangle() }
 
 fn make_label(
-        class : &Context<'_, &ClassConstant>,
-        method : &Context<'_, &MethodInfo>,
-        suffix : impl Display,
-    ) -> GeneralResult<String>
+    class : &Context<'_, &ClassConstant>,
+    method : &Context<'_, &MethodInfo>,
+    suffix : impl Display,
+) -> String
 {
-    Ok(format!(".L{}", mangle(&[ class, method, &format!("__{}", suffix) ])?))
+    format!(".L{}", mangle(&[ class, method, &format!("__{}", suffix) ]))
 }
 
 fn make_basic_block(
-        class : &Context<'_, &ClassConstant>,
-        method : &Context<'_, &MethodInfo>,
-        list : impl IntoIterator<Item=InsnPair>,
-        range : &Range<usize>
-    ) -> GeneralResult<(tenyr::BasicBlock, BTreeSet<usize>)>
+    class : &Context<'_, &ClassConstant>,
+    method : &Context<'_, &MethodInfo>,
+    list : impl IntoIterator<Item=InsnPair>,
+    range : &Range<usize>
+) -> (tenyr::BasicBlock, BTreeSet<usize>)
 {
     use Destination::{Address, Successor};
     use tenyr::BasicBlock;
@@ -1343,13 +1368,13 @@ fn make_basic_block(
         exits.extend(exs.iter().filter_map(does_branch).filter(|e| !range.contains(e)));
         insns.extend(ins);
     }
-    let label = make_label(class, method, range.start)?;
+    let label = make_label(class, method, range.start);
 
     if includes_successor {
         exits.insert(range.end);
     }
 
-    Ok((BasicBlock { label, insns }, exits))
+    (BasicBlock { label, insns }, exits)
 }
 
 // The incoming StackManager represents a "prototype" StackManager which should be empty, and
@@ -1389,9 +1414,9 @@ fn make_blocks_for_method<'a, 'b>(
             ops .range(which.clone())
                 // TODO obviate clone by doing .remove() (no .drain on BTreeMap ?)
                 .map(|(&u, o)| (u, o.clone()))
-                .map(|x| make_instructions(&mut sm, x, |y| make_label(class, method, y), class, max_locals))
+                .map(|x| make_instructions(&mut sm, x, |y| Ok(make_label(class, method, y)), class, max_locals))
                 .collect();
-        let (bb, ee) = make_basic_block(class, method, block?, which)?;
+        let (bb, ee) = make_basic_block(class, method, block?, which);
         let mut out = Vec::new();
         out.push(bb);
 
@@ -1480,22 +1505,21 @@ impl Display for Method {
 }
 
 mod args {
-    use crate::GeneralResult;
     use crate::JType;
     use std::convert::TryFrom;
 
-    pub fn field_size(ch : char) -> GeneralResult<u8> {
-        JType::try_from(ch).map(JType::size).map_err(Into::into)
+    pub fn field_size(ch : char) -> Result<u8, &'static str> {
+        JType::try_from(ch).map(JType::size)
     }
 
-    fn count_internal(s : &str) -> GeneralResult<u8> {
-        fn eat(s : &str) -> GeneralResult<usize> {
+    fn count_internal(s : &str) -> Result<u8, String> {
+        fn eat(s : &str) -> Result<usize, String> {
             let ch = s.chars().next().ok_or("string ended too soon")?;
             match ch {
                 'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'D' | 'J' | 'V' => Ok(1),
                 'L' => Ok(1 + s.find(';').ok_or("string ended too soon")?),
                 '[' => Ok(1 + eat(&s[1..])?),
-                _ => Err(format!("unexpected character {}", ch).into()),
+                _ => Err(format!("unexpected character {}", ch)),
             }
         }
 
@@ -1508,39 +1532,49 @@ mod args {
     }
 
     // JVM limitations restrict the count of method parameters to 255 at most
-    pub fn count_params(descriptor : &str) -> GeneralResult<u8> {
+    pub fn count_params(descriptor : &str) -> u8 {
         let open = 1; // byte index of open parenthesis is 0
-        let close = descriptor.rfind(')').ok_or("descriptor missing closing parenthesis")?;
-        count_internal(&descriptor[open..close])
+        let close = descriptor.rfind(')').expect("descriptor missing closing parenthesis");
+        count_internal(&descriptor[open..close]).expect("parse error in descriptor")
     }
 
     // JVM limitations restrict the count of return values to 1 at most, of size 2 at most
-    pub fn count_returns(descriptor : &str) -> GeneralResult<u8> {
-        let close = descriptor.rfind(')').ok_or("descriptor missing closing parenthesis")?;
-        count_internal(&descriptor[close+1..])
+    pub fn count_returns(descriptor : &str) -> u8 {
+        let close = descriptor.rfind(')').expect("descriptor missing closing parenthesis");
+        count_internal(&descriptor[close+1..]).expect("parse error in descriptor")
     }
 }
 
 #[test]
-fn test_count_params() -> GeneralResult<()> {
-    assert_eq!(3, count_params("(III)V")?);
-    assert_eq!(4, count_params("(JD)I")?);
-    assert_eq!(2, count_params("(Lmetasyntactic;Lvariable;)I")?);
-    assert_eq!(1, count_params("([[[I)I")?);
-    assert_eq!(0, count_params("()Lplaceholder;")?);
-    assert_eq!(0, count_params("()D")?);
-    Ok(())
+fn test_count_params() {
+    assert_eq!(3, count_params("(III)V"));
+    assert_eq!(4, count_params("(JD)I"));
+    assert_eq!(2, count_params("(Lmetasyntactic;Lvariable;)I"));
+    assert_eq!(1, count_params("([[[I)I"));
+    assert_eq!(0, count_params("()Lplaceholder;"));
+    assert_eq!(0, count_params("()D"));
 }
 
 #[test]
-fn test_count_returns() -> GeneralResult<()> {
-    assert_eq!(0, count_returns("(III)V")?);
-    assert_eq!(1, count_returns("(JD)I")?);
-    assert_eq!(1, count_returns("(Lmetasyntactic;Lvariable;)I")?);
-    assert_eq!(1, count_returns("([[[I)I")?);
-    assert_eq!(1, count_returns("()Lplaceholder;")?);
-    assert_eq!(2, count_returns("()D")?);
-    Ok(())
+#[should_panic]
+fn test_count_params_panic() {
+    let _ = count_params("(");
+}
+
+#[test]
+fn test_count_returns() {
+    assert_eq!(0, count_returns("(III)V"));
+    assert_eq!(1, count_returns("(JD)I"));
+    assert_eq!(1, count_returns("(Lmetasyntactic;Lvariable;)I"));
+    assert_eq!(1, count_returns("([[[I)I"));
+    assert_eq!(1, count_returns("()Lplaceholder;"));
+    assert_eq!(2, count_returns("()D"));
+}
+
+#[test]
+#[should_panic]
+fn test_count_returns_panic() {
+    let _ = count_returns("(");
 }
 
 fn translate_method<'a, 'b>(
@@ -1551,7 +1585,7 @@ fn translate_method<'a, 'b>(
     let mr = method.as_ref();
     let total_locals = get_method_code(mr)?.max_locals;
     let descriptor = class.get_string(mr.descriptor_index).ok_or("method descriptor missing")?;
-    let num_returns = count_returns(&descriptor)?.into();
+    let num_returns = count_returns(&descriptor).into();
     // Pretend we have at least as many locals as we have return-slots, so we have somewhere to
     // store our results when we Yield.
     let max_locals = total_locals.max(num_returns);
@@ -1562,9 +1596,9 @@ fn translate_method<'a, 'b>(
 
     let prologue = {
         let name = "prologue";
-        let off = -(max_locals_i32 - i32::from(count_params(&descriptor)?) + i32::from(SAVE_SLOTS));
+        let off = -(max_locals_i32 - i32::from(count_params(&descriptor)) + i32::from(SAVE_SLOTS));
         let insns = vec![ tenyr_insn!( sp <-  sp + (off) ) ];
-        let label = make_label(class, method, name)?;
+        let label = make_label(class, method, name);
         tenyr::BasicBlock { label, insns }
     };
 
@@ -1575,12 +1609,12 @@ fn translate_method<'a, 'b>(
         let rp = Register::P;
         let mv = if off != 0 { Some(tenyr_insn!( sp <-  sp + (off) )) } else { None };
         let insns = mv.into_iter().chain(std::iter::once(tenyr_insn!( rp <- [sp + (down)] ))).collect();
-        let label = make_label(class, method, name)?;
+        let label = make_label(class, method, name);
         tenyr::BasicBlock { label, insns }
     };
 
     let blocks = make_blocks_for_method(class, method, sm, max_locals)?;
-    let name = mangle(&[ class, method ])?;
+    let name = mangle(&[ class, method ]);
     Ok(Method { name, prologue, blocks, epilogue })
 }
 
@@ -1593,7 +1627,7 @@ fn write_method_table(
     let label = ".Lmethod_table";
     writeln!(outfile, "{}:", label)?;
 
-    let names = methods.iter().map(|method| GeneralResult::Ok(mangle(&[ class, &class.contextualize(method) ])?) );
+    let names = methods.iter().map(|method| GeneralResult::Ok(mangle(&[ class, &class.contextualize(method) ])) );
     let lengths : GeneralResult<Vec<_>> =
         names.map(|s| { let s = s?; let len = s.len(); Ok((s, len)) }).collect();
     let lengths = lengths?;
@@ -1621,7 +1655,7 @@ fn write_vslot_list(
     let non_virtual = MethodAccessFlags::STATIC | MethodAccessFlags::PRIVATE;
 
     let virtuals = methods.iter().filter(|m| (m.access_flags & non_virtual).is_empty());
-    let names = virtuals.map(|m| GeneralResult::Ok(mangle(&[ class, &class.contextualize(m), &"vslot" ])?) );
+    let names = virtuals.map(|m| GeneralResult::Ok(mangle(&[ class, &class.contextualize(m), &"vslot" ])) );
     let lengths : GeneralResult<Vec<_>> =
         names.map(|s| { let s = s?; let len = s.len(); Ok((s, len)) }).collect();
     let lengths = lengths?;
@@ -1651,7 +1685,7 @@ fn write_field_list(
         let s = class.get_string(f.descriptor_index).ok_or("missing descriptor")?;
         let desc = s.chars().next().ok_or("empty descriptor")?;
         let size = args::field_size(desc)?.into();
-        let name = mangle(&[ class, &class.contextualize(f), &suff ])?;
+        let name = mangle(&[ class, &class.contextualize(f), &suff ]);
         Ok((size, f, name))
     });
 

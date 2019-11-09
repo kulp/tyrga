@@ -107,7 +107,7 @@ fn main() -> TerminatingResult {
         }
     } else if let Some(m) = m.subcommand_matches("mangle") {
         for string in m.values_of("strings").ok_or("expected at least one string to mangle")? {
-            println!("{}", tyrga::mangling::mangle(string.bytes())?);
+            println!("{}", tyrga::mangling::mangle(string.bytes()));
         }
     } else if let Some(m) = m.subcommand_matches("demangle") {
         for string in m.values_of("strings").ok_or("expected at least one string to mangle")? {
