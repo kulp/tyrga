@@ -217,9 +217,8 @@ fn make_int_branch(
     invert : bool,
     target : u16,
     target_name : &str,
-    mut comp : impl FnMut(&mut StackManager) -> GeneralResult<(Register, Vec<Instruction>)>
-) -> GeneralResult<InsnPair>
-{
+    mut comp : impl FnMut(&mut StackManager) -> GeneralResult<(Register, Vec<Instruction>)>,
+) -> GeneralResult<InsnPair> {
     use Register::P;
 
     let (temp_reg, sequence) = comp(sm)?;
@@ -301,8 +300,7 @@ fn make_constant<'a>(
     sm : &mut StackManager,
     gc : impl Contextualizer<'a>,
     details : Indirection<ExplicitConstant>,
-) -> GeneralResult<Vec<Instruction>>
-{
+) -> GeneralResult<Vec<Instruction>> {
     use jvmtypes::Indirection::{Explicit, Indirect};
 
     let mut make = |slice : &[_]| {
@@ -366,11 +364,7 @@ fn make_negation(sm : &mut StackManager) -> GeneralResult<Vec<Instruction>> {
     Ok(v)
 }
 
-fn make_bitwise(
-    sm : &mut StackManager,
-    kind : JType,
-    op : tenyr::Opcode,
-) -> Vec<Instruction> {
+fn make_bitwise(sm : &mut StackManager, kind : JType, op : tenyr::Opcode) -> Vec<Instruction> {
     use tenyr::InstructionType::Type0;
 
     let mut v = Vec::new();
@@ -389,11 +383,7 @@ fn make_bitwise(
     v
 }
 
-fn make_arithmetic_general(
-    sm : &mut StackManager,
-    op : tenyr::Opcode,
-) -> Vec<Instruction>
-{
+fn make_arithmetic_general(sm : &mut StackManager, op : tenyr::Opcode) -> Vec<Instruction> {
     use tenyr::InstructionType::Type0;
 
     let mut v = Vec::new();
@@ -414,8 +404,8 @@ fn make_arithmetic_call(
     kind : JType,
     op : ArithmeticOperation,
 ) -> GeneralResult<Vec<Instruction>> {
-    use ArithmeticOperation::*;
     use std::convert::TryInto;
+    use ArithmeticOperation::*;
 
     let ch : char = kind.try_into()?;
 
@@ -480,14 +470,9 @@ fn make_arithmetic(
     }
 }
 
-fn make_mem_op(
-    sm : &mut StackManager,
-    op : LocalOperation,
-    max_locals : u16,
-) -> Vec<Instruction>
-{
-    use LocalOperation::{Load, Store};
+fn make_mem_op(sm : &mut StackManager, op : LocalOperation, max_locals : u16) -> Vec<Instruction> {
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
+    use LocalOperation::{Load, Store};
 
     let idx;
     let (before, dd, after) = match op {
@@ -609,8 +594,8 @@ fn make_switch_table(
     offsets : Vec<i32>,
 ) -> GeneralResult<InsnPair> {
     use std::iter::once;
-    use tenyr::*;
     use tenyr::InstructionType::{Type1, Type2};
+    use tenyr::*;
 
     type InsnType = dyn Fn(InsnGeneral) -> InstructionType;
 
@@ -679,10 +664,10 @@ fn make_switch(
 }
 
 fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> Vec<Instruction> {
-    use jvmtypes::ArrayOperation::{Load, Store, GetLength};
-    use tenyr::{InsnGeneral, Opcode};
+    use jvmtypes::ArrayOperation::{GetLength, Load, Store};
     use tenyr::InstructionType::{Type1, Type3};
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
+    use tenyr::{InsnGeneral, Opcode};
 
     let mut v = Vec::new();
     let array_params = |sm : &mut StackManager, v : &mut Vec<Instruction>| {
@@ -738,8 +723,7 @@ fn make_invocation_virtual(
     sm : &mut StackManager,
     descriptor : &str,
     method_name : impl Manglable,
-) -> GeneralResult<Vec<Instruction>>
-{
+) -> GeneralResult<Vec<Instruction>> {
     use tenyr::Immediate20;
     use Register::P;
 
@@ -776,8 +760,7 @@ fn make_invocation<'a>(
     kind : InvokeKind,
     index : u16,
     gc : impl Contextualizer<'a>,
-) -> GeneralResult<Vec<Instruction>>
-{
+) -> GeneralResult<Vec<Instruction>> {
     let get_method_parts = || {
         if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
             if let ConstantInfo::Class(cl) = gc.get_constant(mr.class_index) {
@@ -825,8 +808,7 @@ fn make_stack_op(
     sm : &mut StackManager,
     op : StackOperation,
     size : OperandCount,
-) -> Vec<Instruction>
-{
+) -> Vec<Instruction> {
     use StackOperation::*;
     let mut copy = |i| sm.get_copy(i).1;
     match (op, size as u16) {
@@ -841,8 +823,7 @@ fn make_allocation<'a>(
     sm : &mut StackManager,
     details : AllocationKind,
     gc : impl Contextualizer<'a>,
-) -> GeneralResult<Vec<Instruction>>
-{
+) -> GeneralResult<Vec<Instruction>> {
     match details {
         AllocationKind::Array { kind, dims } => {
             use jvmtypes::Indirection::{Explicit, Indirect};
@@ -889,8 +870,7 @@ fn make_compare(
     sm : &mut StackManager,
     kind : JType,
     nans : Option<NanComparisons>,
-) -> GeneralResult<Vec<Instruction>>
-{
+) -> GeneralResult<Vec<Instruction>> {
     use std::convert::TryInto;
 
     let ch : char = kind.try_into()?;
@@ -913,14 +893,13 @@ fn make_conversion(
     sm : &mut StackManager,
     from : JType,
     to : JType,
-) -> GeneralResult<Vec<Instruction>>
-{
-    use JType::{Byte, Char, Int, Long, Short};
+) -> GeneralResult<Vec<Instruction>> {
     use std::convert::TryInto;
     use tenyr::InsnGeneral;
     use tenyr::InstructionType::Type1;
     use tenyr::MemoryOpType::NoLoad;
     use tenyr::Opcode::{ShiftLeft, ShiftRightArith, ShiftRightLogic};
+    use JType::{Byte, Char, Int, Long, Short};
 
     match (from, to) {
         (Int, Byte) |
@@ -969,8 +948,7 @@ fn make_varaction<'a>(
     kind : VarKind,
     index : u16,
     gc : impl Contextualizer<'a>,
-) -> GeneralResult<Vec<Instruction>>
-{
+) -> GeneralResult<Vec<Instruction>> {
     use classfile_parser::constant_info::ConstantInfo::FieldRef;
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
 
@@ -1051,8 +1029,7 @@ fn make_instructions<'a>(
     namer : impl Fn(&dyn Display) -> GeneralResult<String>,
     gc : impl Contextualizer<'a>,
     max_locals : u16,
-) -> GeneralResult<InsnPair>
-{
+) -> GeneralResult<InsnPair> {
     use Operation::*;
 
     // We need to track destinations and return them so that the caller can track stack state
@@ -1119,9 +1096,10 @@ fn test_make_instruction() -> GeneralResult<()> {
     Ok(())
 }
 
-fn derive_ranges<'a>(max : usize, table : impl IntoIterator<Item=&'a StackMapFrame>)
-    -> Vec<Range<usize>>
-{
+fn derive_ranges<'a>(
+    max : usize,
+    table : impl IntoIterator<Item = &'a StackMapFrame>,
+) -> Vec<Range<usize>> {
     use classfile_parser::attribute_info::StackMapFrame::*;
     let mut deltas = table.into_iter().map(|f| match *f {
         SameFrame                           { frame_type }       => frame_type.into(),
@@ -1242,7 +1220,6 @@ mod util {
                 panic!("invalid constant pool class reference")
             }
         }
-
     }
 
     impl<'a, T> Contextualizer<'a> for &Context<'a, T> {
@@ -1287,7 +1264,6 @@ mod util {
             self.iter().map(|x| x.stringify()).collect() // TODO flatten
         }
     }
-
 }
 
 impl StackManager {
@@ -1300,11 +1276,11 @@ impl StackManager {
 type RangeList = Vec<Range<usize>>;
 type OperationMap = BTreeMap<usize, Operation>;
 
-fn get_ranges_for_method(method : &Context<'_, &MethodInfo>)
-    -> GeneralResult<(RangeList, OperationMap)>
-{
-    use classfile_parser::attribute_info::AttributeInfo;
+fn get_ranges_for_method(
+    method : &Context<'_, &MethodInfo>,
+) -> GeneralResult<(RangeList, OperationMap)> {
     use classfile_parser::attribute_info::stack_map_table_attribute_parser;
+    use classfile_parser::attribute_info::AttributeInfo;
     use classfile_parser::code_attribute::code_parser;
     use classfile_parser::constant_info::ConstantInfo::Utf8;
 
@@ -1337,20 +1313,18 @@ fn make_label(
     class : &Context<'_, &ClassConstant>,
     method : &Context<'_, &MethodInfo>,
     suffix : impl Display,
-) -> String
-{
+) -> String {
     format!(".L{}", mangle(&[ class, method, &format!("__{}", suffix) ]))
 }
 
 fn make_basic_block(
     class : &Context<'_, &ClassConstant>,
     method : &Context<'_, &MethodInfo>,
-    list : impl IntoIterator<Item=InsnPair>,
-    range : &Range<usize>
-) -> (tenyr::BasicBlock, BTreeSet<usize>)
-{
-    use Destination::{Address, Successor};
+    list : impl IntoIterator<Item = InsnPair>,
+    range : &Range<usize>,
+) -> (tenyr::BasicBlock, BTreeSet<usize>) {
     use tenyr::BasicBlock;
+    use Destination::{Address, Successor};
 
     let mut insns = Vec::new();
     let mut exits = BTreeSet::new();
@@ -1380,12 +1354,11 @@ fn make_basic_block(
 // The incoming StackManager represents a "prototype" StackManager which should be empty, and
 // which will be cloned each time a new BasicBlock is seen.
 fn make_blocks_for_method<'a, 'b>(
-        class : &'a Context<'b, &'b ClassConstant>,
-        method : &'a Context<'b, &'b MethodInfo>,
-        sm : &StackManager,
-        max_locals : u16,
-    ) -> GeneralResult<Vec<tenyr::BasicBlock>>
-{
+    class : &'a Context<'b, &'b ClassConstant>,
+    method : &'a Context<'b, &'b MethodInfo>,
+    sm : &StackManager,
+    max_locals : u16,
+) -> GeneralResult<Vec<tenyr::BasicBlock>> {
     use std::iter::FromIterator;
 
     struct Params<'a, 'b> {
@@ -1397,12 +1370,11 @@ fn make_blocks_for_method<'a, 'b>(
     }
 
     fn make_blocks(
-            params : &Params,
-            seen : &mut HashSet<usize>,
-            mut sm : StackManager,
-            which : &Range<usize>,
-        ) -> GeneralResult<Vec<tenyr::BasicBlock>>
-    {
+        params : &Params,
+        seen : &mut HashSet<usize>,
+        mut sm : StackManager,
+        which : &Range<usize>,
+    ) -> GeneralResult<Vec<tenyr::BasicBlock>> {
         let (class, method, rangemap, ops, max_locals) =
             (params.class, params.method, params.rangemap, params.ops, params.max_locals);
         if seen.contains(&which.start) {
@@ -1441,8 +1413,7 @@ fn make_blocks_for_method<'a, 'b>(
 }
 
 #[test]
-fn test_parse_classes() -> GeneralResult<()>
-{
+fn test_parse_classes() -> GeneralResult<()> {
     fn parse_class(path : &std::path::Path) -> GeneralResult<ClassFile> {
         let p = path.with_extension("");
         let p = p.to_str().ok_or("bad path")?;
@@ -1557,9 +1528,7 @@ fn test_count_params() {
 
 #[test]
 #[should_panic]
-fn test_count_params_panic() {
-    let _ = count_params("(");
-}
+fn test_count_params_panic() { let _ = count_params("("); }
 
 #[test]
 fn test_count_returns() {
@@ -1619,11 +1588,10 @@ fn translate_method<'a, 'b>(
 }
 
 fn write_method_table(
-        class : &Context<'_, &ClassConstant>,
-        methods : &[MethodInfo],
-        outfile : &mut dyn Write,
-    ) -> GeneralResult<()>
-{
+    class : &Context<'_, &ClassConstant>,
+    methods : &[MethodInfo],
+    outfile : &mut dyn Write,
+) -> GeneralResult<()> {
     let label = ".Lmethod_table";
     writeln!(outfile, "{}:", label)?;
 
@@ -1673,14 +1641,13 @@ fn write_vslot_list(
 }
 
 fn write_field_list(
-        class : &Context<'_, &ClassConstant>,
-        fields : &[FieldInfo],
-        outfile : &mut dyn Write,
-        suff : &str,
-        selector : impl Fn(&&FieldInfo) -> bool,
-        generator : impl Fn(&mut dyn Write, &str, usize, usize, usize) -> GeneralResult<()>,
-    ) -> GeneralResult<()>
-{
+    class : &Context<'_, &ClassConstant>,
+    fields : &[FieldInfo],
+    outfile : &mut dyn Write,
+    suff : &str,
+    selector : impl Fn(&&FieldInfo) -> bool,
+    generator : impl Fn(&mut dyn Write, &str, usize, usize, usize) -> GeneralResult<()>,
+) -> GeneralResult<()> {
     let tuples = fields.iter().filter(selector).map(|f| {
         let s = class.get_string(f.descriptor_index).ok_or("missing descriptor")?;
         let desc = s.chars().next().ok_or("empty descriptor")?;

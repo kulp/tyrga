@@ -229,7 +229,11 @@ impl Manager {
     /// returns an Instruction that sets a given register to the address of the
     /// nth element on the operand stack, regardless of the number of spilled
     /// slots
-    pub fn get_frame_offset(&self, reg : crate::tenyr::Register, n : i32) -> crate::tenyr::Instruction {
+    pub fn get_frame_offset(
+        &self,
+        reg : crate::tenyr::Register,
+        n : i32,
+    ) -> crate::tenyr::Instruction {
         let off = i32::from(self.spilled_count()) - n;
         let kind = crate::tenyr::InstructionType::Type3(off.try_into().expect("immediate too large"));
         crate::tenyr::Instruction {
