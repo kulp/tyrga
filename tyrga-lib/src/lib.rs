@@ -284,10 +284,13 @@ fn make_yield(
     use Register::P;
 
     let mut v = Vec::new();
-    for i in (0 .. kind.size()).rev() { // get deepest first
+    for i in (0..kind.size()).rev() { // get deepest first
         let (reg, gets) = sm.get(i.into());
         v.extend(gets);
-        v.push(Instruction { dd : StoreRight, ..sm.index_local(reg, i.into(), max_locals) })
+        v.push(Instruction {
+            dd : StoreRight,
+            ..sm.index_local(reg, i.into(), max_locals)
+        })
     }
     v.extend(sm.empty());
     let ex = tenyr::Immediate::Expr(make_target(target_name));
@@ -304,17 +307,15 @@ fn make_constant<'a>(
     use jvmtypes::Indirection::{Explicit, Indirect};
 
     let mut make = |slice : &[_]| {
-        slice.iter().fold(
-            Vec::new(),
-            |mut v, &value| {
-                use Register::A;
+        slice.iter().fold(Vec::new(), |mut v, &value| {
+            use Register::A;
 
-                let (reg, gets) = sm.reserve_one();
-                v.extend(gets);
-                let insn = Instruction { z : reg, x : A, ..tenyr::NOOP_TYPE3 };
-                v.extend(expand_immediate_load(sm, insn, value));
-                v
-            })
+            let (reg, gets) = sm.reserve_one();
+            v.extend(gets);
+            let insn = Instruction { z : reg, x : A, ..tenyr::NOOP_TYPE3 };
+            v.extend(expand_immediate_load(sm, insn, value));
+            v
+        })
     };
 
     match details {
