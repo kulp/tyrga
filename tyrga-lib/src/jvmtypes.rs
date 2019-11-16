@@ -152,8 +152,16 @@ pub enum InvokeKind {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum SwitchParams {
-    Lookup { default : i32, pairs : Vec<(i32, i32)> },
-    Table  { default : i32, low : i32, high : i32, offsets : Vec<i32> },
+    Lookup {
+        default : i32,
+        pairs :   Vec<(i32, i32)>,
+    },
+    Table {
+        default : i32,
+        low :     i32,
+        high :    i32,
+        offsets : Vec<i32>,
+    },
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -166,7 +174,7 @@ pub type ArrayKind = Indirection<JType>;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct ExplicitConstant {
-    pub kind : JType,
+    pub kind :  JType,
     pub value : i16,
 }
 
@@ -185,7 +193,7 @@ pub enum ArrayOperation {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum LocalOperation {
-    Load  { kind : JType, index : u16 },
+    Load { kind : JType, index : u16 },
     Store { kind : JType, index : u16 },
 }
 
@@ -292,7 +300,10 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
 
     let make_constant = |kind, value| Constant(Explicit(ExplicitConstant { kind, value }));
 
-    let kind = || insn.get_operand_type().expect("kind must be valid but is not");
+    let kind = || {
+        insn.get_operand_type()
+            .expect("kind must be valid but is not")
+    };
 
     #[rustfmt::skip]
     let op = match insn {
