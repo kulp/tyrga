@@ -282,16 +282,15 @@ impl OperandType for Instruction {
 // returns any Operation parsed and the number of bytes consumed
 pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
     use AllocationKind::*;
-    use JType::*;
     use Indirection::*;
     use Instruction::*;
+    use JType::*;
     use Operation::*;
     use SwitchParams::*;
 
     let (addr, insn) = insn;
 
-    let make_constant = |kind, value|
-        Constant(Explicit(ExplicitConstant { kind, value }));
+    let make_constant = |kind, value| Constant(Explicit(ExplicitConstant { kind, value }));
 
     let kind = || insn.get_operand_type().expect("kind must be valid but is not");
 
@@ -507,4 +506,3 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
 
     (addr, op)
 }
-
