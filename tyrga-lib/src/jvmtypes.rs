@@ -28,6 +28,7 @@ impl JType {
 
 impl TryFrom<JType> for char {
     type Error = &'static str;
+    #[rustfmt::skip]
     fn try_from(t : JType) -> Result<Self, Self::Error> {
         use JType::*;
         match t {
@@ -189,6 +190,7 @@ pub enum LocalOperation {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[rustfmt::skip]
 pub enum Operation {
     Allocation  (AllocationKind),
     Arithmetic  { kind : JType, op : ArithmeticOperation },
@@ -215,6 +217,7 @@ trait OperandType {
 }
 
 impl OperandType for Instruction {
+    #[rustfmt::skip]
     fn get_operand_type(&self) -> Option<JType> {
         use Instruction::*;
         use JType::*;
@@ -292,6 +295,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
 
     let kind = || insn.get_operand_type().expect("kind must be valid but is not");
 
+    #[rustfmt::skip]
     let op = match insn {
         Nop => Noop,
 
