@@ -1,7 +1,7 @@
 # ensure Java 8 support, which implies StackMapTable
-JAVAFLAGS += -target 1.8 -source 1.8
+JAVACFLAGS += -target 1.8 -source 1.8
 # avoid generating unused debugging information
-JAVAFLAGS += -g:none
+JAVACFLAGS += -g:none
 
 JAVAC ?= javac
 TAS ?= tas
@@ -26,7 +26,7 @@ classes: $(ALL_JAVA:%.java=%.class)
 tases: $(ALL_JAVA:%.java=%.tas)
 
 %.class: %.java
-	$(JAVAC) $(JAVAFLAGS) $<
+	$(JAVAC) $(JAVACFLAGS) $<
 
 # Rebuild tases when the translator binary changes
 %.tas: %.class $(TYRGA_CLI)
