@@ -37,11 +37,31 @@ vpath %.tas tyrga-lib/tenyr-lib
 BUILTIN_java = $(wildcard tyrga-lib/java-lib/tyrga/*.java)
 BUILTIN_tas = $(wildcard tyrga-lib/tenyr-lib/*.tas)
 
-LIB_to += $(BUILTIN_tas:.tas=.to)
+# Entry point comes first
+LIB_to  = $(filter %/Entry.to,$(BUILTIN_tas:.tas=.to))
+LIB_to += $(filter-out %/Entry.to,$(BUILTIN_tas:.tas=.to))
 LIB_to += $(BUILTIN_java:.java=.to)
 
-%.texe: %.to $(LIB_to)
-	$(TLD) -o $@ $^
+# Mark $TARGET_DIR directories as PRECIOUS to keep Make from trying to delete
+# the directory with an unlink() call (which will always fail)
+.PRECIOUS: %_files
+%_files:
+	mkdir -p $@
+
+# Using a Bash-ism to convert class filenames to object filenames is not ideal,
+# but $(patsubst ...,$(wildcard ...)) would be evaluated too early.
+#
+# This rule deletes the contents of the target-specific output directory before
+# proceeding. Since it does not have the ability to know exactly which objects
+# will be generated from a given .java file, it must use wildcards, and if it
+# did not delete the contents first, files could creep into the $TARGET_DIR and
+# cause hard-to-reproduce build states.
+%.texe: TARGET_DIR = $*_files
+%.texe: %.java $(LIB_to) | %_files
+	$(RM) $(TARGET_DIR)/*
+	$(JAVAC) $(JAVACFLAGS) -d $(TARGET_DIR) $<
+	classes=( $(TARGET_DIR)/*.class ); $(MAKE) $${classes[@]/.class/.to}
+	$(TLD) -o $@ $(filter %.to,$^) $(TARGET_DIR)/*.to
 
 %.to: %.tas
 	$(TAS) -o $@ $<
