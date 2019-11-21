@@ -1,0 +1,32 @@
+.global _5tyrga01_2f7Builtin01_3b3add02_3b282JJ01_291J
+_5tyrga01_2f7Builtin01_3b3add02_3b282JJ01_291J: # tyrga/Builtin;add;(JJ)J
+    B <- [O + 4]
+    C <- [O + 3]
+    D <- [O + 2]
+    E <- [O + 1]
+
+    # pop two words off the stack, leaving two to be replaced
+    O <- O + 2
+
+    # compute lower sum in a temporary
+    F <- C + E
+
+    # compute carry bit as !((C < F) && (E < F))
+    G <- C < F
+    H <- E < F
+    H <- G & H + 1
+
+    # compute upper sum
+    B <- B + H
+    B <- B + D
+
+    # move lower sum into place
+    C <- F
+
+    # put result on stack
+    B -> [O + 2]
+    C -> [O + 1]
+
+    # return address is still at its original location despite our pops
+    P <- [O - 2]
+
