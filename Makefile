@@ -48,9 +48,6 @@ LIB_to += $(BUILTIN_java:.java=.to)
 %_files:
 	mkdir -p $@
 
-# Using a Bash-ism to convert class filenames to object filenames is not ideal,
-# but $(patsubst ...,$(wildcard ...)) would be evaluated too early.
-#
 # This rule deletes the contents of the target-specific output directory before
 # proceeding. Since it does not have the ability to know exactly which objects
 # will be generated from a given .java file, it must use wildcards, and if it
@@ -60,7 +57,7 @@ LIB_to += $(BUILTIN_java:.java=.to)
 %.texe: %.java $(LIB_to) | %_files
 	$(RM) $(TARGET_DIR)/*
 	$(JAVAC) $(JAVACFLAGS) -d $(TARGET_DIR) $<
-	classes=( $(TARGET_DIR)/*.class ); $(MAKE) $${classes[@]/.class/.to}
+	basename -s .class -a $(TARGET_DIR)/*.class | xargs -I{} $(MAKE) $(TARGET_DIR)/{}.to
 	$(TLD) -o $@ $(filter %.to,$^) $(TARGET_DIR)/*.to
 
 %.to: %.tas
