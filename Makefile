@@ -54,6 +54,7 @@ LIB_to += $(BUILTIN_java:.java=.to)
 	$(JAVAC) $(JAVACFLAGS) -d $(TARGET_DIR) $<
 	basename -s .class -a $(TARGET_DIR)/*.class | xargs -I{} $(MAKE) $(TARGET_DIR)/{}.to
 	$(TLD) -o $@ $(filter %.to,$^) $(TARGET_DIR)/*.to
+	$(RM) -r $(TARGET_DIR)
 
 %.to: %.tas
 	$(TAS) -o $@ $<
