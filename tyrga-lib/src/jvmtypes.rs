@@ -40,7 +40,7 @@ impl TryFrom<JType> for char {
             Char   => Ok('C'),
             Short  => Ok('S'),
             Void   => Ok('V'),
-            _  => Err("no such mapping"),
+            Object => Err("no such mapping"),
         }
     }
 }
