@@ -408,7 +408,7 @@ fn make_arithmetic_call(
     use std::convert::TryInto;
     use ArithmeticOperation::*;
 
-    let ch : char = kind.try_into()?;
+    let ch : char = kind.try_into().expect("invalid char kind");
 
     let nargs = {
         match op {
@@ -874,7 +874,7 @@ fn make_compare(
 ) -> GeneralResult<Vec<Instruction>> {
     use std::convert::TryInto;
 
-    let ch : char = kind.try_into()?;
+    let ch : char = kind.try_into().expect("invalid char kind");
 
     let (gc, mut v) = sm.reserve_one();
     let n = match nans {
@@ -934,8 +934,8 @@ fn make_conversion(
             Ok(insns)
         },
         _ => {
-            let ch_from : char = from.try_into()?;
-            let ch_to   : char = to  .try_into()?;
+            let ch_from : char = from.try_into().expect("invalid char kind");
+            let ch_to   : char = to  .try_into().expect("invalid char kind");
             let name = format!("into_{}", ch_to); // TODO improve naming
             let desc = format!("({}){}", ch_from, ch_to);
             Ok(make_call(sm, &make_builtin_name(&name, &desc), &desc)?)
