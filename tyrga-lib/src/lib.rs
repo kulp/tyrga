@@ -352,13 +352,13 @@ fn make_constant<'a>(
     }
 }
 
-fn make_negation(sm : &mut StackManager) -> GeneralResult<Vec<Instruction>> {
+fn make_negation(sm : &mut StackManager) -> Vec<Instruction> {
     use Register::A;
     let mut v = Vec::new();
     let (y, gets) = sm.get(0);
     v.extend(gets);
     v.push(tenyr_insn!( y <- A - y ));
-    Ok(v)
+    v
 }
 
 fn make_bitwise(sm : &mut StackManager, kind : JType, op : tenyr::Opcode) -> Vec<Instruction> {
@@ -461,7 +461,7 @@ fn make_arithmetic(
         match (kind, bitwise_op, general_op, op) {
             (_  , Some(op), _       , _  ) => Ok(make_bitwise               (sm, kind, op)),
             (Int, _       , Some(op), _  ) => Ok(make_arithmetic_general    (sm,       op)),
-            (Int, _       , _       , Neg) =>   (make_negation              (sm          )),
+            (Int, _       , _       , Neg) => Ok(make_negation              (sm          )),
             (_  , _       , _       , _  ) =>   (make_arithmetic_call       (sm, kind, op)),
         }
     }
