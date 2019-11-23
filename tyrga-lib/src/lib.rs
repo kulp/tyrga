@@ -866,7 +866,7 @@ fn make_compare(
     sm : &mut StackManager,
     kind : JType,
     nans : Option<NanComparisons>,
-) -> GeneralResult<Vec<Instruction>> {
+) -> Vec<Instruction> {
     use std::convert::TryInto;
 
     let ch : char = kind.try_into().expect("invalid char kind");
@@ -881,7 +881,7 @@ fn make_compare(
 
     let desc = format!("({}{}I)I", ch, ch);
     v.extend(make_call(sm, &make_builtin_name("cmp", &desc), &desc));
-    Ok(v)
+    v
 }
 
 fn make_conversion(
@@ -1044,7 +1044,7 @@ fn make_instructions<'a>(
         Arithmetic { kind, op         } => no_branch( make_arithmetic ( sm, kind, op                 ) ),
         ArrayOp    { 0 : aop          } => no_branch( make_array_op   ( sm, aop                      ) ),
         Branch     { ops, way, target } => branching( make_branch     ( sm, ops, way, target         ) ),
-        Compare    { kind, nans       } => no_branch( make_compare    ( sm, kind, nans               )?),
+        Compare    { kind, nans       } => no_branch( make_compare    ( sm, kind, nans               ) ),
         Constant   { 0 : details      } => no_branch( make_constant   ( sm, gc, details              ) ),
         Conversion { from, to         } => no_branch( make_conversion ( sm, from, to                 )?),
         Increment  { index, value     } => no_branch( make_increment  ( sm, index, value, max_locals ) ),
