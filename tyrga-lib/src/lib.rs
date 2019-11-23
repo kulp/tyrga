@@ -214,7 +214,7 @@ fn make_int_branch(
     target : u16,
     target_name : &str,
     mut comp : impl FnMut(&mut StackManager) -> (Register, Vec<Instruction>),
-) -> GeneralResult<InsnPair> {
+) -> InsnPair {
     use Register::P;
 
     let (temp_reg, sequence) = comp(sm);
@@ -228,7 +228,7 @@ fn make_int_branch(
         Destination::Successor,
         Destination::Address(target.into()),
     ];
-    Ok((v, dest))
+    (v, dest)
 }
 
 // number of slots of data we will save between locals and stack
@@ -526,7 +526,7 @@ fn make_branch(
     };
     let invert = way == jvmtypes::Comparison::Ne;
 
-    make_int_branch(sm, invert, target, target_name, |sm| {
+    Ok(make_int_branch(sm, invert, target, target_name, |sm| {
         use OperandCount::{Single, Double};
 
         let mut v = Vec::new();
@@ -551,7 +551,7 @@ fn make_branch(
             dd : MemoryOpType::NoLoad,
         });
         (temp_reg, v)
-    })
+    }))
 }
 
 fn make_switch_lookup(
@@ -566,8 +566,8 @@ fn make_switch_lookup(
     insns.extend(gets);
 
     let make = |(imm, target)|
-        make_int_branch(sm, false, there(target), &namer(&there(target))?,
-            |sm| (temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0i8), imm)));
+        GeneralResult::Ok(make_int_branch(sm, false, there(target), &namer(&there(target))?,
+            |sm| (temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0i8), imm))));
 
     pairs
         .into_iter()
@@ -619,7 +619,7 @@ fn make_switch_table(
     };
 
     let mut default_maker = |maker|
-        GeneralResult::Ok(make_int_branch(sm, false, there(default), &namer(&there(default))?, maker)?);
+        GeneralResult::Ok(make_int_branch(sm, false, there(default), &namer(&there(default))?, maker));
 
     let insn = {
         use Register::P;
