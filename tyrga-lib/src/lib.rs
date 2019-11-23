@@ -71,17 +71,15 @@ fn expand_immediate_load(
     use tenyr::MemoryOpType::NoLoad;
     use SmallestImmediate::*;
 
-    // The make_imm helper has a fallible interface, but cannot actually fail. It uses Result in
-    // order to accommodate the use of `?` by the tenyr_insn* macros, but the inputs provided to
-    // those macros in this case will not cause Err to be raised.
     let make_imm = |temp_reg, imm|
-        GeneralResult::Ok(match imm {
+        match imm {
             Imm12(_) =>
                 unimplemented!("Imm12 was supposed to be handled separately"),
             Imm20(imm) =>
                 vec![ tenyr_insn!( temp_reg <- (imm) ) ], // cannot fail
             Imm32(imm) => {
-                let bot = tenyr::Immediate12::try_from_bits((imm & 0xfff) as u16)?; // cannot fail
+                let bot = tenyr::Immediate12::try_from_bits((imm & 0xfff) as u16)
+                                .unwrap_or_else(|_| unsafe { std::hint::unreachable_unchecked() }); // truly unreachable
 
                 // The following instructions will not fail
                 tenyr_insn_list!(
@@ -89,7 +87,7 @@ fn expand_immediate_load(
                     temp_reg <- temp_reg ^^ (bot)   ;
                 ).collect()
             },
-        });
+        };
 
     match (insn.kind, imm.into()) {
         (Type3(..), Imm12(imm)) => vec![ Instruction { kind : Type3(imm.into()), ..insn } ],
@@ -104,7 +102,7 @@ fn expand_immediate_load(
 
             let adder  = Gen { y : Register::A, op : Add , imm : 0_u8.into() };
             let (temp, gets) = sm.reserve_one();
-            let pack = make_imm(temp, imm).expect("internal inconsistency in immediate representation");
+            let pack = make_imm(temp, imm);
             let (op, a, b, c) = match kind {
                 // the Type3 case should never be reached, but provides generality
                 Type3(_) => (BitwiseOr, insn.x, Register::A, temp),
