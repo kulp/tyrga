@@ -400,7 +400,7 @@ fn make_arithmetic_call(
     sm : &mut StackManager,
     kind : JType,
     op : ArithmeticOperation,
-) -> GeneralResult<Vec<Instruction>> {
+) -> Vec<Instruction> {
     use std::convert::TryInto;
     use ArithmeticOperation::*;
 
@@ -430,7 +430,7 @@ fn make_arithmetic_call(
         Xor  => "Xor",
     };
 
-    Ok(make_call(sm, &make_builtin_name(&proc.to_lowercase(), &descriptor), &descriptor))
+    make_call(sm, &make_builtin_name(&proc.to_lowercase(), &descriptor), &descriptor)
 }
 
 fn make_arithmetic(
@@ -462,7 +462,7 @@ fn make_arithmetic(
             (_  , Some(op), _       , _  ) => Ok(make_bitwise               (sm, kind, op)),
             (Int, _       , Some(op), _  ) => Ok(make_arithmetic_general    (sm,       op)),
             (Int, _       , _       , Neg) => Ok(make_negation              (sm          )),
-            (_  , _       , _       , _  ) =>   (make_arithmetic_call       (sm, kind, op)),
+            (_  , _       , _       , _  ) => Ok(make_arithmetic_call       (sm, kind, op)),
         }
     }
 }
