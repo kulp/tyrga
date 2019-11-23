@@ -250,7 +250,7 @@ fn make_call(
     sm : &mut StackManager,
     target : &str,
     descriptor : &str,
-) -> GeneralResult<Vec<Instruction>> {
+) -> Vec<Instruction> {
     use Register::P;
 
     let mut insns = Vec::new();
@@ -267,7 +267,7 @@ fn make_call(
     ));
 
     insns.extend(sm.thaw(count_returns(descriptor).into()));
-    Ok(insns)
+    insns
 }
 
 fn make_yield(
@@ -430,7 +430,7 @@ fn make_arithmetic_call(
         Xor  => "Xor",
     };
 
-    make_call(sm, &make_builtin_name(&proc.to_lowercase(), &descriptor), &descriptor)
+    Ok(make_call(sm, &make_builtin_name(&proc.to_lowercase(), &descriptor), &descriptor))
 }
 
 fn make_arithmetic(
@@ -780,9 +780,9 @@ fn make_invocation<'a>(
     match kind {
         // TODO fully handle Special (this is dumb partial handling)
         InvokeKind::Special =>
-            Ok(make_call(sm, name, &descriptor)?.into_iter().chain(sm.release(1)).collect()),
+            Ok(make_call(sm, name, &descriptor).into_iter().chain(sm.release(1)).collect()),
         InvokeKind::Static =>
-            make_call(sm, name, &descriptor),
+            Ok(make_call(sm, name, &descriptor)),
         // TODO vet handling of Virtual against JVM spec
         InvokeKind::Virtual => {
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
@@ -841,7 +841,7 @@ fn make_allocation<'a>(
                     };
                     let descriptor = "(I)Ljava.lang.Object;";
                     let name = make_builtin_name("alloc", descriptor);
-                    let v = make_call(sm, &name, descriptor)?;
+                    let v = make_call(sm, &name, descriptor);
                     pre.extend(v);
                     Ok(pre)
                 },
@@ -855,7 +855,7 @@ fn make_allocation<'a>(
                 let name = gc.get_string(cc.name_index).ok_or("no class name")?;
                 let desc = format!("()L{};", name);
                 let call = mangle(&[&name, &"new"]);
-                make_call(sm, &call, &desc)
+                Ok(make_call(sm, &call, &desc))
             } else {
                 Err("invalid ConstantInfo kind".into())
             }
@@ -881,7 +881,7 @@ fn make_compare(
     v.push(tenyr_insn!( gc <- (n) ));
 
     let desc = format!("({}{}I)I", ch, ch);
-    let insns = make_call(sm, &make_builtin_name("cmp", &desc), &desc)?;
+    let insns = make_call(sm, &make_builtin_name("cmp", &desc), &desc);
     v.extend(insns);
     Ok(v)
 }
@@ -934,7 +934,7 @@ fn make_conversion(
             let ch_to   : char = to  .try_into()?;
             let name = format!("into_{}", ch_to); // TODO improve naming
             let desc = format!("({}){}", ch_from, ch_to);
-            Ok(make_call(sm, &make_builtin_name(&name, &desc), &desc)?)
+            Ok(make_call(sm, &make_builtin_name(&name, &desc), &desc))
         },
     }
 }
