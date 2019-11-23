@@ -989,12 +989,11 @@ fn make_varaction<'a>(
 
         let op_depth = match op { VarOp::Get => 0, VarOp::Put => len.into() };
 
-        let format = |suff|
-            GeneralResult::Ok(format!("@{}", mangle(&[ &gc.contextualize(fr), &suff ])));
+        let format = |suff| format!("@{}", mangle(&[ &gc.contextualize(fr), &suff ]));
 
         let (drops, (reg, mut insns), base) = match kind {
-            VarKind::Static => ( 0, (Register::P, vec![]), make_target(   format("static"      )?) ),
-            VarKind::Field  => ( 1, sm.get(op_depth)     , Atom::Variable(format("field_offset")?) ),
+            VarKind::Static => ( 0, (Register::P, vec![]), make_target(   format("static"      )) ),
+            VarKind::Field  => ( 1, sm.get(op_depth)     , Atom::Variable(format("field_offset")) ),
         };
 
         let mut range = 0_i32..len.into();
@@ -1592,17 +1591,15 @@ fn write_method_table(
     class : &Context<'_, &ClassConstant>,
     methods : &[MethodInfo],
     outfile : &mut dyn Write,
-) -> GeneralResult<()> {
+) -> std::io::Result<()> {
     let label = ".Lmethod_table";
     writeln!(outfile, "{}:", label)?;
 
-    let names = methods.iter().map(|method| GeneralResult::Ok(mangle(&[ class, &class.contextualize(method) ])) );
-    let lengths : GeneralResult<Vec<_>> =
-        names.map(|s| { let s = s?; let len = s.len(); Ok((s, len)) }).collect();
-    let lengths = lengths?;
-    let width = lengths.iter().fold(0, |c, (_, len)| c.max(*len));
+    let names = methods.iter().map(|method| mangle(&[ class, &class.contextualize(method) ]) );
+    let lengths : Vec<_> = names.map(|s| (s.len(), s)).collect();
+    let width = lengths.iter().fold(0, |c, (len, _)| c.max(*len));
 
-    for (method, (mangled_name, _)) in methods.iter().zip(lengths) {
+    for (method, (_, mangled_name)) in methods.iter().zip(lengths) {
         let flags = method.access_flags;
 
         writeln!(outfile, "    .word @{:width$} - {}, {:#06x}",
@@ -1616,21 +1613,18 @@ fn write_method_table(
 }
 
 fn write_vslot_list(
-        class : &Context<'_, &ClassConstant>,
-        methods : &[MethodInfo],
-        outfile : &mut dyn Write,
-    ) -> GeneralResult<()>
-{
+    class : &Context<'_, &ClassConstant>,
+    methods : &[MethodInfo],
+    outfile : &mut dyn Write,
+) -> std::io::Result<()> {
     let non_virtual = MethodAccessFlags::STATIC | MethodAccessFlags::PRIVATE;
 
     let virtuals = methods.iter().filter(|m| (m.access_flags & non_virtual).is_empty());
-    let names = virtuals.map(|m| GeneralResult::Ok(mangle(&[ class, &class.contextualize(m), &"vslot" ])) );
-    let lengths : GeneralResult<Vec<_>> =
-        names.map(|s| { let s = s?; let len = s.len(); Ok((s, len)) }).collect();
-    let lengths = lengths?;
-    let width = lengths.iter().fold(0, |c, (_, len)| c.max(*len));
+    let names = virtuals.map(|m| mangle(&[ class, &class.contextualize(m), &"vslot" ]) );
+    let lengths : Vec<_> = names.map(|s| (s.len(), s)).collect();
+    let width = lengths.iter().fold(0, |c, (len, _)| c.max(*len));
 
-    for (index, (mangled_name, _)) in lengths.iter().enumerate() {
+    for (index, (_, mangled_name)) in lengths.iter().enumerate() {
         writeln!(outfile, "    .global {}", mangled_name)?;
         writeln!(outfile, "    .set    {:width$}, {}", mangled_name, index, width=width)?;
     }
