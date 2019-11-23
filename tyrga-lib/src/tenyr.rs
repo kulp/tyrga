@@ -49,8 +49,6 @@ macro_rules! tenyr_get_op {
     ( $callback:ident $op:tt $( $rest:tt )+ ) => { { use $crate::tenyr::Opcode::*; let op = tenyr_op!($op); $callback!(op $( $rest )+) } };
 }
 
-pub type InsnResult = Result<Instruction, Box<dyn std::error::Error>>;
-
 #[macro_export]
 macro_rules! tenyr_imm {
     ( $imm:expr ) => { {
@@ -230,8 +228,7 @@ fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
     let make = |ctor : &dyn Fn(InsnGeneral) -> InstructionType, y, op, imm : i8, z, x, dd|
         Instruction { kind : ctor(InsnGeneral { y, op, imm : imm.into() }), z, x, dd };
 
-    let make3 = |imm : i32, z, x, dd|
-        InsnResult::Ok(Instruction { kind : Type3(imm.try_into()?), z, x, dd });
+    let make3 = |imm : i32, z, x, dd| Instruction { kind : Type3(imm.try_into().expect("immediate is too big")), z, x, dd };
 
     assert_eq!(tenyr_insn!( B  <-  C  |~ D + 3i8    ), make(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ));
     assert_eq!(tenyr_insn!( B  <-  C >>> D + 3i8    ), make(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ));
@@ -257,12 +254,12 @@ fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(tenyr_insn!([B] <-  (three) ^^ C + D ), make(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ));
     assert_eq!(tenyr_insn!( B  -> [(three) &~ C + D]), make(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight));
     assert_eq!(tenyr_insn!( B  <- [(three) @  C + D]), make(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ));
-    assert_eq!(tenyr_insn!( B  <-  C  +  (0x12345)  ), make3( 0x12345_i32,B,C,NoLoad)?);
-    assert_eq!(tenyr_insn!( B  <-  C  -  (0x12345)  ), make3(-0x12345_i32,B,C,NoLoad)?);
-    assert_eq!(tenyr_insn!( B  <-        (0x12345)  ), make3( 0x12345_i32,B,A,NoLoad)?);
-    assert_eq!(tenyr_insn!( B  <-  C  +  (three)    ), make3(       3_i32,B,C,NoLoad)?);
-    assert_eq!(tenyr_insn!( B  <-  C  -  (three)    ), make3(      -3_i32,B,C,NoLoad)?);
-    assert_eq!(tenyr_insn!( B  <-        (three)    ), make3(       3_i32,B,A,NoLoad)?);
+    assert_eq!(tenyr_insn!( B  <-  C  +  (0x12345)  ), make3( 0x12345_i32,B,C,NoLoad));
+    assert_eq!(tenyr_insn!( B  <-  C  -  (0x12345)  ), make3(-0x12345_i32,B,C,NoLoad));
+    assert_eq!(tenyr_insn!( B  <-        (0x12345)  ), make3( 0x12345_i32,B,A,NoLoad));
+    assert_eq!(tenyr_insn!( B  <-  C  +  (three)    ), make3(       3_i32,B,C,NoLoad));
+    assert_eq!(tenyr_insn!( B  <-  C  -  (three)    ), make3(      -3_i32,B,C,NoLoad));
+    assert_eq!(tenyr_insn!( B  <-        (three)    ), make3(       3_i32,B,A,NoLoad));
 
     Ok(())
 }
@@ -326,8 +323,7 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
     let make = |ctor : &dyn Fn(InsnGeneral) -> InstructionType, y, op, imm : i8, z, x, dd|
         Instruction { kind : ctor(InsnGeneral { y, op, imm : imm.into() }), z, x, dd };
 
-    let make3 = |imm : i32, z, x, dd|
-        InsnResult::Ok(Instruction { kind : Type3(imm.try_into()?), z, x, dd });
+    let make3 = |imm : i32, z, x, dd| Instruction { kind : Type3(imm.try_into().expect("immediate is too big")), z, x, dd };
 
     let from : Vec<_> = from.collect();
 
@@ -356,12 +352,12 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
         make(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ),
         make(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight),
         make(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ),
-        make3( 0x12345_i32,B,C,NoLoad)?,
-        make3(-0x12345_i32,B,C,NoLoad)?,
-        make3( 0x12345_i32,B,A,NoLoad)?,
-        make3(       3_i32,B,C,NoLoad)?,
-        make3(      -3_i32,B,C,NoLoad)?,
-        make3(       3_i32,B,A,NoLoad)?,
+        make3( 0x12345_i32,B,C,NoLoad),
+        make3(-0x12345_i32,B,C,NoLoad),
+        make3( 0x12345_i32,B,A,NoLoad),
+        make3(       3_i32,B,C,NoLoad),
+        make3(      -3_i32,B,C,NoLoad),
+        make3(       3_i32,B,A,NoLoad),
     ];
 
     assert_eq!(from, to);
