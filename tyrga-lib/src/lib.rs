@@ -275,7 +275,7 @@ fn make_yield(
     kind : JType,
     target_name : &str,
     max_locals : u16,
-) -> GeneralResult<InsnPair> {
+) -> InsnPair {
     use tenyr::MemoryOpType::StoreRight;
     use Register::P;
 
@@ -292,7 +292,7 @@ fn make_yield(
     let ex = tenyr::Immediate::Expr(make_target(target_name));
     v.push(tenyr_insn!( P <- (ex) + P ));
 
-    Ok((v, vec![])) // leaving the method is not a Destination we care about
+    (v, vec![]) // leaving the method is not a Destination we care about
 }
 
 fn make_constant<'a>(
@@ -1038,7 +1038,7 @@ fn make_instructions<'a>(
     let make_jump   = |_sm, target| Ok(make_jump(target, &namer(&target)?));
     let make_noop   = |_sm| vec![tenyr::NOOP_TYPE0];
     let make_branch = |sm, ops, way, target| Ok(make_branch(sm, ops, way, target, &namer(&target)?));
-    let make_yield  = |sm, kind| make_yield(sm, kind, &namer(&"epilogue")?, max_locals);
+    let make_yield  = |sm, kind| Ok(make_yield(sm, kind, &namer(&"epilogue")?, max_locals));
 
     match op {
         Allocation { 0 : details      } => no_branch( make_allocation ( sm, details, gc              )?),
