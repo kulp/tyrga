@@ -233,20 +233,20 @@ fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
     let make3 = |imm : i32, z, x, dd|
         InsnResult::Ok(Instruction { kind : Type3(imm.try_into()?), z, x, dd });
 
-    assert_eq!(tenyr_insn!( B  <-  C  |~ D + 3      ), make(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C >>> D + 3      ), make(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C  +  D + 3      ), make(&Type0,D,Add            , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C  *  D + 3      ), make(&Type0,D,Multiply       , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C  *  D - 3      ), make(&Type0,D,Multiply       ,-3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  |~ D + 3i8    ), make(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C >>> D + 3i8    ), make(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  +  D + 3i8    ), make(&Type0,D,Add            , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  *  D + 3i8    ), make(&Type0,D,Multiply       , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  *  D - 3i8    ), make(&Type0,D,Multiply       ,-3_i8,B,C,NoLoad    ));
     assert_eq!(tenyr_insn!( B  <-  C                ), make(&Type0,A,BitwiseOr      , 0_i8,B,C,NoLoad    ));
     assert_eq!(tenyr_insn!( B  <-  C  +  D          ), make(&Type0,D,Add            , 0_i8,B,C,NoLoad    ));
     assert_eq!(tenyr_insn!( B  <-  C  |~ D          ), make(&Type0,D,BitwiseOrn     , 0_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C  ^^ 3          ), make(&Type1,A,Pack           , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  3  *  C          ), make(&Type2,A,Multiply       , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  3  *  C + D      ), make(&Type2,D,Multiply       , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!([B] <-  3  ^^ C + D      ), make(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ));
-    assert_eq!(tenyr_insn!( B  -> [3  &~ C + D]     ), make(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight));
-    assert_eq!(tenyr_insn!( B  <- [3  @  C + D]     ), make(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ));
+    assert_eq!(tenyr_insn!( B  <-  C  ^^ 3i8        ), make(&Type1,A,Pack           , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  3i8  *  C        ), make(&Type2,A,Multiply       , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  3i8  *  C + D    ), make(&Type2,D,Multiply       , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!([B] <-  3i8  ^^ C + D    ), make(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ));
+    assert_eq!(tenyr_insn!( B  -> [3i8  &~ C + D]   ), make(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight));
+    assert_eq!(tenyr_insn!( B  <- [3i8  @  C + D]   ), make(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ));
     assert_eq!(tenyr_insn!( B  <-  C  |~ D + (three)), make(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ));
     assert_eq!(tenyr_insn!( B  <-  C >>> D + (three)), make(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ));
     assert_eq!(tenyr_insn!( B  <-  C  +  D + (three)), make(&Type0,D,Add            , 3_i8,B,C,NoLoad    ));
@@ -291,20 +291,20 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
     let three = 3;
 
     let from = tenyr_insn_list! {
-         B  <-  C  |~ D + 3      ;
-         B  <-  C >>> D + 3      ;
-         B  <-  C  +  D + 3      ;
-         B  <-  C  *  D + 3      ;
-         B  <-  C  *  D - 3      ;
+         B  <-  C  |~ D + 3i8    ;
+         B  <-  C >>> D + 3i8    ;
+         B  <-  C  +  D + 3i8    ;
+         B  <-  C  *  D + 3i8    ;
+         B  <-  C  *  D - 3i8    ;
          B  <-  C                ;
          B  <-  C  +  D          ;
          B  <-  C  |~ D          ;
-         B  <-  C  ^^ 3          ;
-         B  <-  3  *  C          ;
-         B  <-  3  *  C + D      ;
-        [B] <-  3  ^^ C + D      ;
-         B  -> [3  &~ C + D]     ;
-         B  <- [3  @  C + D]     ;
+         B  <-  C  ^^ 3i8        ;
+         B  <-  3i8  *  C        ;
+         B  <-  3i8  *  C + D    ;
+        [B] <-  3i8  ^^ C + D    ;
+         B  -> [3i8  &~ C + D]   ;
+         B  <- [3i8  @  C + D]   ;
          B  <-  C  |~ D + (three);
          B  <-  C >>> D + (three);
          B  <-  C  +  D + (three);
