@@ -257,9 +257,9 @@ fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(tenyr_insn!([B] <-  (three) ^^ C + D ), make(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ));
     assert_eq!(tenyr_insn!( B  -> [(three) &~ C + D]), make(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight));
     assert_eq!(tenyr_insn!( B  <- [(three) @  C + D]), make(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ));
-    assert_eq!(tenyr_insn!( B  <-  C  +  0x12345    ), make3( 0x12345_i32,B,C,NoLoad)?);
-    assert_eq!(tenyr_insn!( B  <-  C  -  0x12345    ), make3(-0x12345_i32,B,C,NoLoad)?);
-    assert_eq!(tenyr_insn!( B  <-        0x12345    ), make3( 0x12345_i32,B,A,NoLoad)?);
+    assert_eq!(tenyr_insn!( B  <-  C  +  (0x12345)  ), make3( 0x12345_i32,B,C,NoLoad)?);
+    assert_eq!(tenyr_insn!( B  <-  C  -  (0x12345)  ), make3(-0x12345_i32,B,C,NoLoad)?);
+    assert_eq!(tenyr_insn!( B  <-        (0x12345)  ), make3( 0x12345_i32,B,A,NoLoad)?);
     assert_eq!(tenyr_insn!( B  <-  C  +  (three)    ), make3(       3_i32,B,C,NoLoad)?);
     assert_eq!(tenyr_insn!( B  <-  C  -  (three)    ), make3(      -3_i32,B,C,NoLoad)?);
     assert_eq!(tenyr_insn!( B  <-        (three)    ), make3(       3_i32,B,A,NoLoad)?);
@@ -315,9 +315,9 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
         [B] <-  (three) ^^ C + D ;
          B  -> [(three) &~ C + D];
          B  <- [(three) @  C + D];
-         B  <-  C  +  0x12345    ;
-         B  <-  C  -  0x12345    ;
-         B  <-        0x12345    ;
+         B  <-  C  +  (0x12345)  ;
+         B  <-  C  -  (0x12345)  ;
+         B  <-        (0x12345)  ;
          B  <-  C  +  (three)    ;
          B  <-  C  -  (three)    ;
          B  <-        (three)    ;
