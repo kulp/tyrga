@@ -494,7 +494,7 @@ fn make_increment(
     index : u16,
     value : i16,
     max_locals : u16,
-) -> GeneralResult<Vec<Instruction>> {
+) -> Vec<Instruction> {
     use tenyr::MemoryOpType;
 
     let (temp_reg, mut v) = sm.reserve_one();
@@ -504,7 +504,7 @@ fn make_increment(
     v.push(Instruction { dd : MemoryOpType::StoreRight, ..insn });
     v.extend(sm.release(1));
 
-    Ok(v)
+    v
 }
 
 fn make_branch(
@@ -1047,7 +1047,7 @@ fn make_instructions<'a>(
         Compare    { kind, nans       } => no_branch( make_compare    ( sm, kind, nans               )?),
         Constant   { 0 : details      } => no_branch( make_constant   ( sm, gc, details              ) ),
         Conversion { from, to         } => no_branch( make_conversion ( sm, from, to                 )?),
-        Increment  { index, value     } => no_branch( make_increment  ( sm, index, value, max_locals )?),
+        Increment  { index, value     } => no_branch( make_increment  ( sm, index, value, max_locals ) ),
         Invocation { kind, index      } => no_branch( make_invocation ( sm, kind, index, gc          )?),
         Jump       { target           } => branching( make_jump       ( sm, target                   ) ),
         LocalOp    { 0 : op           } => no_branch( make_mem_op     ( sm, op, max_locals           ) ),
