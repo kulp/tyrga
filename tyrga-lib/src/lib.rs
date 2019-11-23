@@ -437,7 +437,7 @@ fn make_arithmetic(
     sm : &mut StackManager,
     kind : JType,
     op : ArithmeticOperation,
-) -> GeneralResult<Vec<Instruction>> {
+) -> Vec<Instruction> {
     let (general_op, bitwise_op) = {
         use tenyr::Opcode::*;
         match op {
@@ -459,10 +459,10 @@ fn make_arithmetic(
         use JType::Int;
 
         match (kind, bitwise_op, general_op, op) {
-            (_  , Some(op), _       , _  ) => Ok(make_bitwise               (sm, kind, op)),
-            (Int, _       , Some(op), _  ) => Ok(make_arithmetic_general    (sm,       op)),
-            (Int, _       , _       , Neg) => Ok(make_negation              (sm          )),
-            (_  , _       , _       , _  ) => Ok(make_arithmetic_call       (sm, kind, op)),
+            (_  , Some(op), _       , _  ) => make_bitwise               (sm, kind, op),
+            (Int, _       , Some(op), _  ) => make_arithmetic_general    (sm,       op),
+            (Int, _       , _       , Neg) => make_negation              (sm          ),
+            (_  , _       , _       , _  ) => make_arithmetic_call       (sm, kind, op),
         }
     }
 }
@@ -1041,7 +1041,7 @@ fn make_instructions<'a>(
 
     match op {
         Allocation { 0 : details      } => no_branch( make_allocation ( sm, details, gc              )?),
-        Arithmetic { kind, op         } => no_branch( make_arithmetic ( sm, kind, op                 )?),
+        Arithmetic { kind, op         } => no_branch( make_arithmetic ( sm, kind, op                 ) ),
         ArrayOp    { 0 : aop          } => no_branch( make_array_op   ( sm, aop                      ) ),
         Branch     { ops, way, target } => branching( make_branch     ( sm, ops, way, target         ) ),
         Compare    { kind, nans       } => no_branch( make_compare    ( sm, kind, nans               )?),
