@@ -405,7 +405,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
                     Iand | Land               => ArithmeticOperation::And,
                     Ior  | Lor                => ArithmeticOperation::Or,
                     Ixor | Lxor               => ArithmeticOperation::Xor,
-                    _ => unreachable!(),
+                    _ => unsafe { std::hint::unreachable_unchecked() }, // impossible to reach
                 };
                 Arithmetic { kind : kind(), op }
             },
@@ -425,7 +425,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
                     I2f | L2f |       D2f => Float,
                     I2d | L2d | F2d       => Double,
 
-                    _ => unreachable!(),
+                    _ => unsafe { std::hint::unreachable_unchecked() }, // impossible to reach
                 };
 
                 Conversion { from : kind(), to }
@@ -452,7 +452,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
                     Ifgt(_) | IfIcmpgt(_)                              => Comparison::Gt,
                     Ifle(_) | IfIcmple(_)                              => Comparison::Le,
 
-                    _ => unreachable!(),
+                    _ => unsafe { std::hint::unreachable_unchecked() }, // impossible to reach
                 };
                 let ops = match insn {
                     Ifeq(_) | Ifne(_) | Iflt(_) | Ifge(_) | Ifgt(_) | Ifle(_)
@@ -462,7 +462,7 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
                         | IfIcmplt(_) | IfIcmpge(_) | IfIcmpgt(_) | IfIcmple(_)
                         | IfAcmpeq(_) | IfAcmpne(_)
                         => OperandCount::Double,
-                    _ => unreachable!(),
+                    _ => unsafe { std::hint::unreachable_unchecked() }, // impossible to reach
                 };
 
                 Branch { way, ops, target }
