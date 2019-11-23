@@ -53,7 +53,7 @@ macro_rules! tenyr_get_op {
 macro_rules! tenyr_imm {
     ( $imm:expr ) => { {
         use std::convert::TryInto;
-        $imm.try_into().map_err::<Box<dyn std::error::Error>,_>(Into::into)?
+        $imm.try_into().expect("immediate too big")
     } };
 }
 
