@@ -128,7 +128,7 @@ fn expand_immediate_load(
 }
 
 #[test]
-fn test_expand() -> GeneralResult<()> {
+fn test_expand() {
     use tenyr::{Instruction, InstructionType, Register};
     use InstructionType::Type0;
     use Register::{A, B, C, D, E, F, G};
@@ -190,11 +190,9 @@ fn test_expand() -> GeneralResult<()> {
         if let Type0(ref g) = vv[0].kind {
             assert_eq!(g.imm, 123_u8.into());
         } else {
-            return Err("wrong type".into());
+            panic!("wrong type");
         }
     }
-
-    Ok(())
 }
 
 type InsnPair = (Vec<Instruction>, Vec<Destination>);
