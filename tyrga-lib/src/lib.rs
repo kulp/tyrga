@@ -213,11 +213,11 @@ fn make_int_branch(
     invert : bool,
     target : u16,
     target_name : &str,
-    mut comp : impl FnMut(&mut StackManager) -> GeneralResult<(Register, Vec<Instruction>)>,
+    mut comp : impl FnMut(&mut StackManager) -> (Register, Vec<Instruction>),
 ) -> GeneralResult<InsnPair> {
     use Register::P;
 
-    let (temp_reg, sequence) = comp(sm)?;
+    let (temp_reg, sequence) = comp(sm);
     let imm = tenyr::Immediate::Expr(make_target(target_name));
     let branch =
         if invert   { tenyr_insn!(   P <- (imm) &~ temp_reg + P     ) }
@@ -550,7 +550,7 @@ fn make_branch(
             x : lhs,
             dd : MemoryOpType::NoLoad,
         });
-        Ok((temp_reg, v))
+        (temp_reg, v)
     })
 }
 
@@ -567,7 +567,7 @@ fn make_switch_lookup(
 
     let make = |(imm, target)|
         make_int_branch(sm, false, there(target), &namer(&there(target))?,
-            |sm| Ok((temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0i8), imm))));
+            |sm| (temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0i8), imm)));
 
     pairs
         .into_iter()
@@ -614,7 +614,7 @@ fn make_switch_table(
                 dd : MemoryOpType::NoLoad,
             };
             let insns = expand_immediate_load(sm, insn, imm);
-            Ok((temp_reg, insns))
+            (temp_reg, insns)
         }
     };
 
