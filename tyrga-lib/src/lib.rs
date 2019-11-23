@@ -837,7 +837,7 @@ fn make_allocation<'a>(
                             v.push(tenyr_insn!( top <- top + top ));
                             v
                         },
-                        _ => panic!("impossible size"),
+                        _ => unreachable!("impossible size"),
                     };
                     let descriptor = "(I)Ljava.lang.Object;";
                     let name = make_builtin_name("alloc", descriptor);
