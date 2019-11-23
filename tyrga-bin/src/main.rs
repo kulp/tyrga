@@ -19,16 +19,22 @@ fn translate_file(input_filename : &Path, output_filename : &Path) -> Terminatin
 #[test]
 fn test_translate_file() -> TerminatingResult {
     let is_dir_or_class = |e : &walkdir::DirEntry| {
-        e.metadata().map(|e| e.is_dir()).unwrap_or(false) ||
-            e.file_name().to_str().map(|s| s.ends_with(".class")).unwrap_or(false)
+        e.metadata().map(|e| e.is_dir()).unwrap_or(false)
+            || e.file_name()
+                .to_str()
+                .map(|s| s.ends_with(".class"))
+                .unwrap_or(false)
     };
-    for from in walkdir::WalkDir::new(env!("OUT_DIR")).into_iter().filter_entry(is_dir_or_class) {
+    for from in walkdir::WalkDir::new(env!("OUT_DIR"))
+        .into_iter()
+        .filter_entry(is_dir_or_class)
+    {
         let from = from?;
         let from = from.path();
-        if ! from.metadata()?.is_dir() {
+        if !from.metadata()?.is_dir() {
             use std::io::Read;
 
-            let to   = from.with_extension("tas-test");
+            let to = from.with_extension("tas-test");
             let gold = from.with_extension("tas");
             translate_file(from, &to)?;
 
@@ -50,45 +56,50 @@ fn test_translate_file() -> TerminatingResult {
 fn main() -> TerminatingResult {
     use clap::*;
 
-    let m =
-        app_from_crate!()
-            .subcommand(
-                SubCommand::with_name("translate")
-                    .about("Translates JVM .class files into tenyr .tas assembly files")
-                    .arg(Arg::with_name("output")
-                            .short("o")
-                            .long("output")
-                            .help("Specifies the output file name")
-                            .takes_value(true)
-                        )
-                    .arg(Arg::with_name("classes")
-                            .help("Names .class files as input")
-                            .multiple(true)
-                            .required(true)
-                        )
+    let m = app_from_crate!()
+        .subcommand(
+            SubCommand::with_name("translate")
+                .about("Translates JVM .class files into tenyr .tas assembly files")
+                .arg(
+                    Arg::with_name("output")
+                        .short("o")
+                        .long("output")
+                        .help("Specifies the output file name")
+                        .takes_value(true),
                 )
-            .subcommand(
-                SubCommand::with_name("mangle")
-                    .about("Mangles strings of bytes into valid tenyr symbols")
-                    .arg(Arg::with_name("strings")
-                            .help("Provides string inputs for mangling")
-                            .multiple(true)
-                            .required(true)
-                        )
-                )
-            .subcommand(
-                SubCommand::with_name("demangle")
-                    .about("Decodes mangled tenyr symbols into strings")
-                    .arg(Arg::with_name("strings")
-                            .help("Provides string inputs for demangling")
-                            .multiple(true)
-                            .required(true)
-                        )
-                )
-            .get_matches();
+                .arg(
+                    Arg::with_name("classes")
+                        .help("Names .class files as input")
+                        .multiple(true)
+                        .required(true),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("mangle")
+                .about("Mangles strings of bytes into valid tenyr symbols")
+                .arg(
+                    Arg::with_name("strings")
+                        .help("Provides string inputs for mangling")
+                        .multiple(true)
+                        .required(true),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("demangle")
+                .about("Decodes mangled tenyr symbols into strings")
+                .arg(
+                    Arg::with_name("strings")
+                        .help("Provides string inputs for demangling")
+                        .multiple(true)
+                        .required(true),
+                ),
+        )
+        .get_matches();
 
     if let Some(m) = m.subcommand_matches("translate") {
-        let ins = m.values_of("classes").ok_or("expected at least one input file")?;
+        let ins = m
+            .values_of("classes")
+            .ok_or("expected at least one input file")?;
         let user_out = m.value_of("output");
         if user_out.is_some() && ins.len() > 1 {
             return Err("The `-o,--output` flag is incompatible with multiple input files".into());
@@ -106,11 +117,17 @@ fn main() -> TerminatingResult {
             translate_file(file, out)?;
         }
     } else if let Some(m) = m.subcommand_matches("mangle") {
-        for string in m.values_of("strings").ok_or("expected at least one string to mangle")? {
+        for string in m
+            .values_of("strings")
+            .ok_or("expected at least one string to mangle")?
+        {
             println!("{}", tyrga::mangling::mangle(string.bytes()));
         }
     } else if let Some(m) = m.subcommand_matches("demangle") {
-        for string in m.values_of("strings").ok_or("expected at least one string to mangle")? {
+        for string in m
+            .values_of("strings")
+            .ok_or("expected at least one string to mangle")?
+        {
             let de = tyrga::mangling::demangle(string)?;
             let st = String::from_utf8(de)?;
             println!("{}", st);

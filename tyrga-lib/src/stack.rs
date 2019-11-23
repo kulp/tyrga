@@ -92,17 +92,34 @@ impl Manager {
         let reg = |off| self.regs[usize::from(off % self.register_count)];
         let mover = |dd, base| {
             move |offset| {
-                let off = (n.abs() - i32::from(offset) + i32::from(base)).try_into().expect("immediate value is too large");
-                Instruction { dd, z : reg(offset), x : sp, kind : Type3(off) }
+                let off = (n.abs() - i32::from(offset) + i32::from(base))
+                    .try_into()
+                    .expect("immediate value is too large");
+                Instruction {
+                    dd,
+                    z : reg(offset),
+                    x : sp,
+                    kind : Type3(off),
+                }
             }
         };
         let off = n.try_into().expect("immediate value is too large");
-        let update = std::iter::once(Instruction { dd : NoLoad, z : sp, x : sp, kind : Type3(off) });
+        let update = std::iter::once(Instruction {
+            dd :   NoLoad,
+            z :    sp,
+            x :    sp,
+            kind : Type3(off),
+        });
 
         if n < 0 {
-            update.chain((spilled_before..spilled_after).map(mover(StoreRight, spilled_before))).collect()
+            update
+                .chain((spilled_before..spilled_after).map(mover(StoreRight, spilled_before)))
+                .collect()
         } else if n > 0 {
-            (spilled_after..spilled_before).map(mover(LoadRight, spilled_after)).chain(update).collect()
+            (spilled_after..spilled_before)
+                .map(mover(LoadRight, spilled_after))
+                .chain(update)
+                .collect()
         } else {
             std::iter::empty().collect()
         }
@@ -192,11 +209,10 @@ impl Manager {
                 x : from,
                 ..crate::tenyr::NOOP_TYPE0
             };
-            let v =
-                std::iter::empty()
-                    .chain(to_actions)
-                    .chain(std::iter::once(insn))
-                    .collect();
+            let v = std::iter::empty()
+                .chain(to_actions)
+                .chain(std::iter::once(insn))
+                .collect();
             (to, v)
         } else {
             use crate::tenyr::InstructionType::Type3;
@@ -208,17 +224,16 @@ impl Manager {
             // add one since stack pointer points to empty slot
             let offset = n + 1 + 1 - self.pick_point;
             let insn = Instruction {
-                z : to,
-                x : self.get_stack_ptr(),
-                dd : LoadRight,
+                z :    to,
+                x :    self.get_stack_ptr(),
+                dd :   LoadRight,
                 kind : Type3(offset.into()),
             };
 
-            let v =
-                std::iter::empty()
-                    .chain(to_actions)
-                    .chain(std::iter::once(insn))
-                    .collect();
+            let v = std::iter::empty()
+                .chain(to_actions)
+                .chain(std::iter::once(insn))
+                .collect();
             (to, v)
         }
     }
@@ -229,9 +244,14 @@ impl Manager {
     /// returns an Instruction that sets a given register to the address of the
     /// nth element on the operand stack, regardless of the number of spilled
     /// slots
-    pub fn get_frame_offset(&self, reg : crate::tenyr::Register, n : i32) -> crate::tenyr::Instruction {
+    pub fn get_frame_offset(
+        &self,
+        reg : crate::tenyr::Register,
+        n : i32,
+    ) -> crate::tenyr::Instruction {
         let off = i32::from(self.spilled_count()) - n;
-        let kind = crate::tenyr::InstructionType::Type3(off.try_into().expect("immediate too large"));
+        let kind =
+            crate::tenyr::InstructionType::Type3(off.try_into().expect("immediate too large"));
         crate::tenyr::Instruction {
             dd : crate::tenyr::MemoryOpType::NoLoad,
             z : reg,

@@ -1,8 +1,8 @@
 #![allow(unused_macros)]
 
 use std::convert::TryFrom;
-use std::fmt::{Display, Formatter};
 use std::fmt;
+use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
 use crate::exprtree;

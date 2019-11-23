@@ -28,6 +28,7 @@ impl JType {
 
 impl TryFrom<JType> for char {
     type Error = &'static str;
+    #[rustfmt::skip]
     fn try_from(t : JType) -> Result<Self, Self::Error> {
         use JType::*;
         match t {
@@ -151,8 +152,16 @@ pub enum InvokeKind {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum SwitchParams {
-    Lookup { default : i32, pairs : Vec<(i32, i32)> },
-    Table  { default : i32, low : i32, high : i32, offsets : Vec<i32> },
+    Lookup {
+        default : i32,
+        pairs :   Vec<(i32, i32)>,
+    },
+    Table {
+        default : i32,
+        low :     i32,
+        high :    i32,
+        offsets : Vec<i32>,
+    },
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -165,7 +174,7 @@ pub type ArrayKind = Indirection<JType>;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct ExplicitConstant {
-    pub kind : JType,
+    pub kind :  JType,
     pub value : i16,
 }
 
@@ -184,11 +193,12 @@ pub enum ArrayOperation {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum LocalOperation {
-    Load  { kind : JType, index : u16 },
+    Load { kind : JType, index : u16 },
     Store { kind : JType, index : u16 },
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[rustfmt::skip]
 pub enum Operation {
     Allocation  (AllocationKind),
     Arithmetic  { kind : JType, op : ArithmeticOperation },
@@ -215,6 +225,7 @@ trait OperandType {
 }
 
 impl OperandType for Instruction {
+    #[rustfmt::skip]
     fn get_operand_type(&self) -> Option<JType> {
         use Instruction::*;
         use JType::*;
@@ -279,19 +290,22 @@ impl OperandType for Instruction {
 // returns any Operation parsed and the number of bytes consumed
 pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
     use AllocationKind::*;
-    use JType::*;
     use Indirection::*;
     use Instruction::*;
+    use JType::*;
     use Operation::*;
     use SwitchParams::*;
 
     let (addr, insn) = insn;
 
-    let make_constant = |kind, value|
-        Constant(Explicit(ExplicitConstant { kind, value }));
+    let make_constant = |kind, value| Constant(Explicit(ExplicitConstant { kind, value }));
 
-    let kind = || insn.get_operand_type().expect("kind must be valid but is not");
+    let kind = || {
+        insn.get_operand_type()
+            .expect("kind must be valid but is not")
+    };
 
+    #[rustfmt::skip]
     let op = match insn {
         Nop => Noop,
 
@@ -503,4 +517,3 @@ pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
 
     (addr, op)
 }
-
