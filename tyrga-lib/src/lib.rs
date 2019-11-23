@@ -720,7 +720,7 @@ fn make_invocation_virtual(
     sm : &mut StackManager,
     descriptor : &str,
     method_name : impl Manglable,
-) -> GeneralResult<Vec<Instruction>> {
+) -> Vec<Instruction> {
     use tenyr::Immediate20;
     use Register::P;
 
@@ -749,7 +749,7 @@ fn make_invocation_virtual(
 
     insns.extend(sm.thaw(count_returns(descriptor).into()));
 
-    Ok(insns)
+    insns
 }
 
 fn make_invocation<'a>(
@@ -792,7 +792,7 @@ fn make_invocation<'a>(
                     }
                 }
 
-                make_invocation_virtual(sm, &descriptor, gc.contextualize(mr))
+                Ok(make_invocation_virtual(sm, &descriptor, gc.contextualize(mr)))
             } else {
                 Err("bad constant kind".into())
             }
