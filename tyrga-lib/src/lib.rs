@@ -513,7 +513,7 @@ fn make_branch(
     way : Comparison,
     target : u16,
     target_name : &str,
-) -> GeneralResult<InsnPair> {
+) -> InsnPair {
     use tenyr::*;
 
     let (op, swap) = match way {
@@ -526,7 +526,7 @@ fn make_branch(
     };
     let invert = way == jvmtypes::Comparison::Ne;
 
-    Ok(make_int_branch(sm, invert, target, target_name, |sm| {
+    make_int_branch(sm, invert, target, target_name, |sm| {
         use OperandCount::{Single, Double};
 
         let mut v = Vec::new();
@@ -551,7 +551,7 @@ fn make_branch(
             dd : MemoryOpType::NoLoad,
         });
         (temp_reg, v)
-    }))
+    })
 }
 
 fn make_switch_lookup(
@@ -1039,7 +1039,7 @@ fn make_instructions<'a>(
 
     let make_jump   = |_sm, target| Ok(make_jump(target, &namer(&target)?));
     let make_noop   = |_sm| vec![tenyr::NOOP_TYPE0];
-    let make_branch = |sm, ops, way, target| make_branch(sm, ops, way, target, &namer(&target)?);
+    let make_branch = |sm, ops, way, target| Ok(make_branch(sm, ops, way, target, &namer(&target)?));
     let make_yield  = |sm, kind| make_yield(sm, kind, &namer(&"epilogue")?, max_locals);
 
     match op {
