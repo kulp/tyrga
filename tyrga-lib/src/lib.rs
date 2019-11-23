@@ -888,7 +888,7 @@ fn make_conversion(
     sm : &mut StackManager,
     from : JType,
     to : JType,
-) -> GeneralResult<Vec<Instruction>> {
+) -> Vec<Instruction> {
     use std::convert::TryInto;
     use tenyr::InsnGeneral;
     use tenyr::InstructionType::Type1;
@@ -909,7 +909,7 @@ fn make_conversion(
 
             insns.push(make_insn(make_kind(ShiftLeft, amount.into())));
             insns.push(make_insn(make_kind(op       , amount.into())));
-            Ok(insns)
+            insns
         },
         (Int, Long) => {
             let (low, get_actions) = sm.get(0);
@@ -920,19 +920,18 @@ fn make_conversion(
                 low <- top @ 31u8   ;
             );
 
-            let insns = std::iter::empty()
+            std::iter::empty()
                 .chain(get_actions)
                 .chain(get_second)
                 .chain(moves)
-                .collect();
-            Ok(insns)
+                .collect()
         },
         _ => {
             let ch_from : char = from.try_into().expect("invalid char kind");
             let ch_to   : char = to  .try_into().expect("invalid char kind");
             let name = format!("into_{}", ch_to); // TODO improve naming
             let desc = format!("({}){}", ch_from, ch_to);
-            Ok(make_call(sm, &make_builtin_name(&name, &desc), &desc))
+            make_call(sm, &make_builtin_name(&name, &desc), &desc)
         },
     }
 }
@@ -1046,7 +1045,7 @@ fn make_instructions<'a>(
         Branch     { ops, way, target } => branching( make_branch     ( sm, ops, way, target         ) ),
         Compare    { kind, nans       } => no_branch( make_compare    ( sm, kind, nans               ) ),
         Constant   { 0 : details      } => no_branch( make_constant   ( sm, gc, details              ) ),
-        Conversion { from, to         } => no_branch( make_conversion ( sm, from, to                 )?),
+        Conversion { from, to         } => no_branch( make_conversion ( sm, from, to                 ) ),
         Increment  { index, value     } => no_branch( make_increment  ( sm, index, value, max_locals ) ),
         Invocation { kind, index      } => no_branch( make_invocation ( sm, kind, index, gc          )?),
         Jump       { target           } => branching( make_jump       ( sm, target                   ) ),
