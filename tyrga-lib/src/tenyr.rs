@@ -71,6 +71,7 @@ macro_rules! tenyr_type013 {
         }
     };
     ( $opname:ident $imm:literal $( + $y:ident )? ) => {
+        #[allow(clippy::needless_update)]
         $crate::tenyr::Instruction {
             kind : $crate::tenyr::InstructionType::Type1(InsnGeneral {
                 $( y : $y, )?
@@ -82,6 +83,7 @@ macro_rules! tenyr_type013 {
         }
     };
     ( $opname:ident $( $y:ident $( + ( $imm:expr ) )? )? ) => {
+        #[allow(clippy::needless_update)]
         $crate::tenyr::Instruction {
             kind : $crate::tenyr::InstructionType::Type0(InsnGeneral {
                 $( y : $y, $( imm : tenyr_imm!($imm), )? )?
@@ -92,6 +94,7 @@ macro_rules! tenyr_type013 {
         }
     };
     ( $opname:ident $( $y:ident $( + $imm:literal )? )? ) => {
+        #[allow(clippy::needless_update)]
         $crate::tenyr::Instruction {
             kind : $crate::tenyr::InstructionType::Type0(InsnGeneral {
                 $( y : $y, $( imm : $imm.into(), )? )?
@@ -112,6 +115,7 @@ macro_rules! tenyr_type013 {
         }
     };
     ( $opname:ident $( $y:ident $( - $imm:literal )? )? ) => {
+        #[allow(clippy::needless_update)]
         $crate::tenyr::Instruction {
             kind : $crate::tenyr::InstructionType::Type0(InsnGeneral {
                 $( y : $y, $( imm : (-$imm).into(), )? )?
