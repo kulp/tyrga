@@ -841,8 +841,7 @@ fn make_allocation<'a>(
                     };
                     let descriptor = "(I)Ljava.lang.Object;";
                     let name = make_builtin_name("alloc", descriptor);
-                    let v = make_call(sm, &name, descriptor);
-                    pre.extend(v);
+                    pre.extend(make_call(sm, &name, descriptor));
                     Ok(pre)
                 },
                 (Indirect(_index), _) => unimplemented!(),
@@ -881,8 +880,7 @@ fn make_compare(
     v.push(tenyr_insn!( gc <- (n) ));
 
     let desc = format!("({}{}I)I", ch, ch);
-    let insns = make_call(sm, &make_builtin_name("cmp", &desc), &desc);
-    v.extend(insns);
+    v.extend(make_call(sm, &make_builtin_name("cmp", &desc), &desc));
     Ok(v)
 }
 
