@@ -325,19 +325,19 @@ mod test {
 
                 let act = man.reserve(3);
                 let exp : Vec<_> = tenyr_insn_list!(
-                    sp  <-  sp - 3  ;
-                    top -> [sp + 3] ;
-                    sec -> [sp + 2] ;
-                    thr -> [sp + 1] ;
+                    sp  <-  sp - 3i8    ;
+                    top -> [sp + 3i8]   ;
+                    sec -> [sp + 2i8]   ;
+                    thr -> [sp + 1i8]   ;
                 ).collect();
                 assert_eq!(act, exp);
 
                 let act = man.release(3);
                 let exp : Vec<_> = tenyr_insn_list!(
-                    top <- [sp + 3] ;
-                    sec <- [sp + 2] ;
-                    thr <- [sp + 1] ;
-                    sp  <-  sp + 3  ;
+                    top <- [sp + 3i8]   ;
+                    sec <- [sp + 2i8]   ;
+                    thr <- [sp + 1i8]   ;
+                    sp  <-  sp + 3i8    ;
                 ).collect();
                 assert_eq!(act, exp);
 
@@ -429,17 +429,17 @@ mod test {
                 let _  = man.reserve(n - 1);
                 let act = man.reserve(1);
                 assert_eq!(act.len(), 2);
-                assert_eq!(act[0], tenyr_insn!( sp <- sp - 1 ));
+                assert_eq!(act[0], tenyr_insn!( sp <- sp - 1i8 ));
                 assert_eq!(act[1].kind, Type3(1_i16.into()));
 
                 let act = man.reserve(1);
                 assert_eq!(act.len(), 2);
-                assert_eq!(act[0], tenyr_insn!( sp <- sp - 1 ));
+                assert_eq!(act[0], tenyr_insn!( sp <- sp - 1i8 ));
                 assert_eq!(act[1].kind, Type3(1_i16.into()));
 
                 let act = man.reserve(1);
                 assert_eq!(act.len(), 2);
-                assert_eq!(act[0], tenyr_insn!( sp <- sp - 1 ));
+                assert_eq!(act[0], tenyr_insn!( sp <- sp - 1i8 ));
                 assert_eq!(act[1].kind, Type3(1_i16.into()));
 
                 Ok(())
