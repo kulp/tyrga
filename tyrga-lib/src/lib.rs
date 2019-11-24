@@ -560,24 +560,23 @@ fn make_switch_lookup(
     there : impl Fn(i32) -> u16,
     default : i32,
     pairs : Vec<(i32, i32)>,
-) -> GeneralResult<InsnPair> {
+) -> InsnPair {
     let (top, mut insns) = sm.get(0);
     let (temp_reg, gets) = sm.reserve_one(); // need a persistent temporary
     insns.extend(gets);
 
     let make = |(imm, target)|
-        GeneralResult::Ok(make_int_branch(sm, false, there(target), &namer(&there(target)),
-            |sm| (temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0i8), imm))));
+        make_int_branch(sm, false, there(target), &namer(&there(target)),
+            |sm| (temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0i8), imm)));
 
     pairs
         .into_iter()
         .map(make)
-        .chain(std::iter::once(Ok(make_jump(there(default), &namer(&there(default))))))
-        .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
-            let (i, d) = tup?;
+        .chain(std::iter::once(make_jump(there(default), &namer(&there(default)))))
+        .fold((insns, Vec::new()), |(mut insns, mut dests), (i, d)| {
             insns.extend(i);
             dests.extend(d);
-            Ok((insns, dests))
+            (insns, dests)
         })
 }
 
@@ -654,7 +653,7 @@ fn make_switch(
 
     match params {
         Lookup { default, pairs } =>
-            make_switch_lookup(sm, namer, there, default, pairs),
+            Ok(make_switch_lookup(sm, namer, there, default, pairs)),
         Table { default, low, high, offsets } =>
             make_switch_table(sm, namer, there, default, low, high, offsets),
     }
