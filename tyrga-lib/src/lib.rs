@@ -645,16 +645,16 @@ fn make_switch(
     params : SwitchParams,
     namer : impl Fn(&dyn Display) -> String,
     addr : usize,
-) -> GeneralResult<InsnPair> {
+) -> InsnPair {
     use jvmtypes::SwitchParams::{Lookup, Table};
 
     let there = |x| (x + (addr as i32)) as u16;
 
     match params {
         Lookup { default, pairs } =>
-            Ok(make_switch_lookup(sm, namer, there, default, pairs)),
+            make_switch_lookup(sm, namer, there, default, pairs),
         Table { default, low, high, offsets } =>
-            Ok(make_switch_table(sm, namer, there, default, low, high, offsets)),
+            make_switch_table(sm, namer, there, default, low, high, offsets),
     }
 }
 
@@ -1035,6 +1035,7 @@ fn make_instructions<'a>(
     let make_noop   = |_sm| vec![tenyr::NOOP_TYPE0];
     let make_branch = |sm, ops, way, target| Ok(make_branch(sm, ops, way, target, &namer(&target)));
     let make_yield  = |sm, kind| Ok(make_yield(sm, kind, &namer(&"epilogue"), max_locals));
+    let make_switch = |sm, params, namer, addr| Ok(make_switch(sm, params, namer, addr));
 
     match op {
         Allocation { 0 : details      } => no_branch( make_allocation ( sm, details, gc              )?),
