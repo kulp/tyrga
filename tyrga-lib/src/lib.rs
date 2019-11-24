@@ -556,7 +556,7 @@ fn make_branch(
 
 fn make_switch_lookup(
     sm : &mut StackManager,
-    namer : impl Fn(&dyn Display) -> GeneralResult<String>,
+    namer : impl Fn(&dyn Display) -> String,
     there : impl Fn(i32) -> u16,
     default : i32,
     pairs : Vec<(i32, i32)>,
@@ -566,13 +566,13 @@ fn make_switch_lookup(
     insns.extend(gets);
 
     let make = |(imm, target)|
-        GeneralResult::Ok(make_int_branch(sm, false, there(target), &namer(&there(target))?,
+        GeneralResult::Ok(make_int_branch(sm, false, there(target), &namer(&there(target)),
             |sm| (temp_reg, expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0i8), imm))));
 
     pairs
         .into_iter()
         .map(make)
-        .chain(std::iter::once(Ok(make_jump(there(default), &namer(&there(default))?))))
+        .chain(std::iter::once(Ok(make_jump(there(default), &namer(&there(default))))))
         .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
             let (i, d) = tup?;
             insns.extend(i);
@@ -583,7 +583,7 @@ fn make_switch_lookup(
 
 fn make_switch_table(
     sm : &mut StackManager,
-    namer : impl Fn(&dyn Display) -> GeneralResult<String>,
+    namer : impl Fn(&dyn Display) -> String,
     there : impl Fn(i32) -> u16,
     default : i32,
     low : i32,
@@ -619,14 +619,14 @@ fn make_switch_table(
     };
 
     let mut default_maker = |maker|
-        GeneralResult::Ok(make_int_branch(sm, false, there(default), &namer(&there(default))?, maker));
+        GeneralResult::Ok(make_int_branch(sm, false, there(default), &namer(&there(default)), maker));
 
     let insn = {
         use Register::P;
         tenyr_insn!( P <- top - 0i8 + P )
     };
 
-    let offsets = offsets.into_iter().map(|far| Ok(make_jump(there(far), &namer(&there(far))?)));
+    let offsets = offsets.into_iter().map(|far| Ok(make_jump(there(far), &namer(&there(far)))));
 
     std::iter::empty()
         .chain(once(default_maker(maker(&Type1, low))))
@@ -645,7 +645,7 @@ fn make_switch_table(
 fn make_switch(
     sm : &mut StackManager,
     params : SwitchParams,
-    namer : impl Fn(&dyn Display) -> GeneralResult<String>,
+    namer : impl Fn(&dyn Display) -> String,
     addr : usize,
 ) -> GeneralResult<InsnPair> {
     use jvmtypes::SwitchParams::{Lookup, Table};
@@ -1019,7 +1019,7 @@ fn make_varaction<'a>(
 fn make_instructions<'a>(
     sm : &mut StackManager,
     (addr, op) : (usize, Operation),
-    namer : impl Fn(&dyn Display) -> GeneralResult<String>,
+    namer : impl Fn(&dyn Display) -> String,
     gc : impl Contextualizer<'a>,
     max_locals : u16,
 ) -> GeneralResult<InsnPair> {
@@ -1033,10 +1033,10 @@ fn make_instructions<'a>(
     let branching = |x| x;
     let no_branch = |x| Ok((x, vec![Destination::Successor]));
 
-    let make_jump   = |_sm, target| Ok(make_jump(target, &namer(&target)?));
+    let make_jump   = |_sm, target| Ok(make_jump(target, &namer(&target)));
     let make_noop   = |_sm| vec![tenyr::NOOP_TYPE0];
-    let make_branch = |sm, ops, way, target| Ok(make_branch(sm, ops, way, target, &namer(&target)?));
-    let make_yield  = |sm, kind| Ok(make_yield(sm, kind, &namer(&"epilogue")?, max_locals));
+    let make_branch = |sm, ops, way, target| Ok(make_branch(sm, ops, way, target, &namer(&target)));
+    let make_yield  = |sm, kind| Ok(make_yield(sm, kind, &namer(&"epilogue"), max_locals));
 
     match op {
         Allocation { 0 : details      } => no_branch( make_allocation ( sm, details, gc              )?),
@@ -1079,7 +1079,7 @@ fn test_make_instruction() -> GeneralResult<()> {
 
     let mut sm = StackManager::new(STACK_REGS);
     let op = Operation::Constant(Explicit(ExplicitConstant { kind : JType::Int, value : 5 }));
-    let namer = |x : &dyn Display| Ok(format!("{}:{}", "test", x.to_string()));
+    let namer = |x : &dyn Display| format!("{}:{}", "test", x.to_string());
     let insn = make_instructions(&mut sm, (0, op), namer, Useless, 0)?;
     let imm = 5_u8.into();
     let rhs = Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad };
@@ -1379,7 +1379,7 @@ fn make_blocks_for_method<'a, 'b>(
             ops .range(which.clone())
                 // TODO obviate clone by doing .remove() (no .drain on BTreeMap ?)
                 .map(|(&u, o)| (u, o.clone()))
-                .map(|x| make_instructions(&mut sm, x, |y| Ok(make_label(class, method, y)), class, max_locals))
+                .map(|x| make_instructions(&mut sm, x, |y| make_label(class, method, y), class, max_locals))
                 .collect();
         let (bb, ee) = make_basic_block(class, method, block?, which);
         let mut out = Vec::new();
