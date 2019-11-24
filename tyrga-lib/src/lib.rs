@@ -588,7 +588,7 @@ fn make_switch_table(
     low : i32,
     high : i32,
     offsets : Vec<i32>,
-) -> GeneralResult<InsnPair> {
+) -> InsnPair {
     use std::iter::once;
     use tenyr::InstructionType::{Type1, Type2};
     use tenyr::*;
@@ -618,26 +618,25 @@ fn make_switch_table(
     };
 
     let mut default_maker = |maker|
-        GeneralResult::Ok(make_int_branch(sm, false, there(default), &namer(&there(default)), maker));
+        make_int_branch(sm, false, there(default), &namer(&there(default)), maker);
 
     let insn = {
         use Register::P;
         tenyr_insn!( P <- top - 0i8 + P )
     };
 
-    let offsets = offsets.into_iter().map(|far| Ok(make_jump(there(far), &namer(&there(far)))));
+    let offsets = offsets.into_iter().map(|far| make_jump(there(far), &namer(&there(far))));
 
     std::iter::empty()
         .chain(once(default_maker(maker(&Type1, low))))
         .chain(once(default_maker(maker(&Type2, high))))
-        .chain(once(Ok((expand_immediate_load(sm, insn, low), vec![]))))
+        .chain(once((expand_immediate_load(sm, insn, low), vec![])))
         .chain(offsets)
-        .chain(once(Ok((sm.release(1), vec![])))) // release temporary
-        .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
-            let (i, d) = tup?;
+        .chain(once((sm.release(1), vec![]))) // release temporary
+        .fold((insns, Vec::new()), |(mut insns, mut dests), (i, d)| {
             insns.extend(i);
             dests.extend(d);
-            Ok((insns, dests))
+            (insns, dests)
         })
 }
 
@@ -655,7 +654,7 @@ fn make_switch(
         Lookup { default, pairs } =>
             Ok(make_switch_lookup(sm, namer, there, default, pairs)),
         Table { default, low, high, offsets } =>
-            make_switch_table(sm, namer, there, default, low, high, offsets),
+            Ok(make_switch_table(sm, namer, there, default, low, high, offsets)),
     }
 }
 
