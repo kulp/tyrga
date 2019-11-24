@@ -48,8 +48,6 @@ use util::{Context, Contextualizer, Manglable};
 
 type StackManager = stack::Manager;
 
-pub type GeneralResult<T> = Result<T, Box<dyn Error>>;
-
 const STACK_REGS : &[Register] = {
     use Register::*;
     &[B, C, D, E, F, G, H, I, J, K, L, M, N, O]
@@ -1060,7 +1058,7 @@ fn make_instructions<'a>(
 }
 
 #[test]
-fn test_make_instruction() -> GeneralResult<()> {
+fn test_make_instruction() -> Result<(), Box<dyn Error>> {
     use classfile_parser::constant_info::ConstantInfo;
     use classfile_parser::constant_info::ConstantInfo::Unusable;
     use jvmtypes::Indirection::Explicit;
@@ -1404,14 +1402,14 @@ fn make_blocks_for_method<'a, 'b>(
 }
 
 #[test]
-fn test_parse_classes() -> GeneralResult<()> {
-    fn parse_class(path : &std::path::Path) -> GeneralResult<ClassFile> {
+fn test_parse_classes() -> Result<(), Box<dyn Error>> {
+    fn parse_class(path : &std::path::Path) -> Result<ClassFile, Box<dyn Error>> {
         let p = path.with_extension("");
         let p = p.to_str().ok_or("bad path")?;
         classfile_parser::parse_class(p).map_err(Into::into)
     }
 
-    fn test_stack_map_table(path : &std::path::Path) -> GeneralResult<()> {
+    fn test_stack_map_table(path : &std::path::Path) -> Result<(), Box<dyn Error>> {
         let class = parse_class(path)?;
         let methods = class.methods.iter();
         for method in methods.filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
@@ -1540,7 +1538,7 @@ fn test_count_returns_panic() {
 fn translate_method<'a, 'b>(
         class : &'a Context<'b, &'b ClassConstant>,
         method : &'a Context<'b, &'b MethodInfo>,
-    ) -> GeneralResult<Method>
+    ) -> Result<Method, &'static str>
 {
     let mr = method.as_ref();
     let total_locals = get_method_code(mr)?.max_locals;
@@ -1634,15 +1632,14 @@ fn write_field_list(
     selector : impl Fn(&&FieldInfo) -> bool,
     generator : impl Fn(&mut dyn Write, &str, usize, usize, usize) -> std::io::Result<()>,
 ) -> std::io::Result<()> {
-    let tuples = fields.iter().filter(selector).map(|f| {
+    let tuples : Vec<_> = fields.iter().filter(selector).map(|f| {
         let s = class.get_string(f.descriptor_index).ok_or("missing descriptor")?;
         let desc = s.chars().next().ok_or("empty descriptor")?;
         let size = args::field_size(desc)?.into();
         let name = mangle(&[ class, &class.contextualize(f), &suff ]);
-        Ok((size, f, name))
-    });
+        Ok((size, f, name)) as Result<(_, _, String), &'static str>
+    }).flat_map(Result::into_iter).collect();
 
-    let tuples : Vec<_> = tuples.flat_map(GeneralResult::into_iter).collect();
     let sums = tuples.iter().scan(0, |off, tup| { let old = *off; *off += tup.0; Some(old) });
     let width = tuples.iter().map(|t| t.2.len()).fold(0, usize::max);
 
@@ -1657,7 +1654,7 @@ fn write_field_list(
 }
 
 /// Emits tenyr assembly language corresponding to the given input class.
-pub fn translate_class(class : ClassFile, outfile : &mut dyn Write) -> GeneralResult<()> {
+pub fn translate_class(class : ClassFile, outfile : &mut dyn Write) -> Result<(), Box<dyn Error>> {
     if class.major_version < 50 {
         return Err("need classfile version ≥50.0 for StackMapTable attributes".into());
     }
