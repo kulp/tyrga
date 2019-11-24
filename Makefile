@@ -1,7 +1,7 @@
 # ensure Java 8 support, which implies StackMapTable
-JAVAFLAGS += -target 1.8 -source 1.8
+JAVACFLAGS += -target 1.8 -source 1.8
 # avoid generating unused debugging information
-JAVAFLAGS += -g:none
+JAVACFLAGS += -g:none
 
 JAVAC ?= javac
 TAS ?= tas
@@ -26,7 +26,7 @@ classes: $(ALL_JAVA:%.java=%.class)
 tases: $(ALL_JAVA:%.java=%.tas)
 
 %.class: %.java
-	$(JAVAC) $(JAVAFLAGS) $<
+	$(JAVAC) $(JAVACFLAGS) $<
 
 # Rebuild tases when the translator binary changes
 %.tas: %.class $(TYRGA_CLI)
@@ -37,11 +37,24 @@ vpath %.tas tyrga-lib/tenyr-lib
 BUILTIN_java = $(wildcard tyrga-lib/java-lib/tyrga/*.java)
 BUILTIN_tas = $(wildcard tyrga-lib/tenyr-lib/*.tas)
 
-LIB_to += $(BUILTIN_tas:.tas=.to)
+# Entry point comes first
+LIB_to  = $(filter %/Entry.to,$(BUILTIN_tas:.tas=.to))
+LIB_to += $(filter-out %/Entry.to,$(BUILTIN_tas:.tas=.to))
 LIB_to += $(BUILTIN_java:.java=.to)
 
-%.texe: %.to $(LIB_to)
-	$(TLD) -o $@ $^
+# This rule deletes the contents of the target-specific output directory before
+# proceeding. Since it does not have the ability to know exactly which objects
+# will be generated from a given .java file, it must use wildcards, and if it
+# did not delete the contents first, files could creep into the $TARGET_DIR and
+# cause hard-to-reproduce build states.
+%.texe: TARGET_DIR = $*_files
+%.texe: %.java $(LIB_to)
+	$(RM) -r $(TARGET_DIR)
+	mkdir -p $(TARGET_DIR)
+	$(JAVAC) $(JAVACFLAGS) -d $(TARGET_DIR) $<
+	basename -s .class -a $(TARGET_DIR)/*.class | xargs -I{} $(MAKE) $(TARGET_DIR)/{}.to
+	$(TLD) -o $@ $(filter %.to,$^) $(TARGET_DIR)/*.to
+	$(RM) -r $(TARGET_DIR)
 
 %.to: %.tas
 	$(TAS) -o $@ $<
