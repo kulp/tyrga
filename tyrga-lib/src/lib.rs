@@ -755,12 +755,12 @@ fn make_invocation<'a>(
     kind : InvokeKind,
     index : u16,
     gc : impl Contextualizer<'a>,
-) -> GeneralResult<Vec<Instruction>> {
+) -> Result<Vec<Instruction>, &'static str> {
     let get_method_parts = || {
         if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
             if let ConstantInfo::Class(cl) = gc.get_constant(mr.class_index) {
                 if let ConstantInfo::NameAndType(nt) = gc.get_constant(mr.name_and_type_index) {
-                    return GeneralResult::Ok((
+                    return Ok((
                             gc.get_string(cl.name_index).ok_or("bad class name")?,
                             gc.get_string(nt.name_index).ok_or("bad method name")?,
                             gc.get_string(nt.descriptor_index).ok_or("bad method descriptor")?,
@@ -769,7 +769,7 @@ fn make_invocation<'a>(
             }
         }
 
-        Err("error during constant pool lookup".into())
+        Err("error during constant pool lookup")
     };
 
     let (class, method, descriptor) = get_method_parts()?;
@@ -792,7 +792,7 @@ fn make_invocation<'a>(
 
                 Ok(make_invocation_virtual(sm, &descriptor, gc.contextualize(mr)))
             } else {
-                Err("bad constant kind".into())
+                Err("bad constant kind")
             }
         },
         _ => unimplemented!("unhandled invocation kind {:?}", kind),
@@ -818,7 +818,7 @@ fn make_allocation<'a>(
     sm : &mut StackManager,
     details : AllocationKind,
     gc : impl Contextualizer<'a>,
-) -> GeneralResult<Vec<Instruction>> {
+) -> Result<Vec<Instruction>, &'static str> {
     match details {
         AllocationKind::Array { kind, dims } => {
             use jvmtypes::Indirection::{Explicit, Indirect};
@@ -843,7 +843,7 @@ fn make_allocation<'a>(
                     Ok(pre)
                 },
                 (Indirect(_index), _) => unimplemented!(),
-                _ => Err("invalid allocation configuration".into()),
+                _ => Err("invalid allocation configuration"),
             }
         },
         AllocationKind::Element { index } => {
@@ -854,7 +854,7 @@ fn make_allocation<'a>(
                 let call = mangle(&[&name, &"new"]);
                 Ok(make_call(sm, &call, &desc))
             } else {
-                Err("invalid ConstantInfo kind".into())
+                Err("invalid ConstantInfo kind")
             }
         },
     }
@@ -940,7 +940,7 @@ fn make_varaction<'a>(
     kind : VarKind,
     index : u16,
     gc : impl Contextualizer<'a>,
-) -> GeneralResult<Vec<Instruction>> {
+) -> Result<Vec<Instruction>, &'static str> {
     use classfile_parser::constant_info::ConstantInfo::FieldRef;
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
 
@@ -964,7 +964,7 @@ fn make_varaction<'a>(
                         .ok_or("bad descriptor")
                         .and_then(JType::try_from)
                         .map_err(Into::into),
-                _ => GeneralResult::Err("unexpected kind".into()),
+                _ => Err("unexpected kind"),
             };
 
             r?.size()
@@ -1010,7 +1010,7 @@ fn make_varaction<'a>(
 
         Ok(insns)
     } else {
-        Err("invalid ConstantInfo kind".into())
+        Err("invalid ConstantInfo kind")
     }
 }
 
@@ -1020,7 +1020,7 @@ fn make_instructions<'a>(
     namer : impl Fn(&dyn Display) -> String,
     gc : impl Contextualizer<'a>,
     max_locals : u16,
-) -> GeneralResult<InsnPair> {
+) -> Result<InsnPair, &'static str> {
     use Operation::*;
 
     // We need to track destinations and return them so that the caller can track stack state
@@ -1117,14 +1117,13 @@ fn derive_ranges<'a>(
         .collect()
 }
 
-fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
+fn get_method_code(method : &MethodInfo) -> Result<CodeAttribute, &'static str> {
     use classfile_parser::attribute_info::code_attribute_parser;
     Ok(code_attribute_parser(&method.attributes[0].info).or(Err("error while parsing code attribute"))?.1)
 }
 
 mod util {
     use crate::mangling;
-    use crate::GeneralResult;
     use classfile_parser::constant_info::ConstantInfo;
     use classfile_parser::constant_info::{ClassConstant, NameAndTypeConstant};
     use classfile_parser::field_info::FieldInfo;
@@ -1189,10 +1188,10 @@ mod util {
     }
 
     impl<'a, T> Context<'a, T> {
-        pub fn get_class(&self, index : u16) -> GeneralResult<Context<'a, &'a ClassConstant>> {
+        pub fn get_class(&self, index : u16) -> Result<Context<'a, &'a ClassConstant>, &'static str> {
             match self.get_constant(index) {
                 classfile_parser::constant_info::ConstantInfo::Class(cl) => Ok(self.contextualize(cl)),
-                _ => Err("not a class".into()),
+                _ => Err("not a class"),
             }
         }
 
@@ -1270,7 +1269,7 @@ type OperationMap = BTreeMap<usize, Operation>;
 
 fn get_ranges_for_method(
     method : &Context<'_, &MethodInfo>,
-) -> GeneralResult<(RangeList, OperationMap)> {
+) -> Result<(RangeList, OperationMap), &'static str> {
     use classfile_parser::attribute_info::stack_map_table_attribute_parser;
     use classfile_parser::attribute_info::AttributeInfo;
     use classfile_parser::code_attribute::code_parser;
@@ -1350,7 +1349,7 @@ fn make_blocks_for_method<'a, 'b>(
     method : &'a Context<'b, &'b MethodInfo>,
     sm : &StackManager,
     max_locals : u16,
-) -> GeneralResult<Vec<tenyr::BasicBlock>> {
+) -> Result<Vec<tenyr::BasicBlock>, &'static str> {
     use std::iter::FromIterator;
 
     struct Params<'a, 'b> {
@@ -1366,7 +1365,7 @@ fn make_blocks_for_method<'a, 'b>(
         seen : &mut HashSet<usize>,
         mut sm : StackManager,
         which : &Range<usize>,
-    ) -> GeneralResult<Vec<tenyr::BasicBlock>> {
+    ) -> Result<Vec<tenyr::BasicBlock>, &'static str> {
         let (class, method, rangemap, ops, max_locals) =
             (params.class, params.method, params.rangemap, params.ops, params.max_locals);
         if seen.contains(&which.start) {
@@ -1374,7 +1373,7 @@ fn make_blocks_for_method<'a, 'b>(
         }
         seen.insert(which.start);
 
-        let block : GeneralResult<Vec<_>> =
+        let block : Result<Vec<_>, _> =
             ops .range(which.clone())
                 // TODO obviate clone by doing .remove() (no .drain on BTreeMap ?)
                 .map(|(&u, o)| (u, o.clone()))
@@ -1633,8 +1632,8 @@ fn write_field_list(
     outfile : &mut dyn Write,
     suff : &str,
     selector : impl Fn(&&FieldInfo) -> bool,
-    generator : impl Fn(&mut dyn Write, &str, usize, usize, usize) -> GeneralResult<()>,
-) -> GeneralResult<()> {
+    generator : impl Fn(&mut dyn Write, &str, usize, usize, usize) -> std::io::Result<()>,
+) -> std::io::Result<()> {
     let tuples = fields.iter().filter(selector).map(|f| {
         let s = class.get_string(f.descriptor_index).ok_or("missing descriptor")?;
         let desc = s.chars().next().ok_or("empty descriptor")?;
