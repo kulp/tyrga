@@ -1631,15 +1631,16 @@ fn write_field_list(
     suff : &str,
     selector : impl Fn(&&FieldInfo) -> bool,
     generator : impl Fn(&mut dyn Write, &str, usize, usize, usize) -> std::io::Result<()>,
-) -> std::io::Result<()> {
-    let tuples : Vec<_> = fields.iter().filter(selector).map(|f| {
+) -> Result<(), Box<dyn Error>> {
+    let tuples : Result<Vec<_>,_> = fields.iter().filter(selector).map(|f| {
         let s = class.get_string(f.descriptor_index).ok_or("missing descriptor")?;
         let desc = s.chars().next().ok_or("empty descriptor")?;
         let size = args::field_size(desc)?.into();
         let name = mangle(&[ class, &class.contextualize(f), &suff ]);
         Ok((size, f, name)) as Result<(_, _, String), &'static str>
-    }).flat_map(Result::into_iter).collect();
+    }).collect();
 
+    let tuples = tuples?;
     let sums = tuples.iter().scan(0, |off, tup| { let old = *off; *off += tup.0; Some(old) });
     let width = tuples.iter().map(|t| t.2.len()).fold(0, usize::max);
 
