@@ -1057,7 +1057,7 @@ fn make_instructions<'a>(
 }
 
 #[test]
-fn test_make_instruction() -> Result<(), Box<dyn Error>> {
+fn test_make_instruction() -> Result<(), &'static str> {
     use classfile_parser::constant_info::ConstantInfo;
     use classfile_parser::constant_info::ConstantInfo::Unusable;
     use jvmtypes::Indirection::Explicit;
@@ -1408,7 +1408,7 @@ fn test_parse_classes() -> Result<(), Box<dyn Error>> {
         classfile_parser::parse_class(p)
     }
 
-    fn test_stack_map_table(path : &std::path::Path) -> Result<(), Box<dyn Error>> {
+    fn test_stack_map_table(path : &std::path::Path) -> Result<(), String> {
         let class = parse_class(path)?;
         let methods = class.methods.iter();
         for method in methods.filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
