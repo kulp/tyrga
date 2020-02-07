@@ -15,6 +15,7 @@
 #![deny(bare_trait_objects)]
 #![deny(unused_mut)]
 #![deny(unused_variables)]
+#![deny(clippy::inefficient_to_string)]
 
 // make macros visible to later modules
 #[macro_use]
@@ -1171,7 +1172,8 @@ mod util {
     }
 
     impl Manglable for &str {
-        fn pieces(&self) -> Vec<String> { vec![ self.to_string() ] }
+        // Dereference self explicitly to get faster ToString implementation
+        fn pieces(&self) -> Vec<String> { vec![ (*self).to_string() ] }
     }
 
     impl Manglable for String {
