@@ -16,6 +16,7 @@
 #![deny(unused_mut)]
 #![deny(unused_variables)]
 #![deny(clippy::inefficient_to_string)]
+#![deny(clippy::comparison_chain)]
 
 // make macros visible to later modules
 #[macro_use]
