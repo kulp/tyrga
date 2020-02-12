@@ -662,6 +662,10 @@ impl fmt::Display for Instruction {
 
 #[cfg(test)]
 fn instruction_test_cases() -> Vec<(&'static str, Instruction)> {
+    // for regularity, allow clones on every line in the tests below, even the ones that do not
+    // need it
+    #![allow(clippy::redundant_clone)]
+
     use InstructionType::*;
     use MemoryOpType::*;
     use Opcode::*;
