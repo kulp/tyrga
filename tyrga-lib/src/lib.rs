@@ -18,6 +18,7 @@
 #![deny(clippy::inefficient_to_string)]
 #![deny(clippy::comparison_chain)]
 #![deny(clippy::redundant_clone)]
+#![deny(clippy::filter_next)]
 
 // make macros visible to later modules
 #[macro_use]
