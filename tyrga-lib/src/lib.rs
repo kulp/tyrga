@@ -1078,7 +1078,6 @@ fn test_make_instruction() -> GeneralResult<()> {
     use jvmtypes::Indirection::Explicit;
     use tenyr::InstructionType::Type3;
     use tenyr::MemoryOpType::NoLoad;
-    use Instruction;
     use Register::{A, B};
     struct Useless;
     impl<'a> Contextualizer<'a> for Useless {
