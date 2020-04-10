@@ -127,14 +127,14 @@ fn main() -> TerminatingResult {
             .values_of("strings")
             .ok_or("expected at least one string to mangle")?
         {
-            println!("{}", tyrga::mangling::mangle(string.bytes()));
+            println!("{}", mangling::mangle(string.bytes()));
         }
     } else if let Some(m) = m.subcommand_matches("demangle") {
         for string in m
             .values_of("strings")
             .ok_or("expected at least one string to mangle")?
         {
-            let de = tyrga::mangling::demangle(string)?;
+            let de = mangling::demangle(string)?;
             let st = String::from_utf8(de)?;
             println!("{}", st);
         }

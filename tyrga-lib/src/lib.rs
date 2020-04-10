@@ -26,7 +26,6 @@ mod tenyr;
 
 mod exprtree;
 mod jvmtypes;
-pub mod mangling;
 mod stack;
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
@@ -1134,7 +1133,6 @@ fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
 }
 
 mod util {
-    use crate::mangling;
     use crate::GeneralResult;
     use classfile_parser::constant_info::ConstantInfo;
     use classfile_parser::constant_info::{ClassConstant, NameAndTypeConstant};

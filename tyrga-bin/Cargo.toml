@@ -16,6 +16,7 @@ maintenance = { status = "experimental" }
 [dependencies]
 clap = "~2.33.0"
 classfile-parser = "~0.3.4"
+mangling = "0.1"
 tyrga = { path = "../tyrga-lib" }
 
 [dev-dependencies]
