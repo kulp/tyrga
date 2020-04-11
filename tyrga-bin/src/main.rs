@@ -29,6 +29,8 @@ fn test_translate_file() -> TerminatingResult {
         .into_iter()
         .filter_entry(is_dir_or_class)
     {
+        use std::borrow::Cow;
+
         let from = from?;
         let from = from.path();
         if !from.metadata()?.is_dir() {
@@ -43,10 +45,16 @@ fn test_translate_file() -> TerminatingResult {
             let mut expected = Vec::new();
             File::open(gold)?.read_to_end(&mut expected)?;
 
-            assert_eq!(
-                &std::str::from_utf8(&translated),
-                &std::str::from_utf8(&expected)
-            );
+            let translated = std::str::from_utf8(&translated)?;
+            let expected = std::str::from_utf8(&expected)?;
+
+            let translated = if cfg!(windows) {
+                Cow::Owned(translated.replace("\r\n", "\n"))
+            } else {
+                Cow::Borrowed(translated)
+            };
+
+            assert_eq!(&translated, &expected);
         }
     }
 
