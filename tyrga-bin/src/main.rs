@@ -29,8 +29,6 @@ fn test_translate_file() -> TerminatingResult {
         .into_iter()
         .filter_entry(is_dir_or_class)
     {
-        use std::borrow::Cow;
-
         let from = from?;
         let from = from.path();
         if !from.metadata()?.is_dir() {
@@ -48,13 +46,11 @@ fn test_translate_file() -> TerminatingResult {
             let translated = std::str::from_utf8(&translated)?;
             let expected = std::str::from_utf8(&expected)?;
 
-            fn fix_newlines<'a>(t: &'a str) -> Cow<'a, str> {
-                if cfg!(windows) {
-                    Cow::Owned(t.replace("\r\n", "\n"))
-                } else {
-                    Cow::Borrowed(t)
-                }
-            }
+            #[cfg(target_os = "windows")]
+            fn fix_newlines(t: &str) -> String { t.replace("\r\n", "\n") }
+
+            #[cfg(not(target_os = "windows"))]
+            fn fix_newlines(t: &str) -> String { t.to_owned() }
 
             assert_eq!(fix_newlines(translated), fix_newlines(expected));
         }
