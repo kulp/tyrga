@@ -48,13 +48,15 @@ fn test_translate_file() -> TerminatingResult {
             let translated = std::str::from_utf8(&translated)?;
             let expected = std::str::from_utf8(&expected)?;
 
-            let translated = if cfg!(windows) {
-                Cow::Owned(translated.replace("\r\n", "\n"))
-            } else {
-                Cow::Borrowed(translated)
-            };
+            fn fix_newlines<'a>(t: &'a str) -> Cow<'a, str> {
+                if cfg!(windows) {
+                    Cow::Owned(t.replace("\r\n", "\n"))
+                } else {
+                    Cow::Borrowed(t)
+                }
+            }
 
-            assert_eq!(&translated, &expected);
+            assert_eq!(fix_newlines(translated), fix_newlines(expected));
         }
     }
 
