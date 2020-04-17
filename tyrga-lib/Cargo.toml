@@ -15,7 +15,7 @@ maintenance = { status = "experimental" }
 
 [dependencies]
 classfile-parser = "~0.3.4"
-mangling = "0.1"
+mangling = "0.2"
 
 [dev-dependencies]
 quickcheck = "0.8"
