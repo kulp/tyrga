@@ -19,4 +19,4 @@ dist: bionic # for JDK
 addons:
   apt:
     packages:
-      - openjdk-8-jdk-headless
+      - openjdk-11-jdk-headless

@@ -1,5 +1,5 @@
 # ensure Java 8 support, which implies StackMapTable
-JAVACFLAGS += -target 1.8 -source 1.8
+JAVACFLAGS += --release 11
 # avoid generating unused debugging information
 JAVACFLAGS += -g:none
 
