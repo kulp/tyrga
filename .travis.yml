@@ -19,4 +19,4 @@ dist: xenial # for JDK
 addons:
   apt:
     packages:
-      - default-jdk-headless
+      - openjdk-8-jdk-headless
