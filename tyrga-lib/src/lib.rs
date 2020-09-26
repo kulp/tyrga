@@ -4,9 +4,8 @@
 
 #![deny(clippy::items_after_statements)]
 #![deny(clippy::needless_borrow)]
-#![deny(clippy::option_unwrap_used)]
+#![deny(clippy::unwrap_used)]
 #![deny(clippy::redundant_field_names)]
-#![deny(clippy::result_unwrap_used)]
 #![deny(unconditional_recursion)]
 #![deny(clippy::unreadable_literal)]
 #![deny(clippy::just_underscores_and_digits)]
