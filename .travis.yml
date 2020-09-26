@@ -15,7 +15,7 @@ matrix:
   allow_failures:
     - rust: nightly
   fast_finish: true
-dist: xenial # for JDK
+dist: bionic # for JDK
 addons:
   apt:
     packages:
