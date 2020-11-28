@@ -4,9 +4,8 @@
 
 #![deny(clippy::items_after_statements)]
 #![deny(clippy::needless_borrow)]
-#![deny(clippy::option_unwrap_used)]
+#![deny(clippy::unwrap_used)]
 #![deny(clippy::redundant_field_names)]
-#![deny(clippy::result_unwrap_used)]
 #![deny(unconditional_recursion)]
 #![deny(clippy::unreadable_literal)]
 #![deny(clippy::just_underscores_and_digits)]
@@ -15,6 +14,10 @@
 #![deny(bare_trait_objects)]
 #![deny(unused_mut)]
 #![deny(unused_variables)]
+#![deny(clippy::inefficient_to_string)]
+#![deny(clippy::comparison_chain)]
+#![deny(clippy::redundant_clone)]
+#![deny(clippy::filter_next)]
 
 // make macros visible to later modules
 #[macro_use]
@@ -22,7 +25,6 @@ mod tenyr;
 
 mod exprtree;
 mod jvmtypes;
-pub mod mangling;
 mod stack;
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
@@ -1063,7 +1065,6 @@ fn test_make_instruction() -> Result<(), &'static str> {
     use jvmtypes::Indirection::Explicit;
     use tenyr::InstructionType::Type3;
     use tenyr::MemoryOpType::NoLoad;
-    use Instruction;
     use Register::{A, B};
     struct Useless;
     impl<'a> Contextualizer<'a> for Useless {
@@ -1120,7 +1121,6 @@ fn get_method_code(method : &MethodInfo) -> Result<CodeAttribute, &'static str> 
 }
 
 mod util {
-    use crate::mangling;
     use classfile_parser::constant_info::ConstantInfo;
     use classfile_parser::constant_info::{ClassConstant, NameAndTypeConstant};
     use classfile_parser::field_info::FieldInfo;
@@ -1159,7 +1159,8 @@ mod util {
     }
 
     impl Manglable for &str {
-        fn pieces(&self) -> Vec<String> { vec![ self.to_string() ] }
+        // Dereference self explicitly to get faster ToString implementation
+        fn pieces(&self) -> Vec<String> { vec![ (*self).to_string() ] }
     }
 
     impl Manglable for String {
@@ -1325,7 +1326,7 @@ fn make_basic_block(
 
         // update the state of includes_successor each time so that the last instruction's behavior
         // is captured
-        includes_successor = exs.iter().any(|e| if let Successor = e { true } else { false });
+        includes_successor = exs.iter().any(|e| matches!(e, Successor));
 
         exits.extend(exs.iter().filter_map(does_branch).filter(|e| !range.contains(e)));
         insns.extend(ins);

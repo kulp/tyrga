@@ -288,15 +288,13 @@ impl OperandType for Instruction {
 }
 
 // returns any Operation parsed and the number of bytes consumed
-pub fn decode_insn(insn : (usize, Instruction)) -> (usize, Operation) {
+pub fn decode_insn((addr, insn) : (usize, Instruction)) -> (usize, Operation) {
     use AllocationKind::*;
     use Indirection::*;
     use Instruction::*;
     use JType::*;
     use Operation::*;
     use SwitchParams::*;
-
-    let (addr, insn) = insn;
 
     let make_constant = |kind, value| Constant(Explicit(ExplicitConstant { kind, value }));
 

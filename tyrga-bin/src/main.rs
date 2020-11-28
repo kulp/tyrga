@@ -43,10 +43,16 @@ fn test_translate_file() -> TerminatingResult {
             let mut expected = Vec::new();
             File::open(gold)?.read_to_end(&mut expected)?;
 
-            assert_eq!(
-                &std::str::from_utf8(&translated),
-                &std::str::from_utf8(&expected)
-            );
+            let translated = std::str::from_utf8(&translated)?;
+            let expected = std::str::from_utf8(&expected)?;
+
+            #[cfg(target_os = "windows")]
+            fn fix_newlines(t: &str) -> String { t.replace("\r\n", "\n") }
+
+            #[cfg(not(target_os = "windows"))]
+            fn fix_newlines(t: &str) -> String { t.to_owned() }
+
+            assert_eq!(fix_newlines(translated), fix_newlines(expected));
         }
     }
 
@@ -121,14 +127,14 @@ fn main() -> TerminatingResult {
             .values_of("strings")
             .ok_or("expected at least one string to mangle")?
         {
-            println!("{}", tyrga::mangling::mangle(string.bytes()));
+            println!("{}", mangling::mangle(string.bytes()));
         }
     } else if let Some(m) = m.subcommand_matches("demangle") {
         for string in m
             .values_of("strings")
             .ok_or("expected at least one string to mangle")?
         {
-            let de = tyrga::mangling::demangle(string)?;
+            let de = mangling::demangle(string)?;
             let st = String::from_utf8(de)?;
             println!("{}", st);
         }

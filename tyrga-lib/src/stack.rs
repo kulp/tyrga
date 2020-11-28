@@ -76,6 +76,7 @@ impl Manager {
     fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
         use crate::tenyr::InstructionType::Type3;
         use crate::tenyr::MemoryOpType::{LoadRight, NoLoad, StoreRight};
+        use std::cmp::Ordering::*;
 
         let spilled_before = self.spilled_count();
 
@@ -111,17 +112,18 @@ impl Manager {
             kind : Type3(off),
         });
 
-        if n < 0 {
-            update
-                .chain((spilled_before..spilled_after).map(mover(StoreRight, spilled_before)))
-                .collect()
-        } else if n > 0 {
-            (spilled_after..spilled_before)
-                .map(mover(LoadRight, spilled_after))
-                .chain(update)
-                .collect()
-        } else {
-            std::iter::empty().collect()
+        match n.cmp(&0) {
+            Less =>
+                update
+                    .chain((spilled_before..spilled_after).map(mover(StoreRight, spilled_before)))
+                    .collect(),
+            Equal =>
+                std::iter::empty().collect(),
+            Greater =>
+                (spilled_after..spilled_before)
+                    .map(mover(LoadRight, spilled_after))
+                    .chain(update)
+                    .collect(),
         }
     }
 
@@ -290,7 +292,7 @@ mod test {
     const POINTER_UPDATE_INSNS : u16 = 1;
 
     fn unwrap<T>(f : impl FnOnce() -> Result<T, Box<dyn std::error::Error>>) -> T {
-        #[allow(clippy::result_unwrap_used)]
+        #[allow(clippy::unwrap_used)]
         f().unwrap()
     }
 
