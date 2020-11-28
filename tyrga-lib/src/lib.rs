@@ -1338,7 +1338,7 @@ fn make_basic_block(
 
         // update the state of includes_successor each time so that the last instruction's behavior
         // is captured
-        includes_successor = exs.iter().any(|e| if let Successor = e { true } else { false });
+        includes_successor = exs.iter().any(|e| matches!(e, Successor));
 
         exits.extend(exs.iter().filter_map(does_branch).filter(|e| !range.contains(e)));
         insns.extend(ins);

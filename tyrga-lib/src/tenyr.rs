@@ -588,7 +588,7 @@ impl From<i32> for SmallestImmediate {
 
         Immediate12::try_from(n).map(Imm12)
             .or_else(|_| Immediate20::try_from(n).map(Imm20))
-            .unwrap_or_else(|_| Imm32(n))
+            .unwrap_or(Imm32(n))
     }
 }
 
