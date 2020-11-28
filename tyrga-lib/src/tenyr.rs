@@ -219,7 +219,7 @@ macro_rules! tenyr_insn {
 
 #[test]
 #[allow(clippy::cognitive_complexity)]
-fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
+fn test_macro_insn() {
     use InstructionType::*;
     use MemoryOpType::*;
     use Opcode::*;
@@ -264,8 +264,6 @@ fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(tenyr_insn!( B  <-  C  +  (three)    ), make3(       3_i32,B,C,NoLoad));
     assert_eq!(tenyr_insn!( B  <-  C  -  (three)    ), make3(      -3_i32,B,C,NoLoad));
     assert_eq!(tenyr_insn!( B  <-        (three)    ), make3(       3_i32,B,A,NoLoad));
-
-    Ok(())
 }
 
 /// Parses a list of tenyr instructions, each terminated with `;`, into a chained `Iterator`
@@ -281,7 +279,7 @@ macro_rules! tenyr_insn_list {
 }
 
 #[test]
-fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
+fn test_macro_insn_list() {
     use InstructionType::*;
     use MemoryOpType::*;
     use Opcode::*;
@@ -365,8 +363,6 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     assert_eq!(from, to);
-
-    Ok(())
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
