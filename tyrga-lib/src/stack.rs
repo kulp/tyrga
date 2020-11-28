@@ -292,7 +292,7 @@ mod test {
     const POINTER_UPDATE_INSNS : u16 = 1;
 
     fn unwrap<T>(f : impl FnOnce() -> Result<T, Box<dyn std::error::Error>>) -> T {
-        #[allow(clippy::result_unwrap_used)]
+        #[allow(clippy::unwrap_used)]
         f().unwrap()
     }
 
