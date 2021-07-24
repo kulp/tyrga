@@ -18,6 +18,9 @@
 #![deny(clippy::comparison_chain)]
 #![deny(clippy::redundant_clone)]
 #![deny(clippy::filter_next)]
+#![deny(clippy::unnecessary_lazy_evaluations)]
+#![deny(clippy::match_like_matches_macro)]
+#![deny(clippy::vec_init_then_push)]
 
 // make macros visible to later modules
 #[macro_use]
@@ -1338,7 +1341,7 @@ fn make_basic_block(
 
         // update the state of includes_successor each time so that the last instruction's behavior
         // is captured
-        includes_successor = exs.iter().any(|e| if let Successor = e { true } else { false });
+        includes_successor = exs.iter().any(|e| matches!(e, Successor));
 
         exits.extend(exs.iter().filter_map(does_branch).filter(|e| !range.contains(e)));
         insns.extend(ins);
@@ -1360,8 +1363,6 @@ fn make_blocks_for_method<'a, 'b>(
     sm : &StackManager,
     max_locals : u16,
 ) -> GeneralResult<Vec<tenyr::BasicBlock>> {
-    use std::iter::FromIterator;
-
     struct Params<'a, 'b> {
         class : &'a Context<'b, &'b ClassConstant>,
         method : &'a Context<'b, &'b MethodInfo>,
@@ -1390,8 +1391,7 @@ fn make_blocks_for_method<'a, 'b>(
                 .map(|x| make_instructions(&mut sm, x, |y| Ok(make_label(class, method, y)), class, max_locals))
                 .collect();
         let (bb, ee) = make_basic_block(class, method, block?, which);
-        let mut out = Vec::new();
-        out.push(bb);
+        let mut out = vec![bb];
 
         for exit in &ee {
             // intentional clone of StackManager
@@ -1402,7 +1402,7 @@ fn make_blocks_for_method<'a, 'b>(
     }
 
     let (ranges, ops) = get_ranges_for_method(method)?;
-    let rangemap = &BTreeMap::from_iter(ranges.into_iter().map(|r| (r.start, r)));
+    let rangemap = &ranges.into_iter().map(|r| (r.start, r)).collect();
     let ops = &ops;
 
     let params = Params { class, method, rangemap, ops, max_locals };
