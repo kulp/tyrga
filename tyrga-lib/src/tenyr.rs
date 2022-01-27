@@ -532,7 +532,7 @@ impl From<Immediate12> for Immediate20 {
 
 impl<T : BitWidth> Display for SizedImmediate<T> {
     fn fmt(&self, f : &mut Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}", self.0.to_string())
+        write!(f, "{}", self.0)
     }
 }
 
@@ -552,7 +552,7 @@ impl<T : BitWidth> fmt::Display for Immediate<T> {
             Immediate::Fixed(x) => x,
             Immediate::Expr(x)  => x,
         };
-        write!(f, "{}", d.to_string())
+        write!(f, "{}", d)
     }
 }
 
@@ -630,7 +630,7 @@ impl fmt::Display for Instruction {
             Type3(Immediate::Fixed(imm)) if imm == 0_u8.into()
                 => a,
             Type3(Immediate::Fixed(imm)) if i32::from(imm) < 0
-                => format!("{a} - {c}", a=a, c=(-i32::from(imm)).to_string()),
+                => format!("{a} - {c}", a=a, c=(-i32::from(imm))),
             Type3(..)
                 => format!("{a} + {c}", a=a, c=c),
             Type0(Gen { op, imm : Immediate::Fixed(imm), .. }) if imm == 0_u8.into()
@@ -638,7 +638,7 @@ impl fmt::Display for Instruction {
             Type1(Gen { op, y, .. }) | Type2(Gen { op, y, .. }) if y == Register::A
                 => format!("{a} {op:^3} {b}", a=a, b=b, op=op),
             Type0(Gen { op, imm : Immediate::Fixed(imm), .. }) if i32::from(imm) < 0
-                => format!("{a} {op:^3} {b} - {imm}", a=a, b=b, imm=(-i32::from(imm)).to_string(), op=op),
+                => format!("{a} {op:^3} {b} - {imm}", a=a, b=b, imm=(-i32::from(imm)), op=op),
             Type0(Gen { op, .. }) |
             Type1(Gen { op, .. }) |
             Type2(Gen { op, .. })
@@ -713,7 +713,7 @@ impl fmt::Display for BasicBlock {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "{}:", self.label)?;
         for insn in &self.insns {
-            writeln!(f, "    {}", insn.to_string())?;
+            writeln!(f, "    {}", insn)?;
         }
         Ok(())
     }

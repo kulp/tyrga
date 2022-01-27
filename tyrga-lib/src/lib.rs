@@ -1090,7 +1090,7 @@ fn test_make_instruction() -> GeneralResult<()> {
 
     let mut sm = StackManager::new(STACK_REGS);
     let op = Operation::Constant(Explicit(ExplicitConstant { kind : JType::Int, value : 5 }));
-    let namer = |x : &dyn Display| Ok(format!("{}:{}", "test", x.to_string()));
+    let namer = |x : &dyn Display| Ok(format!("{}:{}", "test", x));
     let insn = make_instructions(&mut sm, (0, op), namer, Useless, 0)?;
     let imm = 5_u8.into();
     let rhs = Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad };

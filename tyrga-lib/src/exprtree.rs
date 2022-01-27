@@ -33,7 +33,7 @@ impl fmt::Display for Atom {
         match self {
             Variable(name) => write!(f, "{}", name),
             Immediate(num) => write!(f, "{}", num),
-            Expression(e) => write!(f, "({})", e.to_string()),
+            Expression(e) => write!(f, "({})", e),
         }
     }
 }
