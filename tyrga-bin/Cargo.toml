@@ -1,6 +1,7 @@
 [package]
 name = "tyrga-cli"
 version = "0.1.0"
+rust-version = "1.58.0"
 authors = ["Darren Kulp <darren@kulp.ch>"]
 edition = "2018"
 categories = ["command-line-utilities", "development-tools", "emulators"]
