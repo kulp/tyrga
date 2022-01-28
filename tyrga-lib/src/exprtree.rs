@@ -9,11 +9,10 @@ pub enum Operation {
 impl fmt::Display for Operation {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         use Operation::*;
-        let x = match self {
-            Add => "+",
-            Sub => "-",
-        };
-        write!(f, "{x}")
+        match self {
+            Add => write!(f, "+"),
+            Sub => write!(f, "-"),
+        }
     }
 }
 
