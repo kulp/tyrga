@@ -226,17 +226,22 @@ fn test_expand() -> GeneralResult<()> {
 type InsnPair = (Vec<Instruction>, Vec<Destination>);
 
 fn make_target(target : impl std::string::ToString) -> exprtree::Atom {
-    use exprtree::Atom::*;
+    use exprtree::Atom::Immediate;
     use exprtree::Expr;
     use exprtree::Operation::{Add, Sub};
 
-    let a = Variable(target.to_string().into());
-    let b = Expression(Box::new(Expr {
-        a :  Variable(".".to_owned().into()),
+    let b = Expr {
+        a :  ".".into(),
         op : Add,
         b :  Immediate(1),
-    }));
-    Expression(Box::new(Expr { a, op : Sub, b }))
+    }
+    .into();
+    Expr {
+        a : target.to_string().into(),
+        op : Sub,
+        b,
+    }
+    .into()
 }
 
 fn make_int_branch(
@@ -1092,7 +1097,7 @@ fn make_varaction<'a>(
             let b = Atom::Immediate(i);
             let op = exprtree::Operation::Add;
             let e = exprtree::Expr { a, b, op };
-            tenyr::Immediate20::Expr(Atom::Expression(Box::new(e)))
+            tenyr::Immediate20::Expr(e.into())
         };
 
         let op_depth = match op {
