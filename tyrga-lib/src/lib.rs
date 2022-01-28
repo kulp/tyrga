@@ -230,9 +230,9 @@ fn make_target(target : impl std::string::ToString) -> exprtree::Atom {
     use exprtree::Expr;
     use exprtree::Operation::{Add, Sub};
 
-    let a = Variable(target.to_string());
+    let a = Variable(target.to_string().into());
     let b = Expression(Box::new(Expr {
-        a :  Variable(".".to_owned()),
+        a :  Variable(".".to_owned().into()),
         op : Add,
         b :  Immediate(1),
     }));
@@ -295,7 +295,7 @@ fn make_call(
     // decrement stack pointer)
     let sp = sm.get_stack_ptr();
     let far = format!("@+{target}");
-    let off = tenyr::Immediate20::Expr(exprtree::Atom::Variable(far));
+    let off = tenyr::Immediate20::Expr(exprtree::Atom::Variable(far.into()));
     insns.extend(tenyr_insn_list!(
         [sp] <- P + 1   ;
         P <- P + (off)  ;
@@ -834,7 +834,7 @@ fn make_invocation_virtual(
     let (temp, gets) = sm.reserve_one();
     insns.extend(gets);
     let far = format!("@{}", mangle(&[&method_name, &"vslot"]));
-    let off = Immediate20::Expr(exprtree::Atom::Variable(far));
+    let off = Immediate20::Expr(exprtree::Atom::Variable(far.into()));
 
     insns.extend(tenyr_insn_list!(
         temp <- [obj - 1]   ;
@@ -1104,7 +1104,11 @@ fn make_varaction<'a>(
 
         let (drops, (reg, mut insns), base) = match kind {
             VarKind::Static => (0, (Register::P, vec![]), make_target(format("static"))),
-            VarKind::Field => (1, sm.get(op_depth), Atom::Variable(format("field_offset"))),
+            VarKind::Field => (
+                1,
+                sm.get(op_depth),
+                Atom::Variable(format("field_offset").into()),
+            ),
         };
 
         let mut range = 0_i32..len.into();
