@@ -268,7 +268,7 @@ fn make_call(
     // Save return address through current stack pointer (callee will
     // decrement stack pointer)
     let sp = sm.get_stack_ptr();
-    let far = format!("@+{}", target);
+    let far = format!("@+{target}");
     let off = tenyr::Immediate20::Expr(exprtree::Atom::Variable(far));
     insns.extend(tenyr_insn_list!(
         [sp] <- P + 1   ;
@@ -420,7 +420,8 @@ fn make_arithmetic_call(
             Neg => 1,
         }
     };
-    let descriptor = format!("({}){}", std::iter::repeat(ch).take(nargs).collect::<String>(), ch);
+    let parms = std::iter::repeat(ch).take(nargs).collect::<String>();
+    let descriptor = format!("({parms}){ch}");
 
     // TODO replace lookup table with some automatic namer
     let proc = match op {
@@ -861,7 +862,7 @@ fn make_allocation<'a>(
             let class = gc.get_constant(index);
             if let ConstantInfo::Class(cc) = class {
                 let name = gc.get_string(cc.name_index).ok_or("no class name")?;
-                let desc = format!("()L{};", name);
+                let desc = format!("()L{name};");
                 let call = mangle(&[&name, &"new"]);
                 make_call(sm, &call, &desc)
             } else {
@@ -886,7 +887,7 @@ fn make_compare(
     };
     v.push(tenyr_insn!( gc <- (n) )?);
 
-    let desc = format!("({}{}I)I", ch, ch);
+    let desc = format!("({ch}{ch}I)I");
     let insns = make_call(sm, &make_builtin_name("cmp", &desc), &desc)?;
     v.extend(insns);
     Ok(v)
@@ -937,8 +938,8 @@ fn make_conversion(
         _ => {
             let ch_from : char = from.try_into().expect("invalid char kind");
             let ch_to   : char = to  .try_into().expect("invalid char kind");
-            let name = format!("into_{}", ch_to); // TODO improve naming
-            let desc = format!("({}){}", ch_from, ch_to);
+            let name = format!("into_{ch_to}"); // TODO improve naming
+            let desc = format!("({ch_from}){ch_to}");
             Ok(make_call(sm, &make_builtin_name(&name, &desc), &desc)?)
         },
     }
@@ -1085,7 +1086,7 @@ fn test_make_instruction() -> GeneralResult<()> {
 
     let mut sm = StackManager::new(STACK_REGS);
     let op = Operation::Constant(Explicit(ExplicitConstant { kind : JType::Int, value : 5 }));
-    let namer = |x : &dyn Display| Ok(format!("{}:{}", "test", x));
+    let namer = |x : &dyn Display| Ok(format!("test:{x}"));
     let insn = make_instructions(&mut sm, (0, op), namer, Useless, 0)?;
     let imm = 5_u8.into();
     let rhs = Instruction { kind : Type3(imm), z : STACK_REGS[0], x : A, dd : NoLoad };
@@ -1426,7 +1427,7 @@ fn test_parse_classes() -> GeneralResult<()> {
             let method = class.contextualize(method);
             let bbs = make_blocks_for_method(class, &method, &sm, max_locals)?;
             for bb in &bbs {
-                eprintln!("{}", bb);
+                eprintln!("{bb}");
             }
         }
 
@@ -1442,7 +1443,7 @@ fn test_parse_classes() -> GeneralResult<()> {
         if ! class.path().metadata()?.is_dir() {
             let path = class.path();
             let name = class.file_name().to_str().ok_or("no name")?;
-            eprintln!("Testing {} ({}) ...", path.display(), name);
+            eprintln!("Testing {} ({name}) ...", path.display());
             test_stack_map_table(path)?;
         }
     }
@@ -1464,7 +1465,7 @@ impl Display for Method {
         writeln!(f, "{}:", self.name)?;
         write!(f, "{}", self.prologue)?;
         for bb in &self.blocks {
-            write!(f, "{}", bb)?
+            write!(f, "{bb}")?
         }
         write!(f, "{}", self.epilogue)?;
         Ok(())
@@ -1485,7 +1486,7 @@ mod args {
                 'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'D' | 'J' | 'V' => Ok(1),
                 'L' => Ok(1 + s.find(';').ok_or("string ended too soon")?),
                 '[' => Ok(1 + eat(&s[1..])?),
-                _ => Err(format!("unexpected character {}", ch)),
+                _ => Err(format!("unexpected character {ch}")),
             }
         }
 
@@ -1588,20 +1589,19 @@ fn write_method_table(
     outfile : &mut dyn Write,
 ) -> std::io::Result<()> {
     let label = ".Lmethod_table";
-    writeln!(outfile, "{}:", label)?;
+    writeln!(outfile, "{label}:")?;
 
     let names = methods.iter().map(|method| mangle(&[ class, &class.contextualize(method) ]) );
     let lengths : Vec<_> = names.map(|s| (s.len(), s)).collect();
     let width = lengths.iter().fold(0, |c, (len, _)| c.max(*len));
 
     for (method, (_, mangled_name)) in methods.iter().zip(lengths) {
-        let flags = method.access_flags;
+        let flags = method.access_flags.bits();
 
-        writeln!(outfile, "    .word @{:width$} - {}, {:#06x}",
-            mangled_name, label, flags.bits(), width=width)?;
+        writeln!(outfile, "    .word @{mangled_name:width$} - {label}, {flags:#06x}")?;
     }
 
-    writeln!(outfile, "{}_end:", label)?;
+    writeln!(outfile, "{label}_end:")?;
     writeln!(outfile, "    .zero 0")?;
     writeln!(outfile)?;
     Ok(())
@@ -1620,8 +1620,8 @@ fn write_vslot_list(
     let width = lengths.iter().fold(0, |c, (len, _)| c.max(*len));
 
     for (index, (_, mangled_name)) in lengths.iter().enumerate() {
-        writeln!(outfile, "    .global {}", mangled_name)?;
-        writeln!(outfile, "    .set    {:width$}, {}", mangled_name, index, width=width)?;
+        writeln!(outfile, "    .global {mangled_name}")?;
+        writeln!(outfile, "    .set    {mangled_name:width$}, {index}")?;
     }
     if ! lengths.is_empty() {
         writeln!(outfile)?;
@@ -1675,14 +1675,14 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn Write) -> GeneralRe
 
     let is_static = |f : &&FieldInfo| f.access_flags.contains(FieldAccessFlags::STATIC);
     let print_field = |outfile : &mut dyn Write, slot_name : &str, offset, _size, width| {
-        writeln!(outfile, "    .global {}", slot_name)?;
-        writeln!(outfile, "    .set    {:width$}, {}", slot_name, offset, width=width)?;
+        writeln!(outfile, "    .global {slot_name}")?;
+        writeln!(outfile, "    .set    {slot_name:width$}, {offset}")?;
         Ok(())
     };
     write_field_list(class, fields, outfile, "field_offset", |f| ! is_static(f), print_field)?;
     let print_static = |outfile : &mut dyn Write, slot_name : &str, _offset, size, width| {
-        writeln!(outfile, "    .global {}", slot_name)?;
-        writeln!(outfile, "    {:width$}: .zero {}", slot_name, size, width=width)?;
+        writeln!(outfile, "    .global {slot_name}")?;
+        writeln!(outfile, "    {slot_name:width$}: .zero {size}")?;
         Ok(())
     };
     write_field_list(class, fields, outfile, "static", &is_static, &print_static)?;
@@ -1690,7 +1690,7 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn Write) -> GeneralRe
     for method in methods.iter().filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
         let method = class.contextualize(method);
         let mm = translate_method(class, &method)?;
-        writeln!(outfile, "{}", mm)?;
+        writeln!(outfile, "{mm}")?;
     }
 
     Ok(())

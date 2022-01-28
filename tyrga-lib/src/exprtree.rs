@@ -9,14 +9,11 @@ pub enum Operation {
 impl fmt::Display for Operation {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         use Operation::*;
-        write!(
-            f,
-            "{}",
-            match self {
-                Add => "+",
-                Sub => "-",
-            }
-        )
+        let x = match self {
+            Add => "+",
+            Sub => "-",
+        };
+        write!(f, "{x}")
     }
 }
 
@@ -31,9 +28,9 @@ impl fmt::Display for Atom {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         use Atom::*;
         match self {
-            Variable(name) => write!(f, "{}", name),
-            Immediate(num) => write!(f, "{}", num),
-            Expression(e) => write!(f, "({})", e),
+            Variable(name) => write!(f, "{name}"),
+            Immediate(num) => write!(f, "{num}"),
+            Expression(e) => write!(f, "({e})"),
         }
     }
 }
@@ -47,7 +44,8 @@ pub struct Expr {
 
 impl fmt::Display for Expr {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{a} {op} {b}", a = self.a, b = self.b, op = self.op)
+        let (a, b, op) = (&self.a, &self.b, &self.op);
+        write!(f, "{a} {op} {b}")
     }
 }
 

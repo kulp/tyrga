@@ -407,7 +407,7 @@ impl fmt::Display for Opcode {
         // Support a tiny, inconsistent subset of formatting commands
         match f.align() {
             Some(fmt::Alignment::Center) => write!(f, "{:^3}", s),
-            _ => write!(f, "{}", s),
+            _ => write!(f, "{s}"),
         }
     }
 }
@@ -468,7 +468,7 @@ impl Immediate12 {
             let val = i32::from(val) | mask;
             Self::try_from(val)
         } else {
-            Err(format!("number {} is too big for a {}-bit immediate", val, Self::BITS))
+            Err(format!("number {val} is too big for a {}-bit immediate", Self::BITS))
         }
     }
 }
@@ -479,7 +479,7 @@ impl<T : BitWidth> TryFrom<i32> for SizedImmediate<T> {
         if val >= T::IMIN && val <= T::IMAX {
             Ok(Self(val, PhantomData))
         } else {
-            Err(format!("number {} is too big for a {}-bit immediate", val, T::BITS))
+            Err(format!("number {val} is too big for a {}-bit immediate", T::BITS))
         }
     }
 }
@@ -546,7 +546,7 @@ impl<T : BitWidth> fmt::Display for Immediate<T> {
             Immediate::Fixed(x) => x,
             Immediate::Expr(x)  => x,
         };
-        write!(f, "{}", d)
+        write!(f, "{d}")
     }
 }
 
@@ -624,28 +624,29 @@ impl fmt::Display for Instruction {
             Type3(Immediate::Fixed(imm)) if imm == 0_u8.into()
                 => a,
             Type3(Immediate::Fixed(imm)) if i32::from(imm) < 0
-                => format!("{a} - {c}", a=a, c=(-i32::from(imm))),
+                => format!("{a} - {c}", c=(-i32::from(imm))),
             Type3(..)
-                => format!("{a} + {c}", a=a, c=c),
+                => format!("{a} + {c}"),
             Type0(Gen { op, imm : Immediate::Fixed(imm), .. }) if imm == 0_u8.into()
-                => format!("{a} {op:^3} {b}", a=a, b=b, op=op),
+                => format!("{a} {op:^3} {b}"),
             Type1(Gen { op, y, .. }) | Type2(Gen { op, y, .. }) if y == Register::A
-                => format!("{a} {op:^3} {b}", a=a, b=b, op=op),
+                => format!("{a} {op:^3} {b}"),
             Type0(Gen { op, imm : Immediate::Fixed(imm), .. }) if i32::from(imm) < 0
-                => format!("{a} {op:^3} {b} - {imm}", a=a, b=b, imm=(-i32::from(imm)), op=op),
+                => format!("{a} {op:^3} {b} - {imm}", imm=(-i32::from(imm))),
             Type0(Gen { op, .. }) |
             Type1(Gen { op, .. }) |
             Type2(Gen { op, .. })
-                => format!("{a} {op:^3} {b} + {c}", a=a, b=b, c=c, op=op),
+                => format!("{a} {op:^3} {b} + {c}"),
         };
 
         {
             use MemoryOpType::*;
+            let z = self.z;
             match self.dd {
-                NoLoad     => write!(f, " {}  <-  {}" , self.z, rhs),
-                StoreRight => write!(f, " {}  -> [{}]", self.z, rhs),
-                StoreLeft  => write!(f, "[{}] <-  {}" , self.z, rhs),
-                LoadRight  => write!(f, " {}  <- [{}]", self.z, rhs),
+                NoLoad     => write!(f, " {z}  <-  {rhs}" ),
+                StoreRight => write!(f, " {z}  -> [{rhs}]"),
+                StoreLeft  => write!(f, "[{z}] <-  {rhs}" ),
+                LoadRight  => write!(f, " {z}  <- [{rhs}]"),
             }
         }
     }
@@ -707,7 +708,7 @@ impl fmt::Display for BasicBlock {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "{}:", self.label)?;
         for insn in &self.insns {
-            writeln!(f, "    {}", insn)?;
+            writeln!(f, "    {insn}")?;
         }
         Ok(())
     }

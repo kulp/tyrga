@@ -47,10 +47,10 @@ fn test_translate_file() -> TerminatingResult {
             let expected = std::str::from_utf8(&expected)?;
 
             #[cfg(target_os = "windows")]
-            fn fix_newlines(t: &str) -> String { t.replace("\r\n", "\n") }
+            fn fix_newlines(t : &str) -> String { t.replace("\r\n", "\n") }
 
             #[cfg(not(target_os = "windows"))]
-            fn fix_newlines(t: &str) -> String { t.to_owned() }
+            fn fix_newlines(t : &str) -> String { t.to_owned() }
 
             assert_eq!(fix_newlines(translated), fix_newlines(expected));
         }
@@ -136,7 +136,7 @@ fn main() -> TerminatingResult {
         {
             let de = mangling::demangle(string)?;
             let st = String::from_utf8(de)?;
-            println!("{}", st);
+            println!("{st}");
         }
     }
 
