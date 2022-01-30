@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use classfile_parser::code_attribute::Instruction;
 
 #[derive(Copy, Clone, Debug, PartialEq)]

@@ -23,9 +23,6 @@
 use crate::tenyr::Instruction;
 use crate::tenyr::Register;
 
-use std::convert::TryFrom;
-use std::convert::TryInto;
-
 /// a list of stack-maintenance instructions that must be executed
 /// Note: the `must_use` attribute here does not appear to be effective on
 /// functions that return `StackActions`, so the `must_use` directive is

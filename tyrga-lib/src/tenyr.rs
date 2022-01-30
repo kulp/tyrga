@@ -1,6 +1,5 @@
 #![allow(unused_macros)]
 
-use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
@@ -54,7 +53,6 @@ pub type InsnResult = Result<Instruction, Box<dyn std::error::Error>>;
 #[macro_export]
 macro_rules! tenyr_imm {
     ( $imm:expr ) => { {
-        use std::convert::TryInto;
         $imm.try_into().map_err::<Box<dyn std::error::Error>,_>(Into::into)?
     } };
 }
@@ -225,8 +223,6 @@ fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
     use Opcode::*;
     use Register::*;
 
-    use std::convert::TryInto;
-
     let three = 3;
 
     let make = |ctor : &dyn Fn(InsnGeneral) -> InstructionType, y, op, imm : i8, z, x, dd|
@@ -287,8 +283,6 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
     use MemoryOpType::*;
     use Opcode::*;
     use Register::*;
-
-    use std::convert::TryInto;
 
     let three = 3;
 

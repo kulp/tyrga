@@ -410,7 +410,6 @@ fn make_arithmetic_call(
     kind : JType,
     op : ArithmeticOperation,
 ) -> GeneralResult<Vec<Instruction>> {
-    use std::convert::TryInto;
     use ArithmeticOperation::*;
 
     let ch : char = kind.try_into().expect("invalid char kind");
@@ -877,8 +876,6 @@ fn make_compare(
     kind : JType,
     nans : Option<NanComparisons>,
 ) -> GeneralResult<Vec<Instruction>> {
-    use std::convert::TryInto;
-
     let ch : char = kind.try_into().expect("invalid char kind");
 
     let (gc, mut v) = sm.reserve_one();
@@ -900,7 +897,6 @@ fn make_conversion(
     from : JType,
     to : JType,
 ) -> GeneralResult<Vec<Instruction>> {
-    use std::convert::TryInto;
     use tenyr::InsnGeneral;
     use tenyr::InstructionType::Type1;
     use tenyr::MemoryOpType::NoLoad;
@@ -969,7 +965,6 @@ fn make_varaction<'a>(
 
         let len = {
             use classfile_parser::constant_info::ConstantInfo::NameAndType;
-            use std::convert::TryFrom;
 
             let r = match gc.get_constant(fr.name_and_type_index) {
                 NameAndType(nt) =>
@@ -1478,7 +1473,6 @@ impl Display for Method {
 
 mod args {
     use crate::JType;
-    use std::convert::TryFrom;
 
     pub fn field_size(ch : char) -> Result<u8, &'static str> {
         JType::try_from(ch).map(JType::size)
