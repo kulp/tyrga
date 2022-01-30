@@ -166,6 +166,42 @@ macro_rules! tenyr_rhs {
             Ok(Instruction { $( x : $x, )? ..base }) as $crate::tenyr::InsnResult
         }
     };
+    ( $( $x:ident + )? @+$target:ident ) => {
+        {
+            let e = $crate::exprtree::Expr::make_atplus_expr($target.into()).into();
+            let kind = $crate::tenyr::InstructionType::Type3(
+                $crate::tenyr::Immediate::Expr(e)
+            );
+            let base = Instruction { kind, ..$crate::tenyr::NOOP_TYPE0 };
+            Ok(Instruction { $( x : $x, )? ..base }) as $crate::tenyr::InsnResult
+        }
+    };
+    ( @+$target:ident $( $rest:tt )+ ) => {
+        {
+            use $crate::exprtree::{Atom,Expr};
+            use $crate::exprtree::Operation;
+            use $crate::tenyr::*;
+            let base = tenyr_get_op!(tenyr_type2 $( $rest )*)?;
+            if let $crate::tenyr::InstructionType::Type2(gen) = base.kind {
+                let e = Expr {
+                    a : $target.into(),
+                    op : Operation::Sub,
+                    b : Expr {
+                        a :  ".".into(),
+                        op : Operation::Add,
+                        b :  Atom::Immediate(1),
+                    }.into(),
+                }.into();
+                let kind = $crate::tenyr::InstructionType::Type2($crate::tenyr::InsnGeneral {
+                    imm : $crate::tenyr::Immediate::Expr(e),
+                    ..gen
+                });
+                Ok(Instruction { kind, ..base }) as $crate::tenyr::InsnResult
+            } else {
+                Err("internal error - did not get expected Type2".into())
+            }
+        }
+    };
     ( $x:ident $( $rest:tt )* ) => {
         {
             use $crate::tenyr::*;
@@ -209,9 +245,27 @@ macro_rules! tenyr_insn {
     (   $z:ident   <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z,                                               ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
 }
 
+#[cfg(test)]
+fn expr_sub_one(a : exprtree::Atom) -> super::tenyr::Immediate12 {
+    Immediate12::Expr(
+        exprtree::Expr {
+            a,
+            op : exprtree::Operation::Sub,
+            b : exprtree::Expr {
+                a :  ".".into(),
+                op : exprtree::Operation::Add,
+                b :  exprtree::Atom::Immediate(1),
+            }
+            .into(),
+        }
+        .into(),
+    )
+}
+
 #[rustfmt::skip]
 #[test]
 fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
+    use std::convert::TryInto;
     use InstructionType::*;
     use MemoryOpType::*;
     use Opcode::*;
@@ -219,36 +273,50 @@ fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
 
     let three = 3;
 
-    let make = |ctor : &dyn Fn(InsnGeneral) -> InstructionType, y, op, imm : i8, z, x, dd|
-        Instruction { kind : ctor(InsnGeneral { y, op, imm : imm.into() }), z, x, dd };
+    let make = |ctor : &dyn Fn(InsnGeneral) -> InstructionType, y, op, imm, z, x, dd| Instruction {
+        kind : ctor(InsnGeneral { y, op, imm }),
+        z,
+        x,
+        dd,
+    };
+
+    let make8 = |ctor, y, op, imm : i8, z, x, dd| make(ctor, y, op, imm.into(), z, x, dd);
 
     let make3 = |imm : i32, z, x, dd|
         InsnResult::Ok(Instruction { kind : Type3(imm.try_into()?), z, x, dd });
 
-    assert_eq!(tenyr_insn!( B  <-  C  |~ D + 3      )?, make(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C >>> D + 3      )?, make(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C  +  D + 3      )?, make(&Type0,D,Add            , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C  *  D + 3      )?, make(&Type0,D,Multiply       , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C  *  D - 3      )?, make(&Type0,D,Multiply       ,-3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C                )?, make(&Type0,A,BitwiseOr      , 0_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C  +  D          )?, make(&Type0,D,Add            , 0_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C  |~ D          )?, make(&Type0,D,BitwiseOrn     , 0_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C  ^^ 3          )?, make(&Type1,A,Pack           , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  3  *  C          )?, make(&Type2,A,Multiply       , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  3  *  C + D      )?, make(&Type2,D,Multiply       , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!([B] <-  3  ^^ C + D      )?, make(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ));
-    assert_eq!(tenyr_insn!( B  -> [3  &~ C + D]     )?, make(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight));
-    assert_eq!(tenyr_insn!( B  <- [3  @  C + D]     )?, make(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ));
-    assert_eq!(tenyr_insn!( B  <-  C  |~ D + (three))?, make(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C >>> D + (three))?, make(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C  +  D + (three))?, make(&Type0,D,Add            , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C  *  D + (three))?, make(&Type0,D,Multiply       , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  C  ^^ (three)    )?, make(&Type1,A,Pack           , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  (three) * C      )?, make(&Type2,A,Multiply       , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!( B  <-  (three) * C + D  )?, make(&Type2,D,Multiply       , 3_i8,B,C,NoLoad    ));
-    assert_eq!(tenyr_insn!([B] <-  (three) ^^ C + D )?, make(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ));
-    assert_eq!(tenyr_insn!( B  -> [(three) &~ C + D])?, make(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight));
-    assert_eq!(tenyr_insn!( B  <- [(three) @  C + D])?, make(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ));
+    let dest = "destination_label";
+
+    let imm = expr_sub_one(dest.into());
+    let im2 = imm.clone();
+
+    assert_eq!(tenyr_insn!( B  <- @+dest   &  C + D )?, make (&Type2,D,BitwiseAnd     , imm ,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <- @+dest   &~ C + D )?, make (&Type2,D,BitwiseAndn    , im2 ,B,C,NoLoad    ));
+
+    assert_eq!(tenyr_insn!( B  <-  C  |~ D + 3      )?, make8(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C >>> D + 3      )?, make8(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  +  D + 3      )?, make8(&Type0,D,Add            , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  *  D + 3      )?, make8(&Type0,D,Multiply       , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  *  D - 3      )?, make8(&Type0,D,Multiply       ,-3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C                )?, make8(&Type0,A,BitwiseOr      , 0_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  +  D          )?, make8(&Type0,D,Add            , 0_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  |~ D          )?, make8(&Type0,D,BitwiseOrn     , 0_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  ^^ 3          )?, make8(&Type1,A,Pack           , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  3  *  C          )?, make8(&Type2,A,Multiply       , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  3  *  C + D      )?, make8(&Type2,D,Multiply       , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!([B] <-  3  ^^ C + D      )?, make8(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ));
+    assert_eq!(tenyr_insn!( B  -> [3  &~ C + D]     )?, make8(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight));
+    assert_eq!(tenyr_insn!( B  <- [3  @  C + D]     )?, make8(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ));
+    assert_eq!(tenyr_insn!( B  <-  C  |~ D + (three))?, make8(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C >>> D + (three))?, make8(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  +  D + (three))?, make8(&Type0,D,Add            , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  *  D + (three))?, make8(&Type0,D,Multiply       , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  C  ^^ (three)    )?, make8(&Type1,A,Pack           , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  (three) * C      )?, make8(&Type2,A,Multiply       , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!( B  <-  (three) * C + D  )?, make8(&Type2,D,Multiply       , 3_i8,B,C,NoLoad    ));
+    assert_eq!(tenyr_insn!([B] <-  (three) ^^ C + D )?, make8(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ));
+    assert_eq!(tenyr_insn!( B  -> [(three) &~ C + D])?, make8(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight));
+    assert_eq!(tenyr_insn!( B  <- [(three) @  C + D])?, make8(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ));
     assert_eq!(tenyr_insn!( B  <-  C  +  0x12345    )?, make3( 0x12345_i32,B,C,NoLoad)?);
     assert_eq!(tenyr_insn!( B  <-  C  -  0x12345    )?, make3(-0x12345_i32,B,C,NoLoad)?);
     assert_eq!(tenyr_insn!( B  <-        0x12345    )?, make3( 0x12345_i32,B,A,NoLoad)?);
@@ -263,12 +331,14 @@ fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
 #[macro_export]
 macro_rules! tenyr_insn_list {
     () => { std::iter::empty() };
-    ( $lhs:tt <- $a:tt $op:tt$op2:tt $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $a $op$op2 $b $( + $c )?  )?).chain(tenyr_insn_list!($( $tok )*)) };
-    ( $lhs:tt <- $a:tt $op:tt        $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $a $op     $b $( + $c )?  )?).chain(tenyr_insn_list!($( $tok )*)) };
-    ( $lhs:tt <- $a:tt $op:tt$op2:tt $b:tt $( - $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $a $op$op2 $b $( - $c )?  )?).chain(tenyr_insn_list!($( $tok )*)) };
-    ( $lhs:tt <- $a:tt $op:tt        $b:tt $( - $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $a $op     $b $( - $c )?  )?).chain(tenyr_insn_list!($( $tok )*)) };
-    ( $lhs:tt <- $rhs:tt                                 ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $rhs                      )?).chain(tenyr_insn_list!($( $tok )*)) };
-    ( $lhs:tt -> $rhs:tt                                 ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs -> $rhs                      )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <-   $a:tt $op:tt$op2:tt $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <-   $a $op$op2 $b $( + $c )? )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <-   $a:tt $op:tt        $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <-   $a $op     $b $( + $c )? )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <- @+$a:tt $op:tt$op2:tt $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- @+$a $op$op2 $b $( + $c )? )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <- @+$a:tt $op:tt        $b:tt $( + $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- @+$a $op     $b $( + $c )? )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <-   $a:tt $op:tt$op2:tt $b:tt $( - $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <-   $a $op$op2 $b $( - $c )? )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <-   $a:tt $op:tt        $b:tt $( - $c:tt )? ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <-   $a $op     $b $( - $c )? )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt <- $rhs:tt                                   ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs <- $rhs                       )?).chain(tenyr_insn_list!($( $tok )*)) };
+    ( $lhs:tt -> $rhs:tt                                   ; $( $tok:tt )* ) => { std::iter::once(tenyr_insn!($lhs -> $rhs                       )?).chain(tenyr_insn_list!($( $tok )*)) };
 }
 
 #[test]
@@ -279,6 +349,7 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
     use Register::*;
 
     let three = 3;
+    let dest = "destination_label";
 
     let from = tenyr_insn_list! {
          B  <-  C  |~ D + 3      ;
@@ -305,6 +376,8 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
         [B] <-  (three) ^^ C + D ;
          B  -> [(three) &~ C + D];
          B  <- [(three) @  C + D];
+         B  <- @+dest   &  C + D ;
+         B  <- @+dest   &~ C + D ;
          B  <-  C  +  0x12345    ;
          B  <-  C  -  0x12345    ;
          B  <-        0x12345    ;
@@ -313,17 +386,14 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
          B  <-        (three)    ;
     };
 
-    let make =
-        |ctor : &dyn Fn(InsnGeneral) -> InstructionType, y, op, imm : i8, z, x, dd| Instruction {
-            kind : ctor(InsnGeneral {
-                y,
-                op,
-                imm : imm.into(),
-            }),
-            z,
-            x,
-            dd,
-        };
+    let make = |ctor : &dyn Fn(InsnGeneral) -> InstructionType, y, op, imm, z, x, dd| Instruction {
+        kind : ctor(InsnGeneral { y, op, imm }),
+        z,
+        x,
+        dd,
+    };
+
+    let make8 = |ctor, y, op, imm : i8, z, x, dd| make(ctor, y, op, imm.into(), z, x, dd);
 
     let make3 = |imm : i32, z, x, dd| {
         InsnResult::Ok(Instruction {
@@ -336,32 +406,37 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
 
     let from : Vec<_> = from.collect();
 
+    let imm = expr_sub_one(dest.into());
+    let im2 = imm.clone();
+
     #[rustfmt::skip]
     let to = vec![
-        make(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ),
-        make(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ),
-        make(&Type0,D,Add            , 3_i8,B,C,NoLoad    ),
-        make(&Type0,D,Multiply       , 3_i8,B,C,NoLoad    ),
-        make(&Type0,D,Multiply       ,-3_i8,B,C,NoLoad    ),
-        make(&Type0,A,BitwiseOr      , 0_i8,B,C,NoLoad    ),
-        make(&Type0,D,Add            , 0_i8,B,C,NoLoad    ),
-        make(&Type0,D,BitwiseOrn     , 0_i8,B,C,NoLoad    ),
-        make(&Type1,A,Pack           , 3_i8,B,C,NoLoad    ),
-        make(&Type2,A,Multiply       , 3_i8,B,C,NoLoad    ),
-        make(&Type2,D,Multiply       , 3_i8,B,C,NoLoad    ),
-        make(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ),
-        make(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight),
-        make(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ),
-        make(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ),
-        make(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ),
-        make(&Type0,D,Add            , 3_i8,B,C,NoLoad    ),
-        make(&Type0,D,Multiply       , 3_i8,B,C,NoLoad    ),
-        make(&Type1,A,Pack           , 3_i8,B,C,NoLoad    ),
-        make(&Type2,A,Multiply       , 3_i8,B,C,NoLoad    ),
-        make(&Type2,D,Multiply       , 3_i8,B,C,NoLoad    ),
-        make(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ),
-        make(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight),
-        make(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ),
+        make8(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ),
+        make8(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ),
+        make8(&Type0,D,Add            , 3_i8,B,C,NoLoad    ),
+        make8(&Type0,D,Multiply       , 3_i8,B,C,NoLoad    ),
+        make8(&Type0,D,Multiply       ,-3_i8,B,C,NoLoad    ),
+        make8(&Type0,A,BitwiseOr      , 0_i8,B,C,NoLoad    ),
+        make8(&Type0,D,Add            , 0_i8,B,C,NoLoad    ),
+        make8(&Type0,D,BitwiseOrn     , 0_i8,B,C,NoLoad    ),
+        make8(&Type1,A,Pack           , 3_i8,B,C,NoLoad    ),
+        make8(&Type2,A,Multiply       , 3_i8,B,C,NoLoad    ),
+        make8(&Type2,D,Multiply       , 3_i8,B,C,NoLoad    ),
+        make8(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ),
+        make8(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight),
+        make8(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ),
+        make8(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ),
+        make8(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ),
+        make8(&Type0,D,Add            , 3_i8,B,C,NoLoad    ),
+        make8(&Type0,D,Multiply       , 3_i8,B,C,NoLoad    ),
+        make8(&Type1,A,Pack           , 3_i8,B,C,NoLoad    ),
+        make8(&Type2,A,Multiply       , 3_i8,B,C,NoLoad    ),
+        make8(&Type2,D,Multiply       , 3_i8,B,C,NoLoad    ),
+        make8(&Type2,D,Pack           , 3_i8,B,C,StoreLeft ),
+        make8(&Type2,D,BitwiseAndn    , 3_i8,B,C,StoreRight),
+        make8(&Type2,D,TestBit        , 3_i8,B,C,LoadRight ),
+        make (&Type2,D,BitwiseAnd     , imm ,B,C,NoLoad    ),
+        make (&Type2,D,BitwiseAndn    , im2 ,B,C,NoLoad    ),
         make3( 0x12345_i32,B,C,NoLoad)?,
         make3(-0x12345_i32,B,C,NoLoad)?,
         make3( 0x12345_i32,B,A,NoLoad)?,
