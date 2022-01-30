@@ -273,7 +273,7 @@ fn make_builtin_name(proc : &str, descriptor : &str) -> String {
     mangle(&[&"tyrga/Builtin", &proc, &descriptor])
 }
 
-fn make_jump(target : u16, target_name : &str) -> InsnPair {
+fn make_jump(target : u16, target_name : &str) -> GeneralResult<InsnPair> {
     use crate::tenyr::InstructionType::Type3;
     let kind = Type3(tenyr::Immediate::Expr(make_target(target_name)));
     let insn = Instruction {
@@ -283,7 +283,7 @@ fn make_jump(target : u16, target_name : &str) -> InsnPair {
         ..tenyr::NOOP_TYPE3
     };
     let dests = vec![Destination::Address(target as usize)];
-    (vec![insn], dests)
+    Ok((vec![insn], dests))
 }
 
 fn make_call(
@@ -656,10 +656,10 @@ fn make_switch_lookup(
     pairs
         .into_iter()
         .map(make)
-        .chain(std::iter::once(Ok(make_jump(
+        .chain(std::iter::once(make_jump(
             there(default),
             &namer(&there(default))?,
-        ))))
+        )))
         .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
             let (i, d) = tup?;
             insns.extend(i);
@@ -721,7 +721,7 @@ fn make_switch_table(
 
     let offsets = offsets
         .into_iter()
-        .map(|far| Ok(make_jump(there(far), &namer(&there(far))?)));
+        .map(|far| make_jump(there(far), &namer(&there(far))?));
 
     std::iter::empty()
         .chain(once(default_maker(maker(&Type1, low))))
@@ -1166,7 +1166,7 @@ fn make_instructions<'a>(
     let branching = GeneralResult::Ok;
     let no_branch = |x| GeneralResult::Ok((x, vec![Destination::Successor]));
 
-    let make_jump = |_sm, target| GeneralResult::Ok(make_jump(target, &namer(&target)?));
+    let make_jump = |_sm, target| make_jump(target, &namer(&target)?);
     let make_noop = |_sm| vec![tenyr::NOOP_TYPE0];
     let make_branch = |sm, ops, way, target| make_branch(sm, ops, way, target, &namer(&target)?);
     let make_yield  = |sm, kind| make_yield(sm, kind, &namer(&"epilogue")?, max_locals);
