@@ -29,7 +29,7 @@ impl fmt::Display for Atom {
         match self {
             Variable(name) => write!(f, "{name}"),
             Immediate(num) => write!(f, "{num}"),
-            Expression(e) => write!(f, "({e})"),
+            Expression(e) => write!(f, "{e}"),
         }
     }
 }
@@ -44,7 +44,7 @@ pub struct Expr {
 impl fmt::Display for Expr {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         let (a, b, op) = (&self.a, &self.b, &self.op);
-        write!(f, "{a} {op} {b}")
+        write!(f, "({a} {op} {b})")
     }
 }
 
@@ -72,7 +72,7 @@ fn test_expr_display() {
         b :  Expression(ff.clone()),
     };
 
-    assert_eq!(ee.to_string(), "A + 3");
-    assert_eq!(ff.to_string(), "(A + 3) - B");
-    assert_eq!(g.to_string(), "(A + 3) - ((A + 3) - B)");
+    assert_eq!(ee.to_string(), "(A + 3)");
+    assert_eq!(ff.to_string(), "((A + 3) - B)");
+    assert_eq!(g.to_string(), "((A + 3) - ((A + 3) - B))");
 }
