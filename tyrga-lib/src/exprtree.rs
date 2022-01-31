@@ -20,7 +20,7 @@ impl fmt::Display for Operation {
 pub enum Atom {
     Variable(String),
     Immediate(i32),
-    Expression(std::rc::Rc<Expr>),
+    Expression(Box<Expr>),
 }
 
 impl fmt::Display for Atom {
@@ -50,7 +50,6 @@ impl fmt::Display for Expr {
 
 #[test]
 fn test_expr_display() {
-    use std::rc::Rc;
     use Atom::*;
     use Operation::*;
 
@@ -59,13 +58,13 @@ fn test_expr_display() {
         op : Add,
         b :  Immediate(3),
     };
-    let ee = Rc::new(e);
+    let ee = Box::new(e);
     let f = Expr {
         a :  Expression(ee.clone()),
         op : Sub,
         b :  Variable("B".to_string()),
     };
-    let ff = Rc::new(f);
+    let ff = Box::new(f);
     let g = Expr {
         a :  Expression(ee.clone()),
         op : Sub,

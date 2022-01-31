@@ -210,11 +210,10 @@ fn make_target(target : impl std::string::ToString) -> exprtree::Atom {
     use exprtree::Atom::*;
     use exprtree::Expr;
     use exprtree::Operation::{Add, Sub};
-    use std::rc::Rc;
 
     let a = Variable(target.to_string());
-    let b = Expression(Rc::new(Expr { a : Variable(".".to_owned()), op : Add, b : Immediate(1) }));
-    Expression(Rc::new(Expr { a, op : Sub, b }))
+    let b = Expression(Box::new(Expr { a : Variable(".".to_owned()), op : Add, b : Immediate(1) }));
+    Expression(Box::new(Expr { a, op : Sub, b }))
 }
 
 fn make_int_branch(
@@ -985,7 +984,7 @@ fn make_varaction<'a>(
             let b = Atom::Immediate(i);
             let op = exprtree::Operation::Add;
             let e = exprtree::Expr { a, b, op };
-            tenyr::Immediate20::Expr(Atom::Expression(std::rc::Rc::new(e)))
+            tenyr::Immediate20::Expr(Atom::Expression(Box::new(e)))
         };
 
         let op_depth = match op { VarOp::Get => 0, VarOp::Put => len.into() };
