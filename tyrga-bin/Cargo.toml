@@ -10,7 +10,6 @@ license = "MIT"
 build = "../build.rs"
 
 [badges]
-travis-ci = { repository = "kulp/tyrga", branch = "develop" }
 maintenance = { status = "experimental" }
 
 [dependencies]
