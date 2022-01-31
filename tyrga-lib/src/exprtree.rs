@@ -54,10 +54,30 @@ pub struct Expr {
     pub op : Operation,
 }
 
+impl Expr {
+    fn is_atplus_shorthand(&self) -> bool {
+        matches!(self,
+            Expr {
+                a: _,
+                op: Operation::Sub,
+                b: Atom::Expression(b),
+            } if matches!(**b,
+                Expr {
+                    a: Atom::Variable(ref a),
+                    op: Operation::Add,
+                    b: Atom::Immediate(1),
+                } if a == "."))
+    }
+}
+
 impl fmt::Display for Expr {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         let (a, b, op) = (&self.a, &self.b, &self.op);
-        write!(f, "({a} {op} {b})")
+        if self.is_atplus_shorthand() {
+            write!(f, "@+{a}")
+        } else {
+            write!(f, "({a} {op} {b})")
+        }
     }
 }
 
@@ -84,7 +104,24 @@ fn test_expr_display() {
         b :  Expression(f.clone()),
     };
 
+    let h = Expr {
+        a :  Variable("abc".into()),
+        op : Sub,
+        b :  Expression(Box::new(Expr {
+            a :  ".".into(),
+            op : Add,
+            b :  Immediate(1),
+        })),
+    };
+    let i = Expr {
+        a :  Expression(Box::new(h.clone())),
+        op : Add,
+        b :  Immediate(4),
+    };
+
     assert_eq!(e.to_string(), "(A + 3)");
     assert_eq!(f.to_string(), "((A + 3) - B)");
     assert_eq!(g.to_string(), "((A + 3) - ((A + 3) - B))");
+    assert_eq!(h.to_string(), "@+abc");
+    assert_eq!(i.to_string(), "(@+abc + 4)");
 }

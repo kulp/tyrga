@@ -19,7 +19,7 @@ _4Nest02_3b3c4init04_3e3b28291V:
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
-     P  <-  (.L_4Nest02_3b3c4init04_3e3b28291V01_3b10__epilogue - (. + 1)) + P
+     P  <-  @+.L_4Nest02_3b3c4init04_3e3b28291V01_3b10__epilogue + P
 .L_4Nest02_3b3c4init04_3e3b28291V01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -37,7 +37,7 @@ _4Nest01_3b4nest02_3b282II01_291I:
      B  <- [O + 5]
      C  <- [O + 3]
      B  <-  B >= C
-     P  <-  (.L_4Nest01_3b4nest02_3b282II01_291I01_3b4__56 - (. + 1)) & B + P
+     P  <-  @+.L_4Nest01_3b4nest02_3b282II01_291I01_3b4__56 & B + P
      B  <- [O + 6]
      C  <- [O + 3]
      B  <-  B + C
@@ -52,7 +52,7 @@ _4Nest01_3b4nest02_3b282II01_291I:
      B  <- [O + 2]
      C  <- [O + 5]
      B  <-  B >= C
-     P  <-  (.L_4Nest01_3b4nest02_3b282II01_291I01_3b4__53 - (. + 1)) & B + P
+     P  <-  @+.L_4Nest01_3b4nest02_3b282II01_291I01_3b4__53 & B + P
      B  <- [O + 6]
      C  <- [O + 5]
      B  <-  B + C
@@ -72,17 +72,17 @@ _4Nest01_3b4nest02_3b282II01_291I:
      B  <- [O + 6]
      C  <- [O + 5]
      B  <-  B < C
-     P  <-  (.L_4Nest01_3b4nest02_3b282II01_291I01_3b4__34 - (. + 1)) & B + P
+     P  <-  @+.L_4Nest01_3b4nest02_3b282II01_291I01_3b4__34 & B + P
      B  <- [O + 2]
      B  <-  B + 1
      B  -> [O + 2]
-     P  <-  P + (.L_4Nest01_3b4nest02_3b282II01_291I01_3b4__20 - (. + 1))
+     P  <-  P + @+.L_4Nest01_3b4nest02_3b282II01_291I01_3b4__20
 .L_4Nest01_3b4nest02_3b282II01_291I01_3b4__53:
-     P  <-  P + (.L_4Nest01_3b4nest02_3b282II01_291I01_3b3__4 - (. + 1))
+     P  <-  P + @+.L_4Nest01_3b4nest02_3b282II01_291I01_3b3__4
 .L_4Nest01_3b4nest02_3b282II01_291I01_3b4__56:
      B  <- [O + 4]
      B  -> [O + 6]
-     P  <-  (.L_4Nest01_3b4nest02_3b282II01_291I01_3b10__epilogue - (. + 1)) + P
+     P  <-  @+.L_4Nest01_3b4nest02_3b282II01_291I01_3b10__epilogue + P
 .L_4Nest01_3b4nest02_3b282II01_291I01_3b10__epilogue:
      O  <-  O + 5
      P  <- [O - 4]

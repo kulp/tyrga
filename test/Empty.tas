@@ -19,7 +19,7 @@ _5Empty02_3b3c4init04_3e3b28291V:
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
-     P  <-  (.L_5Empty02_3b3c4init04_3e3b28291V01_3b10__epilogue - (. + 1)) + P
+     P  <-  @+.L_5Empty02_3b3c4init04_3e3b28291V01_3b10__epilogue + P
 .L_5Empty02_3b3c4init04_3e3b28291V01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -29,7 +29,7 @@ _5Empty01_3b5empty03_3b28291V:
 .L_5Empty01_3b5empty03_3b28291V01_3b10__prologue:
      O  <-  O - 1
 .L_5Empty01_3b5empty03_3b28291V01_3b3__0:
-     P  <-  (.L_5Empty01_3b5empty03_3b28291V01_3b10__epilogue - (. + 1)) + P
+     P  <-  @+.L_5Empty01_3b5empty03_3b28291V01_3b10__epilogue + P
 .L_5Empty01_3b5empty03_3b28291V01_3b10__epilogue:
      O  <-  O + 1
      P  <- [O]

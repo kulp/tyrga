@@ -22,7 +22,7 @@ _6Static02_3b3c4init04_3e3b28291V:
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
-     P  <-  (.L_6Static02_3b3c4init04_3e3b28291V01_3b10__epilogue - (. + 1)) + P
+     P  <-  @+.L_6Static02_3b3c4init04_3e3b28291V01_3b10__epilogue + P
 .L_6Static02_3b3c4init04_3e3b28291V01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -33,8 +33,8 @@ _6Static02_3b3c6clinit04_3e3b28291V:
      O  <-  O - 1
 .L_6Static02_3b3c6clinit04_3e3b28291V01_3b3__0:
      B  <-  3
-     B  -> [P + ((@_6Static01_3b1a01_3b1I01_3b6static - (. + 1)) + 0)]
-     P  <-  (.L_6Static02_3b3c6clinit04_3e3b28291V01_3b10__epilogue - (. + 1)) + P
+     B  -> [P + (@+@_6Static01_3b1a01_3b1I01_3b6static + 0)]
+     P  <-  @+.L_6Static02_3b3c6clinit04_3e3b28291V01_3b10__epilogue + P
 .L_6Static02_3b3c6clinit04_3e3b28291V01_3b10__epilogue:
      O  <-  O + 1
      P  <- [O]
