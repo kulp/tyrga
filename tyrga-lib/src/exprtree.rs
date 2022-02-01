@@ -58,20 +58,20 @@ fn test_expr_display() {
         op : Add,
         b :  Immediate(3),
     };
-    let ee = Box::new(e);
+    let e = Box::new(e);
     let f = Expr {
-        a :  Expression(ee.clone()),
+        a :  Expression(e.clone()),
         op : Sub,
         b :  Variable("B".to_string()),
     };
-    let ff = Box::new(f);
+    let f = Box::new(f);
     let g = Expr {
-        a :  Expression(ee.clone()),
+        a :  Expression(e.clone()),
         op : Sub,
-        b :  Expression(ff.clone()),
+        b :  Expression(f.clone()),
     };
 
-    assert_eq!(ee.to_string(), "(A + 3)");
-    assert_eq!(ff.to_string(), "((A + 3) - B)");
+    assert_eq!(e.to_string(), "(A + 3)");
+    assert_eq!(f.to_string(), "((A + 3) - B)");
     assert_eq!(g.to_string(), "((A + 3) - ((A + 3) - B))");
 }
