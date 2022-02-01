@@ -336,7 +336,7 @@ fn make_constant<'a>(
     sm : &mut StackManager,
     gc : impl Contextualizer<'a>,
     details : Indirection<ExplicitConstant>,
-) -> Vec<Instruction> {
+) -> GeneralResult<Vec<Instruction>> {
     use jvmtypes::Indirection::{Explicit, Indirect};
 
     let mut make = |slice : &[_]| {
@@ -358,26 +358,26 @@ fn make_constant<'a>(
     match details {
         Explicit(ExplicitConstant { kind, value }) =>
             match kind {
-                JType::Object => make(&[ 0 ]), // all Object constants are nulls
-                JType::Int    => make(&[ value.into() ]),
-                JType::Long   => make(&[ 0, value.into() ]),
-                JType::Float  => make(&[ f32::from(value).to_bits() as i32 ]),
+                JType::Object => Ok(make(&[ 0 ])), // all Object constants are nulls
+                JType::Int    => Ok(make(&[ value.into() ])),
+                JType::Long   => Ok(make(&[ 0, value.into() ])),
+                JType::Float  => Ok(make(&[ f32::from(value).to_bits() as i32 ])),
                 JType::Double => {
                     let bits = f64::from(value).to_bits();
-                    make(&[ (bits >> 32) as i32, bits as i32 ])
+                    Ok(make(&[ (bits >> 32) as i32, bits as i32 ]))
                 },
-                _ => unreachable!("impossible Constant configuration"),
+                _ => Err("encountered impossible Constant configuration".into()),
             },
         Indirect(index) => {
             use ConstantInfo::*;
             let c = gc.get_constant(index);
             match c {
-                Integer(IntegerConstant { value }) => make(&[ *value ]),
-                Long   (   LongConstant { value }) => make(&[ (*value >> 32) as i32, *value as i32 ]),
-                Float  (  FloatConstant { value }) => make(&[ value.to_bits() as i32 ]),
+                Integer(IntegerConstant { value }) => Ok(make(&[ *value ])),
+                Long   (   LongConstant { value }) => Ok(make(&[ (*value >> 32) as i32, *value as i32 ])),
+                Float  (  FloatConstant { value }) => Ok(make(&[ value.to_bits() as i32 ])),
                 Double ( DoubleConstant { value }) => {
                     let bits = value.to_bits();
-                    make(&[(bits >> 32) as i32, bits as i32])
+                    Ok(make(&[(bits >> 32) as i32, bits as i32]))
                 },
                 Class       (       ClassConstant { .. }) |
                 String      (      StringConstant { .. }) |
@@ -387,7 +387,7 @@ fn make_constant<'a>(
                     // do not be tempted to make the containing function infallible
                     unimplemented!("unhandled Constant configuration"),
 
-                _ => unreachable!("impossible Constant configuration"),
+                _ => Err("encountered impossible Constant configuration".into()),
             }
         },
     }
@@ -1168,7 +1168,7 @@ fn make_instructions<'a>(
         ArrayOp    { 0 : aop          } => no_branch( make_array_op   ( sm, aop                      ) ),
         Branch     { ops, way, target } => branching( make_branch     ( sm, ops, way, target         ) ),
         Compare    { kind, nans       } => no_branch( make_compare    ( sm, kind, nans               )?),
-        Constant   { 0 : details      } => no_branch( make_constant   ( sm, gc, details              ) ),
+        Constant   { 0 : details      } => no_branch( make_constant   ( sm, gc, details              )?),
         Conversion { from, to         } => no_branch( make_conversion ( sm, from, to                 )?),
         Increment  { index, value     } => no_branch( make_increment  ( sm, index, value, max_locals )?),
         Invocation { kind, index      } => no_branch( make_invocation ( sm, kind, index, gc          )?),
