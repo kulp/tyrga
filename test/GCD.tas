@@ -19,7 +19,7 @@ _3GCD02_3b3c4init04_3e3b28291V:
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
-     P  <-  (.L_3GCD02_3b3c4init04_3e3b28291V01_3b10__epilogue - (. + 1))  +  P
+     P  <-  (.L_3GCD02_3b3c4init04_3e3b28291V01_3b10__epilogue - (. + 1)) + P
 .L_3GCD02_3b3c4init04_3e3b28291V01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -31,27 +31,27 @@ _3GCD01_3b3gcd02_3b282II01_291I:
 .L_3GCD01_3b3gcd02_3b282II01_291I01_3b3__0:
      B  <- [O + 3]
      C  <- [O + 2]
-     B  <-  B ==  C
-     P  <-  (.L_3GCD01_3b3gcd02_3b282II01_291I01_3b4__24 - (. + 1))  &  B + P
+     B  <-  B == C
+     P  <-  (.L_3GCD01_3b3gcd02_3b282II01_291I01_3b4__24 - (. + 1)) & B + P
      B  <- [O + 3]
      C  <- [O + 2]
-     B  <-  C >=  B
-     P  <-  (.L_3GCD01_3b3gcd02_3b282II01_291I01_3b4__17 - (. + 1))  &  B + P
+     B  <-  C >= B
+     P  <-  (.L_3GCD01_3b3gcd02_3b282II01_291I01_3b4__17 - (. + 1)) & B + P
      B  <- [O + 3]
      C  <- [O + 2]
-     B  <-  B  -  C
+     B  <-  B - C
      B  -> [O + 3]
      P  <-  P + (.L_3GCD01_3b3gcd02_3b282II01_291I01_3b3__0 - (. + 1))
 .L_3GCD01_3b3gcd02_3b282II01_291I01_3b4__17:
      B  <- [O + 2]
      C  <- [O + 3]
-     B  <-  B  -  C
+     B  <-  B - C
      B  -> [O + 2]
      P  <-  P + (.L_3GCD01_3b3gcd02_3b282II01_291I01_3b3__0 - (. + 1))
 .L_3GCD01_3b3gcd02_3b282II01_291I01_3b4__24:
      B  <- [O + 3]
      B  -> [O + 3]
-     P  <-  (.L_3GCD01_3b3gcd02_3b282II01_291I01_3b10__epilogue - (. + 1))  +  P
+     P  <-  (.L_3GCD01_3b3gcd02_3b282II01_291I01_3b10__epilogue - (. + 1)) + P
 .L_3GCD01_3b3gcd02_3b282II01_291I01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
