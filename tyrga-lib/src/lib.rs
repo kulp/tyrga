@@ -259,14 +259,8 @@ fn make_builtin_name(proc : &str, descriptor : &str) -> String {
 }
 
 fn make_jump(target : u16, target_name : String) -> GeneralResult<InsnPair> {
-    use crate::tenyr::InstructionType::Type3;
-    let kind = Type3(tenyr::Immediate::Expr(make_target(target_name)));
-    let insn = Instruction {
-        kind,
-        z : Register::P,
-        x : Register::P,
-        ..tenyr::NOOP_TYPE3
-    };
+    use Register::P;
+    let insn = tenyr_insn!( P <- P + @+target_name )?;
     let dests = vec![Destination::Address(target as usize)];
     Ok((vec![insn], dests))
 }
