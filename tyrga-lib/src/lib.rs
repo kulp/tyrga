@@ -1154,10 +1154,10 @@ fn make_instructions<'a>(
     // follow multiple destinations. Each basic block needs to be visited only once, however, since
     // the JVM guarantees that every instance of every instruction within a method always sees the
     // same depth of the operand stack every time that instance is executed.
-    let branching = |x| x;
-    let no_branch = |x| Ok((x, vec![Destination::Successor]));
+    let branching = GeneralResult::Ok;
+    let no_branch = |x| GeneralResult::Ok((x, vec![Destination::Successor]));
 
-    let make_jump = |_sm, target| Ok(make_jump(target, &namer(&target)?));
+    let make_jump = |_sm, target| GeneralResult::Ok(make_jump(target, &namer(&target)?));
     let make_noop = |_sm| vec![tenyr::NOOP_TYPE0];
     let make_branch = |sm, ops, way, target| make_branch(sm, ops, way, target, &namer(&target)?);
     let make_yield  = |sm, kind| make_yield(sm, kind, &namer(&"epilogue")?, max_locals);
@@ -1166,19 +1166,19 @@ fn make_instructions<'a>(
         Allocation { 0 : details      } => no_branch( make_allocation ( sm, details, gc              )?),
         Arithmetic { kind, op         } => no_branch( make_arithmetic ( sm, kind, op                 )?),
         ArrayOp    { 0 : aop          } => no_branch( make_array_op   ( sm, aop                      ) ),
-        Branch     { ops, way, target } => branching( make_branch     ( sm, ops, way, target         ) ),
+        Branch     { ops, way, target } => branching( make_branch     ( sm, ops, way, target         )?),
         Compare    { kind, nans       } => no_branch( make_compare    ( sm, kind, nans               )?),
         Constant   { 0 : details      } => no_branch( make_constant   ( sm, gc, details              )?),
         Conversion { from, to         } => no_branch( make_conversion ( sm, from, to                 )?),
         Increment  { index, value     } => no_branch( make_increment  ( sm, index, value, max_locals )?),
         Invocation { kind, index      } => no_branch( make_invocation ( sm, kind, index, gc          )?),
-        Jump       { target           } => branching( make_jump       ( sm, target                   ) ),
+        Jump       { target           } => branching( make_jump       ( sm, target                   )?),
         LocalOp    { 0 : op           } => no_branch( make_mem_op     ( sm, op, max_locals           ) ),
         Noop       {                  } => no_branch( make_noop       ( sm                           ) ),
         StackOp    { op, size         } => no_branch( make_stack_op   ( sm, op, size                 ) ),
-        Switch     { 0 : params       } => branching( make_switch     ( sm, params, namer, addr      ) ),
+        Switch     { 0 : params       } => branching( make_switch     ( sm, params, namer, addr      )?),
         VarAction  { op, kind, index  } => no_branch( make_varaction  ( sm, op, kind, index, gc      )?),
-        Yield      { kind             } => branching( make_yield      ( sm, kind                     ) ),
+        Yield      { kind             } => branching( make_yield      ( sm, kind                     )?),
 
         Unhandled  { ..               } => unimplemented!("unhandled operation {:?}", op)
     }
