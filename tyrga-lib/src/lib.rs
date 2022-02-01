@@ -225,7 +225,7 @@ fn test_expand() -> GeneralResult<()> {
 
 type InsnPair = (Vec<Instruction>, Vec<Destination>);
 
-fn make_target(target : impl std::string::ToString) -> exprtree::Atom {
+fn make_target(target : String) -> exprtree::Atom {
     use exprtree::Atom::Immediate;
     use exprtree::Expr;
     use exprtree::Operation::{Add, Sub};
@@ -237,7 +237,7 @@ fn make_target(target : impl std::string::ToString) -> exprtree::Atom {
     }
     .into();
     Expr {
-        a : target.to_string().into(),
+        a : target.into(),
         op : Sub,
         b,
     }
@@ -248,7 +248,7 @@ fn make_int_branch(
     sm : &mut StackManager,
     invert : bool,
     target : u16,
-    target_name : &str,
+    target_name : String,
     mut comp : impl FnMut(&mut StackManager) -> GeneralResult<(Register, Vec<Instruction>)>,
 ) -> GeneralResult<InsnPair> {
     use Register::P;
@@ -273,7 +273,7 @@ fn make_builtin_name(proc : &str, descriptor : &str) -> String {
     mangle(&[&"tyrga/Builtin", &proc, &descriptor])
 }
 
-fn make_jump(target : u16, target_name : &str) -> GeneralResult<InsnPair> {
+fn make_jump(target : u16, target_name : String) -> GeneralResult<InsnPair> {
     use crate::tenyr::InstructionType::Type3;
     let kind = Type3(tenyr::Immediate::Expr(make_target(target_name)));
     let insn = Instruction {
@@ -313,7 +313,7 @@ fn make_call(
 fn make_yield(
     sm : &mut StackManager,
     kind : JType,
-    target_name : &str,
+    target_name : String,
     max_locals : u16,
 ) -> GeneralResult<InsnPair> {
     use tenyr::MemoryOpType::StoreRight;
@@ -589,7 +589,7 @@ fn make_branch(
     ops : OperandCount,
     way : Comparison,
     target : u16,
-    target_name : &str,
+    target_name : String,
 ) -> GeneralResult<InsnPair> {
     use tenyr::*;
 
@@ -645,7 +645,7 @@ fn make_switch_lookup(
     insns.extend(gets);
 
     let make = |(imm, target)| {
-        make_int_branch(sm, false, there(target), &namer(&there(target))?, |sm| {
+        make_int_branch(sm, false, there(target), namer(&there(target))?, |sm| {
             Ok((
                 temp_reg,
                 expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0)?, imm),
@@ -658,7 +658,7 @@ fn make_switch_lookup(
         .map(make)
         .chain(std::iter::once(make_jump(
             there(default),
-            &namer(&there(default))?,
+            namer(&there(default))?,
         )))
         .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
             let (i, d) = tup?;
@@ -709,7 +709,7 @@ fn make_switch_table(
             sm,
             false,
             there(default),
-            &namer(&there(default))?,
+            namer(&there(default))?,
             maker,
         )?)
     };
@@ -721,7 +721,7 @@ fn make_switch_table(
 
     let offsets = offsets
         .into_iter()
-        .map(|far| make_jump(there(far), &namer(&there(far))?));
+        .map(|far| make_jump(there(far), namer(&there(far))?));
 
     std::iter::empty()
         .chain(once(default_maker(maker(&Type1, low))))
@@ -1166,10 +1166,10 @@ fn make_instructions<'a>(
     let branching = GeneralResult::Ok;
     let no_branch = |x| GeneralResult::Ok((x, vec![Destination::Successor]));
 
-    let make_jump = |_sm, target| make_jump(target, &namer(&target)?);
+    let make_jump = |_sm, target| make_jump(target, namer(&target)?);
     let make_noop = |_sm| vec![tenyr::NOOP_TYPE0];
-    let make_branch = |sm, ops, way, target| make_branch(sm, ops, way, target, &namer(&target)?);
-    let make_yield  = |sm, kind| make_yield(sm, kind, &namer(&"epilogue")?, max_locals);
+    let make_branch = |sm, ops, way, target| make_branch(sm, ops, way, target, namer(&target)?);
+    let make_yield = |sm, kind| make_yield(sm, kind, namer(&"epilogue")?, max_locals);
 
     match op {
         Allocation { 0 : details      } => no_branch( make_allocation ( sm, details, gc              )?),
