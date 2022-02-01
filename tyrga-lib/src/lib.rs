@@ -79,12 +79,10 @@ fn expand_immediate_load(
     // The make_imm helper has a fallible interface, but cannot actually fail. It uses Result in
     // order to accommodate the use of `?` by the tenyr_insn* macros, but the inputs provided to
     // those macros in this case will not cause Err to be raised.
-    let make_imm = |temp_reg, imm|
+    let make_imm = |temp_reg, imm| {
         GeneralResult::Ok(match imm {
-            Imm12(_) =>
-                unimplemented!("Imm12 was supposed to be handled separately"),
-            Imm20(imm) =>
-                vec![ tenyr_insn!( temp_reg <- (imm) )? ], // cannot fail
+            Imm12(_) => unimplemented!("Imm12 was supposed to be handled separately"),
+            Imm20(imm) => vec![tenyr_insn!( temp_reg <- (imm) )?], // cannot fail
             Imm32(imm) => {
                 let bot = tenyr::Immediate12::try_from_bits((imm & 0xfff) as u16)?; // cannot fail
 
@@ -92,9 +90,11 @@ fn expand_immediate_load(
                 tenyr_insn_list!(
                     temp_reg <- (imm >> 12)         ;
                     temp_reg <- temp_reg ^^ (bot)   ;
-                ).collect()
+                )
+                .collect()
             },
-        });
+        })
+    };
 
     match (insn.kind, imm.into()) {
         (Type3(..), Imm12(imm)) => vec![ Instruction { kind : Type3(imm.into()), ..insn } ],
@@ -107,9 +107,14 @@ fn expand_immediate_load(
             use std::iter::once;
             use tenyr::Opcode::{Add, BitwiseOr};
 
-            let adder  = Gen { y : Register::A, op : Add , imm : 0_u8.into() };
+            let adder = Gen {
+                y :   Register::A,
+                op :  Add,
+                imm : 0_u8.into(),
+            };
             let (temp, gets) = sm.reserve_one();
-            let pack = make_imm(temp, imm).expect("internal inconsistency in immediate representation");
+            let pack =
+                make_imm(temp, imm).expect("internal inconsistency in immediate representation");
             let (op, a, b, c) = match kind {
                 // the Type3 case should never be reached, but provides generality
                 Type3(_) => (BitwiseOr, insn.x, Register::A, temp),
@@ -117,10 +122,23 @@ fn expand_immediate_load(
                 Type1(g) => (g.op, insn.x, temp, g.y),
                 Type2(g) => (g.op, temp, insn.x, g.y),
             };
-            let gen = Gen { op, y : b, imm : 0_u8.into() };
-            let operate = once(Instruction { kind : Type0(gen), x : a, dd : NoLoad, z : insn.z });
+            let gen = Gen {
+                op,
+                y : b,
+                imm : 0_u8.into(),
+            };
+            let operate = once(Instruction {
+                kind : Type0(gen),
+                x :    a,
+                dd :   NoLoad,
+                z :    insn.z,
+            });
             let kind = Type0(Gen { y : c, ..adder });
-            let add = once(Instruction { kind, x : insn.z, ..insn });
+            let add = once(Instruction {
+                kind,
+                x : insn.z,
+                ..insn
+            });
             let release = sm.release(1);
 
             std::iter::empty()
@@ -316,7 +334,11 @@ fn make_constant<'a>(
 
             let (reg, gets) = sm.reserve_one();
             v.extend(gets);
-            let insn = Instruction { z : reg, x : A, ..tenyr::NOOP_TYPE3 };
+            let insn = Instruction {
+                z : reg,
+                x : A,
+                ..tenyr::NOOP_TYPE3
+            };
             v.extend(expand_immediate_load(sm, insn, value));
             v
         })
@@ -344,7 +366,7 @@ fn make_constant<'a>(
                 Float  (  FloatConstant { value }) => make(&[ value.to_bits() as i32 ]),
                 Double ( DoubleConstant { value }) => {
                     let bits = value.to_bits();
-                    make(&[ (bits >> 32) as i32, bits as i32 ])
+                    make(&[(bits >> 32) as i32, bits as i32])
                 },
                 Class       (       ClassConstant { .. }) |
                 String      (      StringConstant { .. }) |
@@ -356,7 +378,7 @@ fn make_constant<'a>(
 
                 _ => unreachable!("impossible Constant configuration"),
             }
-        }
+        },
     }
 }
 
@@ -771,10 +793,11 @@ fn make_invocation<'a>(
             if let ConstantInfo::Class(cl) = gc.get_constant(mr.class_index) {
                 if let ConstantInfo::NameAndType(nt) = gc.get_constant(mr.name_and_type_index) {
                     return GeneralResult::Ok((
-                            gc.get_string(cl.name_index).ok_or("bad class name")?,
-                            gc.get_string(nt.name_index).ok_or("bad method name")?,
-                            gc.get_string(nt.descriptor_index).ok_or("bad method descriptor")?,
-                        ))
+                        gc.get_string(cl.name_index).ok_or("bad class name")?,
+                        gc.get_string(nt.name_index).ok_or("bad method name")?,
+                        gc.get_string(nt.descriptor_index)
+                            .ok_or("bad method descriptor")?,
+                    ));
                 }
             }
         }
@@ -783,7 +806,7 @@ fn make_invocation<'a>(
     };
 
     let (class, method, descriptor) = get_method_parts()?;
-    let name = &mangle(&[ &class, &method, &descriptor ]);
+    let name = &mangle(&[&class, &method, &descriptor]);
 
     match kind {
         // TODO fully handle Special (this is dumb partial handling)
@@ -796,7 +819,10 @@ fn make_invocation<'a>(
             if let ConstantInfo::MethodRef(mr) = gc.get_constant(index) {
                 impl Manglable for Context<'_, &MethodRefConstant> {
                     fn pieces(&self) -> Vec<String> {
-                        self.get_pieces(self.as_ref().class_index, self.as_ref().name_and_type_index)
+                        self.get_pieces(
+                            self.as_ref().class_index,
+                            self.as_ref().name_and_type_index,
+                        )
                     }
                 }
 
@@ -1040,8 +1066,8 @@ fn make_instructions<'a>(
     let branching = |x| x;
     let no_branch = |x| Ok((x, vec![Destination::Successor]));
 
-    let make_jump   = |_sm, target| Ok(make_jump(target, &namer(&target)?));
-    let make_noop   = |_sm| vec![tenyr::NOOP_TYPE0];
+    let make_jump = |_sm, target| Ok(make_jump(target, &namer(&target)?));
+    let make_noop = |_sm| vec![tenyr::NOOP_TYPE0];
     let make_branch = |sm, ops, way, target| make_branch(sm, ops, way, target, &namer(&target)?);
     let make_yield  = |sm, kind| make_yield(sm, kind, &namer(&"epilogue")?, max_locals);
 

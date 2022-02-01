@@ -609,8 +609,8 @@ pub struct Instruction {
 
 impl fmt::Display for Instruction {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
-        use InstructionType::*;
         use InsnGeneral as Gen;
+        use InstructionType::*;
         let (a, b, c) = match &self.kind {
             Type0(Gen { y, imm, .. }) => (self.x  .to_string() ,      y   .to_string(), imm.to_string()),
             Type1(Gen { y, imm, .. }) => (self.x  .to_string() ,      imm .to_string(), y  .to_string()),
@@ -663,11 +663,11 @@ fn instruction_test_cases() -> Vec<(&'static str, Instruction)> {
     use Opcode::*;
     use Register::*;
 
-    use Instruction as Insn;
     use InsnGeneral as Gen;
+    use Instruction as Insn;
 
-    let zero_20 = Immediate20::from( 0_i8);
-    let zero_12 = Immediate12::from( 0_i8);
+    let zero_20 = Immediate20::from(0_i8);
+    let zero_12 = Immediate12::from(0_i8);
     let neg3_12 = Immediate12::from(-3_i8);
     let neg4_20 = Immediate20::from(-4_i8);
 
