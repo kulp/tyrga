@@ -661,7 +661,7 @@ impl fmt::Display for Instruction {
                 => format!("{a} + {c}"),
             Type0(Gen { op, imm : Immediate::Fixed(imm), .. }) if imm == 0_u8.into()
                 => format!("{a} {op:^3} {b}"),
-            Type1(Gen { op, y, .. }) | Type2(Gen { op, y, .. }) if y == Register::A
+            Type1(Gen { op, y: Register::A, .. }) | Type2(Gen { op, y: Register::A, .. })
                 => format!("{a} {op:^3} {b}"),
             Type0(Gen { op, imm : Immediate::Fixed(imm), .. }) if i32::from(imm) < 0
                 => format!("{a} {op:^3} {b} - {imm}", imm=(-i32::from(imm))),
