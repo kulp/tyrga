@@ -40,7 +40,7 @@ _6Fields02_3b3c4init04_3e3b28291V:
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
-     P  <-  @+.L_6Fields02_3b3c4init04_3e3b28291V01_3b10__epilogue + P
+     P  <-  P + @+.L_6Fields02_3b3c4init04_3e3b28291V01_3b10__epilogue
 .L_6Fields02_3b3c4init04_3e3b28291V01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -94,7 +94,7 @@ _6Fields01_3b13access_fields03_3b28291V:
      D  <-  D << 16
      D  <-  D >> 16
      D  -> [C + (@_6Fields01_3b14diminutiveness01_3b1S01_3b12field_offset + 0)]
-     P  <-  @+.L_6Fields01_3b13access_fields03_3b28291V01_3b10__epilogue + P
+     P  <-  P + @+.L_6Fields01_3b13access_fields03_3b28291V01_3b10__epilogue
 .L_6Fields01_3b13access_fields03_3b28291V01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -139,7 +139,7 @@ _6Fields01_3b14access_statics03_3b28291V:
      C  <-  C << 16
      C  <-  C >> 16
      C  -> [P + (@+@_6Fields01_3b21static_diminutiveness01_3b1S01_3b6static + 0)]
-     P  <-  @+.L_6Fields01_3b14access_statics03_3b28291V01_3b10__epilogue + P
+     P  <-  P + @+.L_6Fields01_3b14access_statics03_3b28291V01_3b10__epilogue
 .L_6Fields01_3b14access_statics03_3b28291V01_3b10__epilogue:
      O  <-  O + 1
      P  <- [O]

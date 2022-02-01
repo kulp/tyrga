@@ -20,7 +20,7 @@ _6Switch02_3b3c4init04_3e3b28291V:
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
-     P  <-  @+.L_6Switch02_3b3c4init04_3e3b28291V01_3b10__epilogue + P
+     P  <-  P + @+.L_6Switch02_3b3c4init04_3e3b28291V01_3b10__epilogue
 .L_6Switch02_3b3c4init04_3e3b28291V01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -42,21 +42,21 @@ _6Switch01_3b5table02_3b282II01_291I:
 .L_6Switch01_3b5table02_3b282II01_291I01_3b4__28:
      C  <- [O + 2]
      C  -> [O + 3]
-     P  <-  @+.L_6Switch01_3b5table02_3b282II01_291I01_3b10__epilogue + P
+     P  <-  P + @+.L_6Switch01_3b5table02_3b282II01_291I01_3b10__epilogue
 .L_6Switch01_3b5table02_3b282II01_291I01_3b4__30:
      C  <- [O + 3]
      D  <- [O + 2]
      C  <-  C * D
      C  -> [O + 3]
-     P  <-  @+.L_6Switch01_3b5table02_3b282II01_291I01_3b10__epilogue + P
+     P  <-  P + @+.L_6Switch01_3b5table02_3b282II01_291I01_3b10__epilogue
 .L_6Switch01_3b5table02_3b282II01_291I01_3b4__34:
      C  <- [O + 3]
      C  -> [O + 3]
-     P  <-  @+.L_6Switch01_3b5table02_3b282II01_291I01_3b10__epilogue + P
+     P  <-  P + @+.L_6Switch01_3b5table02_3b282II01_291I01_3b10__epilogue
 .L_6Switch01_3b5table02_3b282II01_291I01_3b4__36:
      C  <-  0
      C  -> [O + 3]
-     P  <-  @+.L_6Switch01_3b5table02_3b282II01_291I01_3b10__epilogue + P
+     P  <-  P + @+.L_6Switch01_3b5table02_3b282II01_291I01_3b10__epilogue
 .L_6Switch01_3b5table02_3b282II01_291I01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -82,21 +82,21 @@ _6Switch01_3b6lookup02_3b282II01_291I:
 .L_6Switch01_3b6lookup02_3b282II01_291I01_3b4__36:
      D  <- [O + 2]
      D  -> [O + 3]
-     P  <-  @+.L_6Switch01_3b6lookup02_3b282II01_291I01_3b10__epilogue + P
+     P  <-  P + @+.L_6Switch01_3b6lookup02_3b282II01_291I01_3b10__epilogue
 .L_6Switch01_3b6lookup02_3b282II01_291I01_3b4__38:
      D  <- [O + 3]
      E  <- [O + 2]
      D  <-  D * E
      D  -> [O + 3]
-     P  <-  @+.L_6Switch01_3b6lookup02_3b282II01_291I01_3b10__epilogue + P
+     P  <-  P + @+.L_6Switch01_3b6lookup02_3b282II01_291I01_3b10__epilogue
 .L_6Switch01_3b6lookup02_3b282II01_291I01_3b4__42:
      D  <- [O + 3]
      D  -> [O + 3]
-     P  <-  @+.L_6Switch01_3b6lookup02_3b282II01_291I01_3b10__epilogue + P
+     P  <-  P + @+.L_6Switch01_3b6lookup02_3b282II01_291I01_3b10__epilogue
 .L_6Switch01_3b6lookup02_3b282II01_291I01_3b4__44:
      D  <-  0
      D  -> [O + 3]
-     P  <-  @+.L_6Switch01_3b6lookup02_3b282II01_291I01_3b10__epilogue + P
+     P  <-  P + @+.L_6Switch01_3b6lookup02_3b282II01_291I01_3b10__epilogue
 .L_6Switch01_3b6lookup02_3b282II01_291I01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]

@@ -20,7 +20,7 @@ _8Infinite02_3b3c4init04_3e3b28291V:
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
-     P  <-  @+.L_8Infinite02_3b3c4init04_3e3b28291V01_3b10__epilogue + P
+     P  <-  P + @+.L_8Infinite02_3b3c4init04_3e3b28291V01_3b10__epilogue
 .L_8Infinite02_3b3c4init04_3e3b28291V01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]

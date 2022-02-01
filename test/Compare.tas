@@ -36,7 +36,7 @@ _7Compare02_3b3c4init04_3e3b28291V:
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
-     P  <-  @+.L_7Compare02_3b3c4init04_3e3b28291V01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare02_3b3c4init04_3e3b28291V01_3b10__epilogue
 .L_7Compare02_3b3c4init04_3e3b28291V01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -65,7 +65,7 @@ _7Compare01_3b2lt02_3b282FF01_291Z:
      C  <-  0
 .L_7Compare01_3b2lt02_3b282FF01_291Z01_3b4__11:
      C  -> [O + 3]
-     P  <-  @+.L_7Compare01_3b2lt02_3b282FF01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2lt02_3b282FF01_291Z01_3b10__epilogue
 .L_7Compare01_3b2lt02_3b282FF01_291Z01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -94,7 +94,7 @@ _7Compare01_3b2le02_3b282FF01_291Z:
      C  <-  0
 .L_7Compare01_3b2le02_3b282FF01_291Z01_3b4__11:
      C  -> [O + 3]
-     P  <-  @+.L_7Compare01_3b2le02_3b282FF01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2le02_3b282FF01_291Z01_3b10__epilogue
 .L_7Compare01_3b2le02_3b282FF01_291Z01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -123,7 +123,7 @@ _7Compare01_3b2eq02_3b282FF01_291Z:
      C  <-  0
 .L_7Compare01_3b2eq02_3b282FF01_291Z01_3b4__11:
      C  -> [O + 3]
-     P  <-  @+.L_7Compare01_3b2eq02_3b282FF01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2eq02_3b282FF01_291Z01_3b10__epilogue
 .L_7Compare01_3b2eq02_3b282FF01_291Z01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -152,7 +152,7 @@ _7Compare01_3b2gt02_3b282FF01_291Z:
      C  <-  0
 .L_7Compare01_3b2gt02_3b282FF01_291Z01_3b4__11:
      C  -> [O + 3]
-     P  <-  @+.L_7Compare01_3b2gt02_3b282FF01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2gt02_3b282FF01_291Z01_3b10__epilogue
 .L_7Compare01_3b2gt02_3b282FF01_291Z01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -181,7 +181,7 @@ _7Compare01_3b2ge02_3b282FF01_291Z:
      C  <-  0
 .L_7Compare01_3b2ge02_3b282FF01_291Z01_3b4__11:
      C  -> [O + 3]
-     P  <-  @+.L_7Compare01_3b2ge02_3b282FF01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2ge02_3b282FF01_291Z01_3b10__epilogue
 .L_7Compare01_3b2ge02_3b282FF01_291Z01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -210,7 +210,7 @@ _7Compare01_3b2ne02_3b282FF01_291Z:
      C  <-  0
 .L_7Compare01_3b2ne02_3b282FF01_291Z01_3b4__11:
      C  -> [O + 3]
-     P  <-  @+.L_7Compare01_3b2ne02_3b282FF01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2ne02_3b282FF01_291Z01_3b10__epilogue
 .L_7Compare01_3b2ne02_3b282FF01_291Z01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -243,7 +243,7 @@ _7Compare01_3b2lt02_3b282DD01_291Z:
      C  <-  0
 .L_7Compare01_3b2lt02_3b282DD01_291Z01_3b4__11:
      C  -> [O + 5]
-     P  <-  @+.L_7Compare01_3b2lt02_3b282DD01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2lt02_3b282DD01_291Z01_3b10__epilogue
 .L_7Compare01_3b2lt02_3b282DD01_291Z01_3b10__epilogue:
      O  <-  O + 4
      P  <- [O - 3]
@@ -276,7 +276,7 @@ _7Compare01_3b2le02_3b282DD01_291Z:
      C  <-  0
 .L_7Compare01_3b2le02_3b282DD01_291Z01_3b4__11:
      C  -> [O + 5]
-     P  <-  @+.L_7Compare01_3b2le02_3b282DD01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2le02_3b282DD01_291Z01_3b10__epilogue
 .L_7Compare01_3b2le02_3b282DD01_291Z01_3b10__epilogue:
      O  <-  O + 4
      P  <- [O - 3]
@@ -309,7 +309,7 @@ _7Compare01_3b2eq02_3b282DD01_291Z:
      C  <-  0
 .L_7Compare01_3b2eq02_3b282DD01_291Z01_3b4__11:
      C  -> [O + 5]
-     P  <-  @+.L_7Compare01_3b2eq02_3b282DD01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2eq02_3b282DD01_291Z01_3b10__epilogue
 .L_7Compare01_3b2eq02_3b282DD01_291Z01_3b10__epilogue:
      O  <-  O + 4
      P  <- [O - 3]
@@ -342,7 +342,7 @@ _7Compare01_3b2gt02_3b282DD01_291Z:
      C  <-  0
 .L_7Compare01_3b2gt02_3b282DD01_291Z01_3b4__11:
      C  -> [O + 5]
-     P  <-  @+.L_7Compare01_3b2gt02_3b282DD01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2gt02_3b282DD01_291Z01_3b10__epilogue
 .L_7Compare01_3b2gt02_3b282DD01_291Z01_3b10__epilogue:
      O  <-  O + 4
      P  <- [O - 3]
@@ -375,7 +375,7 @@ _7Compare01_3b2ge02_3b282DD01_291Z:
      C  <-  0
 .L_7Compare01_3b2ge02_3b282DD01_291Z01_3b4__11:
      C  -> [O + 5]
-     P  <-  @+.L_7Compare01_3b2ge02_3b282DD01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2ge02_3b282DD01_291Z01_3b10__epilogue
 .L_7Compare01_3b2ge02_3b282DD01_291Z01_3b10__epilogue:
      O  <-  O + 4
      P  <- [O - 3]
@@ -408,7 +408,7 @@ _7Compare01_3b2ne02_3b282DD01_291Z:
      C  <-  0
 .L_7Compare01_3b2ne02_3b282DD01_291Z01_3b4__11:
      C  -> [O + 5]
-     P  <-  @+.L_7Compare01_3b2ne02_3b282DD01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2ne02_3b282DD01_291Z01_3b10__epilogue
 .L_7Compare01_3b2ne02_3b282DD01_291Z01_3b10__epilogue:
      O  <-  O + 4
      P  <- [O - 3]
@@ -441,7 +441,7 @@ _7Compare01_3b2lt02_3b282JJ01_291Z:
      C  <-  0
 .L_7Compare01_3b2lt02_3b282JJ01_291Z01_3b4__11:
      C  -> [O + 5]
-     P  <-  @+.L_7Compare01_3b2lt02_3b282JJ01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2lt02_3b282JJ01_291Z01_3b10__epilogue
 .L_7Compare01_3b2lt02_3b282JJ01_291Z01_3b10__epilogue:
      O  <-  O + 4
      P  <- [O - 3]
@@ -474,7 +474,7 @@ _7Compare01_3b2le02_3b282JJ01_291Z:
      C  <-  0
 .L_7Compare01_3b2le02_3b282JJ01_291Z01_3b4__11:
      C  -> [O + 5]
-     P  <-  @+.L_7Compare01_3b2le02_3b282JJ01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2le02_3b282JJ01_291Z01_3b10__epilogue
 .L_7Compare01_3b2le02_3b282JJ01_291Z01_3b10__epilogue:
      O  <-  O + 4
      P  <- [O - 3]
@@ -507,7 +507,7 @@ _7Compare01_3b2eq02_3b282JJ01_291Z:
      C  <-  0
 .L_7Compare01_3b2eq02_3b282JJ01_291Z01_3b4__11:
      C  -> [O + 5]
-     P  <-  @+.L_7Compare01_3b2eq02_3b282JJ01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2eq02_3b282JJ01_291Z01_3b10__epilogue
 .L_7Compare01_3b2eq02_3b282JJ01_291Z01_3b10__epilogue:
      O  <-  O + 4
      P  <- [O - 3]
@@ -540,7 +540,7 @@ _7Compare01_3b2gt02_3b282JJ01_291Z:
      C  <-  0
 .L_7Compare01_3b2gt02_3b282JJ01_291Z01_3b4__11:
      C  -> [O + 5]
-     P  <-  @+.L_7Compare01_3b2gt02_3b282JJ01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2gt02_3b282JJ01_291Z01_3b10__epilogue
 .L_7Compare01_3b2gt02_3b282JJ01_291Z01_3b10__epilogue:
      O  <-  O + 4
      P  <- [O - 3]
@@ -573,7 +573,7 @@ _7Compare01_3b2ge02_3b282JJ01_291Z:
      C  <-  0
 .L_7Compare01_3b2ge02_3b282JJ01_291Z01_3b4__11:
      C  -> [O + 5]
-     P  <-  @+.L_7Compare01_3b2ge02_3b282JJ01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2ge02_3b282JJ01_291Z01_3b10__epilogue
 .L_7Compare01_3b2ge02_3b282JJ01_291Z01_3b10__epilogue:
      O  <-  O + 4
      P  <- [O - 3]
@@ -606,7 +606,7 @@ _7Compare01_3b2ne02_3b282JJ01_291Z:
      C  <-  0
 .L_7Compare01_3b2ne02_3b282JJ01_291Z01_3b4__11:
      C  -> [O + 5]
-     P  <-  @+.L_7Compare01_3b2ne02_3b282JJ01_291Z01_3b10__epilogue + P
+     P  <-  P + @+.L_7Compare01_3b2ne02_3b282JJ01_291Z01_3b10__epilogue
 .L_7Compare01_3b2ne02_3b282JJ01_291Z01_3b10__epilogue:
      O  <-  O + 4
      P  <- [O - 3]

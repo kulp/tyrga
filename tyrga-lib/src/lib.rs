@@ -308,7 +308,7 @@ fn make_yield(
         })
     }
     v.extend(sm.empty());
-    v.push(tenyr_insn!( P <- @+target_name + P )?);
+    v.push(tenyr_insn!( P <- P + @+target_name )?);
 
     Ok((v, vec![])) // leaving the method is not a Destination we care about
 }

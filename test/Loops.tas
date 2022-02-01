@@ -19,7 +19,7 @@ _5Loops02_3b3c4init04_3e3b28291V:
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
-     P  <-  @+.L_5Loops02_3b3c4init04_3e3b28291V01_3b10__epilogue + P
+     P  <-  P + @+.L_5Loops02_3b3c4init04_3e3b28291V01_3b10__epilogue
 .L_5Loops02_3b3c4init04_3e3b28291V01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -105,7 +105,7 @@ _5Loops01_3b5deep503_3b28291I:
 .L_5Loops01_3b5deep503_3b28291I01_3b4__85:
      B  <- [O + 7]
      B  -> [O + 7]
-     P  <-  @+.L_5Loops01_3b5deep503_3b28291I01_3b10__epilogue + P
+     P  <-  P + @+.L_5Loops01_3b5deep503_3b28291I01_3b10__epilogue
 .L_5Loops01_3b5deep503_3b28291I01_3b10__epilogue:
      O  <-  O + 6
      P  <- [O - 5]

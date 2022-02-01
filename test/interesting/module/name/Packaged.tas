@@ -24,7 +24,7 @@ _11interesting01_2f6module01_2f4name01_2f8Packaged02_3b3c4init04_3e3b28291V:
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
-     P  <-  @+.L_11interesting01_2f6module01_2f4name01_2f8Packaged02_3b3c4init04_3e3b28291V01_3b10__epilogue + P
+     P  <-  P + @+.L_11interesting01_2f6module01_2f4name01_2f8Packaged02_3b3c4init04_3e3b28291V01_3b10__epilogue
 .L_11interesting01_2f6module01_2f4name01_2f8Packaged02_3b3c4init04_3e3b28291V01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -40,7 +40,7 @@ _11interesting01_2f6module01_2f4name01_2f8Packaged01_3b6method03_3b28291V:
      D  <-  1
      C  <-  C + D
      C  -> [B + (@_11interesting01_2f6module01_2f4name01_2f8Packaged01_3b5field01_3b1I01_3b12field_offset + 0)]
-     P  <-  @+.L_11interesting01_2f6module01_2f4name01_2f8Packaged01_3b6method03_3b28291V01_3b10__epilogue + P
+     P  <-  P + @+.L_11interesting01_2f6module01_2f4name01_2f8Packaged01_3b6method03_3b28291V01_3b10__epilogue
 .L_11interesting01_2f6module01_2f4name01_2f8Packaged01_3b6method03_3b28291V01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]

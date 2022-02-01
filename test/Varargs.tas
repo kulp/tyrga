@@ -19,7 +19,7 @@ _7Varargs02_3b3c4init04_3e3b28291V:
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
-     P  <-  @+.L_7Varargs02_3b3c4init04_3e3b28291V01_3b10__epilogue + P
+     P  <-  P + @+.L_7Varargs02_3b3c4init04_3e3b28291V01_3b10__epilogue
 .L_7Varargs02_3b3c4init04_3e3b28291V01_3b10__epilogue:
      O  <-  O + 2
      P  <- [O - 1]
@@ -32,7 +32,7 @@ _7Varargs01_3b12takesVarargs03_3b285b5Ljava01_2f4lang01_2f6Object02_3b291I:
      B  <- [O + 2]
      B  <- [B - 1]
      B  -> [O + 2]
-     P  <-  @+.L_7Varargs01_3b12takesVarargs03_3b285b5Ljava01_2f4lang01_2f6Object02_3b291I01_3b10__epilogue + P
+     P  <-  P + @+.L_7Varargs01_3b12takesVarargs03_3b285b5Ljava01_2f4lang01_2f6Object02_3b291I01_3b10__epilogue
 .L_7Varargs01_3b12takesVarargs03_3b285b5Ljava01_2f4lang01_2f6Object02_3b291I01_3b10__epilogue:
      O  <-  O + 1
      P  <- [O]
