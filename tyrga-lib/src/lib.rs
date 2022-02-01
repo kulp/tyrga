@@ -239,11 +239,10 @@ fn make_int_branch(
     use Register::P;
 
     let (temp_reg, sequence) = comp(sm)?;
-    let imm = tenyr::Immediate::Expr(make_target(target_name));
     let branch = if invert {
-        tenyr_insn!(   P <- (imm) &~ temp_reg + P     )
+        tenyr_insn!(   P <- @+target_name &~ temp_reg + P     )
     } else {
-        tenyr_insn!(   P <- (imm) &  temp_reg + P     )
+        tenyr_insn!(   P <- @+target_name &  temp_reg + P     )
     };
     let mut v = sequence;
     v.push(branch?);
