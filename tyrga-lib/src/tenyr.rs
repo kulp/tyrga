@@ -1,5 +1,3 @@
-#![allow(unused_macros)]
-
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
@@ -213,7 +211,6 @@ macro_rules! tenyr_insn {
 
 #[rustfmt::skip]
 #[test]
-#[allow(clippy::cognitive_complexity)]
 fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
     use InstructionType::*;
     use MemoryOpType::*;
