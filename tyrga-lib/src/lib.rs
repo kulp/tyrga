@@ -753,7 +753,7 @@ fn make_switch(
 
 fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> Vec<Instruction> {
     use jvmtypes::ArrayOperation::{GetLength, Load, Store};
-    use tenyr::InstructionType::{Type1, Type3};
+    use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
     use tenyr::{InsnGeneral, Opcode};
 
@@ -800,13 +800,13 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> Vec<Instruction
     };
     // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
     // per 32-bit tenyr word)
-    let (op, imm) = match kind.size() {
-        1 => (Opcode::BitwiseOr, 0_u8),
-        2 => (Opcode::ShiftLeft, 1_u8),
+    let (ctor, op, imm) : (fn(_) -> _, _, _) = match kind.size() {
+        1 => (Type2, Opcode::BitwiseOr, 0_u8),
+        2 => (Type1, Opcode::ShiftLeft, 1_u8),
         _ => unreachable!(), // impossible size
     };
     let imm = imm.into();
-    let kind = Type1(InsnGeneral { y, op, imm });
+    let kind = ctor(InsnGeneral { y, op, imm });
     let insn = Instruction { kind, z, x, dd };
     v.push(insn);
     v

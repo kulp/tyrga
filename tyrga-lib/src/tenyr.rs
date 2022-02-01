@@ -651,6 +651,8 @@ impl fmt::Display for Instruction {
                 => format!("{a} - {c}", c=(-i32::from(imm))),
             Type3(..)
                 => format!("{a} + {c}"),
+            Type2(Gen { op : Opcode::BitwiseOr, imm : Immediate::Fixed(imm), .. }) if imm == 0_u8.into()
+                => format!("{b} + {c}"),
             Type0(Gen { op, imm : Immediate::Fixed(imm), .. }) if imm == 0_u8.into()
                 => format!("{a} {op:^3} {b}"),
             Type1(Gen { op, y: Register::A, .. }) | Type2(Gen { op, y: Register::A, .. })

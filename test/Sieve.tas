@@ -40,7 +40,7 @@ _5Sieve01_3b6primes03_3b285b1I01_291V:
      B  <- [O + 7]
      C  <-  0
      D  <-  2
-     D  -> [C  |  0 + B]
+     D  -> [C + B]
 .L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__11:
      B  <- [O + 6]
      C  <-  1
@@ -49,7 +49,7 @@ _5Sieve01_3b6primes03_3b285b1I01_291V:
      B  <- [O + 7]
      C  <-  1
      D  <-  3
-     D  -> [C  |  0 + B]
+     D  -> [C + B]
 .L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__20:
      B  <-  2
      B  -> [O + 5]
@@ -62,7 +62,7 @@ _5Sieve01_3b6primes03_3b285b1I01_291V:
      C  <- [O + 5]
      D  <-  1
      C  <-  C  -  D
-     B  <- [C  |  0 + B]
+     B  <- [C + B]
      C  <-  2
      B  <-  B  +  C
      B  -> [O + 4]
@@ -81,10 +81,10 @@ _5Sieve01_3b6primes03_3b285b1I01_291V:
      P  <-  (.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__86 - (. + 1))  &  B + P
      B  <- [O + 7]
      C  <- [O + 2]
-     B  <- [C  |  0 + B]
+     B  <- [C + B]
      C  <- [O + 7]
      D  <- [O + 2]
-     C  <- [D  |  0 + C]
+     C  <- [D + C]
      B  <-  B  *  C
      C  <- [O + 4]
      B  <-  C  <  B
@@ -92,7 +92,7 @@ _5Sieve01_3b6primes03_3b285b1I01_291V:
      B  <- [O + 4]
      C  <- [O + 7]
      D  <- [O + 2]
-     C  <- [D  |  0 + C]
+     C  <- [D + C]
      O  <-  O - 2
      B  -> [O + 2]
      C  -> [O + 1]
@@ -116,7 +116,7 @@ _5Sieve01_3b6primes03_3b285b1I01_291V:
      B  <- [O + 7]
      C  <- [O + 5]
      D  <- [O + 4]
-     D  -> [C  |  0 + B]
+     D  -> [C + B]
      P  <-  P + (.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b5__105 - (. + 1))
 .L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__99:
      B  <- [O + 4]
