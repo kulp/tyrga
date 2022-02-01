@@ -226,22 +226,7 @@ fn test_expand() -> GeneralResult<()> {
 type InsnPair = (Vec<Instruction>, Vec<Destination>);
 
 fn make_target(target : String) -> exprtree::Atom {
-    use exprtree::Atom::Immediate;
-    use exprtree::Expr;
-    use exprtree::Operation::{Add, Sub};
-
-    let b = Expr {
-        a :  ".".into(),
-        op : Add,
-        b :  Immediate(1),
-    }
-    .into();
-    Expr {
-        a : target.into(),
-        op : Sub,
-        b,
-    }
-    .into()
+    exprtree::Atom::Expression(exprtree::Expr::make_atplus_expr(target.into()).into())
 }
 
 fn make_int_branch(

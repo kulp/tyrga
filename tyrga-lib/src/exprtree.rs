@@ -55,6 +55,20 @@ pub struct Expr {
 }
 
 impl Expr {
+    pub fn make_atplus_expr(a : Atom) -> Expr {
+        Expr {
+            a,
+            op : Operation::Sub,
+            b : Atom::Expression(
+                Expr {
+                    a :  ".".into(),
+                    op : Operation::Add,
+                    b :  Atom::Immediate(1),
+                }
+                .into(),
+            ),
+        }
+    }
     fn is_atplus_shorthand(&self) -> bool {
         matches!(self,
             Expr {

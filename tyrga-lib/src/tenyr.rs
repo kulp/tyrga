@@ -178,20 +178,10 @@ macro_rules! tenyr_rhs {
     };
     ( @+$target:ident $( $rest:tt )+ ) => {
         {
-            use $crate::exprtree::{Atom,Expr};
-            use $crate::exprtree::Operation;
             use $crate::tenyr::*;
             let base = tenyr_get_op!(tenyr_type2 $( $rest )*)?;
             if let $crate::tenyr::InstructionType::Type2(gen) = base.kind {
-                let e = Expr {
-                    a : $target.into(),
-                    op : Operation::Sub,
-                    b : Expr {
-                        a :  ".".into(),
-                        op : Operation::Add,
-                        b :  Atom::Immediate(1),
-                    }.into(),
-                }.into();
+                let e = $crate::exprtree::Expr::make_atplus_expr($target.into()).into();
                 let kind = $crate::tenyr::InstructionType::Type2($crate::tenyr::InsnGeneral {
                     imm : $crate::tenyr::Immediate::Expr(e),
                     ..gen
@@ -247,19 +237,7 @@ macro_rules! tenyr_insn {
 
 #[cfg(test)]
 fn expr_sub_one(a : exprtree::Atom) -> super::tenyr::Immediate12 {
-    Immediate12::Expr(
-        exprtree::Expr {
-            a,
-            op : exprtree::Operation::Sub,
-            b : exprtree::Expr {
-                a :  ".".into(),
-                op : exprtree::Operation::Add,
-                b :  exprtree::Atom::Immediate(1),
-            }
-            .into(),
-        }
-        .into(),
-    )
+    Immediate12::Expr(exprtree::Expr::make_atplus_expr(a).into())
 }
 
 #[rustfmt::skip]
