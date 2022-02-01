@@ -66,6 +66,7 @@ enum Destination {
     Address(usize),
 }
 
+#[rustfmt::skip]
 fn expand_immediate_load(
     sm : &mut StackManager,
     insn : Instruction,
@@ -321,6 +322,7 @@ fn make_yield(
     Ok((v, vec![])) // leaving the method is not a Destination we care about
 }
 
+#[rustfmt::skip]
 fn make_constant<'a>(
     sm : &mut StackManager,
     gc : impl Contextualizer<'a>,
@@ -445,6 +447,7 @@ fn make_arithmetic_call(
     let descriptor = format!("({parms}){ch}");
 
     // TODO replace lookup table with some automatic namer
+    #[rustfmt::skip]
     let proc = match op {
         Add  => "Add",
         Sub  => "Sub",
@@ -463,6 +466,7 @@ fn make_arithmetic_call(
     make_call(sm, &make_builtin_name(&proc.to_lowercase(), &descriptor), &descriptor)
 }
 
+#[rustfmt::skip]
 fn make_arithmetic(
     sm : &mut StackManager,
     kind : JType,
@@ -672,6 +676,7 @@ fn make_switch_table(
         })
 }
 
+#[rustfmt::skip]
 fn make_switch(
     sm : &mut StackManager,
     params : SwitchParams,
@@ -782,6 +787,7 @@ fn make_invocation_virtual(
     Ok(insns)
 }
 
+#[rustfmt::skip]
 fn make_invocation<'a>(
     sm : &mut StackManager,
     kind : InvokeKind,
@@ -1049,6 +1055,7 @@ fn make_varaction<'a>(
     }
 }
 
+#[rustfmt::skip]
 fn make_instructions<'a>(
     sm : &mut StackManager,
     (addr, op) : (usize, Operation),
@@ -1126,6 +1133,7 @@ fn derive_ranges<'a>(
     table : impl IntoIterator<Item = &'a StackMapFrame>,
 ) -> Vec<Range<usize>> {
     use classfile_parser::attribute_info::StackMapFrame::*;
+    #[rustfmt::skip]
     let mut deltas = table.into_iter().map(|f| match *f {
         SameFrame                           { frame_type }       => frame_type.into(),
 

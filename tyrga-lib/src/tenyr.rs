@@ -6,6 +6,7 @@ use std::marker::PhantomData;
 
 use crate::exprtree;
 
+#[rustfmt::skip]
 macro_rules! tenyr_op {
     ( |   ) => { BitwiseOr       };     ( |~  ) => { BitwiseOrn      };
     ( &   ) => { BitwiseAnd      };     ( &~  ) => { BitwiseAndn     };
@@ -215,6 +216,8 @@ macro_rules! tenyr_insn {
     (   $z:ident   <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z,                                               ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
 }
 
+
+#[rustfmt::skip]
 #[test]
 #[allow(clippy::cognitive_complexity)]
 fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
@@ -327,6 +330,8 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
 
     let from : Vec<_> = from.collect();
 
+
+    #[rustfmt::skip]
     let to = vec![
         make(&Type0,D,BitwiseOrn     , 3_i8,B,C,NoLoad    ),
         make(&Type0,D,ShiftRightLogic, 3_i8,B,C,NoLoad    ),
@@ -365,6 +370,7 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[rustfmt::skip]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Register {
     A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P,
@@ -376,6 +382,7 @@ impl fmt::Display for Register {
     }
 }
 
+#[rustfmt::skip]
 #[allow(dead_code)] // not all Opcodes are popular
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Opcode {
@@ -391,6 +398,7 @@ pub enum Opcode {
 }
 
 impl fmt::Display for Opcode {
+    #[rustfmt::skip]
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         use Opcode::*;
         let s = match self {
@@ -553,6 +561,7 @@ impl<T : BitWidth> fmt::Display for Immediate<T> {
 pub type Immediate12 = Immediate<TwelveBit>;
 pub type Immediate20 = Immediate<TwentyBit>;
 
+#[rustfmt::skip]
 #[test]
 fn test_immediates() {
     assert!(Immediate12::try_from(-(1 << 11) - 1).is_err());
@@ -607,6 +616,7 @@ pub struct Instruction {
     pub dd   : MemoryOpType,
 }
 
+#[rustfmt::skip]
 impl fmt::Display for Instruction {
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         use InsnGeneral as Gen;
@@ -652,6 +662,7 @@ impl fmt::Display for Instruction {
     }
 }
 
+#[rustfmt::skip]
 #[cfg(test)]
 fn instruction_test_cases() -> Vec<(&'static str, Instruction)> {
     // for regularity, allow clones on every line in the tests below, even the ones that do not
