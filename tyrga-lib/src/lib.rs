@@ -309,8 +309,7 @@ fn make_yield(
         })
     }
     v.extend(sm.empty());
-    let ex = tenyr::Immediate::Expr(make_target(target_name));
-    v.push(tenyr_insn!( P <- (ex) + P )?);
+    v.push(tenyr_insn!( P <- @+target_name + P )?);
 
     Ok((v, vec![])) // leaving the method is not a Destination we care about
 }
