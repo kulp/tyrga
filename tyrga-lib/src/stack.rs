@@ -110,17 +110,14 @@ impl Manager {
         });
 
         match n.cmp(&0) {
-            Less =>
-                update
-                    .chain((spilled_before..spilled_after).map(mover(StoreRight, spilled_before)))
-                    .collect(),
-            Equal =>
-                std::iter::empty().collect(),
-            Greater =>
-                (spilled_after..spilled_before)
-                    .map(mover(LoadRight, spilled_after))
-                    .chain(update)
-                    .collect(),
+            Less => update
+                .chain((spilled_before..spilled_after).map(mover(StoreRight, spilled_before)))
+                .collect(),
+            Equal => std::iter::empty().collect(),
+            Greater => (spilled_after..spilled_before)
+                .map(mover(LoadRight, spilled_after))
+                .chain(update)
+                .collect(),
         }
     }
 

@@ -20,21 +20,21 @@ macro_rules! tenyr_op {
 }
 
 pub const NOOP_TYPE0_GEN : InsnGeneral = InsnGeneral {
-    y : Register::A,
+    y :   Register::A,
     imm : Immediate12::ZERO,
-    op : Opcode::BitwiseOr,
+    op :  Opcode::BitwiseOr,
 };
 pub const NOOP_TYPE0 : Instruction = Instruction {
     kind : InstructionType::Type0(NOOP_TYPE0_GEN),
-    z : Register::A,
-    x : Register::A,
-    dd : MemoryOpType::NoLoad,
+    z :    Register::A,
+    x :    Register::A,
+    dd :   MemoryOpType::NoLoad,
 };
 pub const NOOP_TYPE3 : Instruction = Instruction {
     kind : InstructionType::Type3(Immediate20::ZERO),
-    z : Register::A,
-    x : Register::A,
-    dd : MemoryOpType::NoLoad,
+    z :    Register::A,
+    x :    Register::A,
+    dd :   MemoryOpType::NoLoad,
 };
 
 // Some tenyr ops are more than one token, so require special treatment
@@ -216,7 +216,6 @@ macro_rules! tenyr_insn {
     (   $z:ident   <-   $( $rhs:tt )+   ) => { Ok(Instruction { z : $z,                                               ..tenyr_rhs!( $( $rhs )+ )? }) as $crate::tenyr::InsnResult };
 }
 
-
 #[rustfmt::skip]
 #[test]
 #[allow(clippy::cognitive_complexity)]
@@ -322,14 +321,28 @@ fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
          B  <-        (three)    ;
     };
 
-    let make = |ctor : &dyn Fn(InsnGeneral) -> InstructionType, y, op, imm : i8, z, x, dd|
-        Instruction { kind : ctor(InsnGeneral { y, op, imm : imm.into() }), z, x, dd };
+    let make =
+        |ctor : &dyn Fn(InsnGeneral) -> InstructionType, y, op, imm : i8, z, x, dd| Instruction {
+            kind : ctor(InsnGeneral {
+                y,
+                op,
+                imm : imm.into(),
+            }),
+            z,
+            x,
+            dd,
+        };
 
-    let make3 = |imm : i32, z, x, dd|
-        InsnResult::Ok(Instruction { kind : Type3(imm.try_into()?), z, x, dd });
+    let make3 = |imm : i32, z, x, dd| {
+        InsnResult::Ok(Instruction {
+            kind : Type3(imm.try_into()?),
+            z,
+            x,
+            dd,
+        })
+    };
 
     let from : Vec<_> = from.collect();
-
 
     #[rustfmt::skip]
     let to = vec![
@@ -377,9 +390,7 @@ pub enum Register {
 }
 
 impl fmt::Display for Register {
-    fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
-        (self as &dyn fmt::Debug).fmt(f)
-    }
+    fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result { (self as &dyn fmt::Debug).fmt(f) }
 }
 
 #[rustfmt::skip]
@@ -433,15 +444,19 @@ pub struct TwelveBit;
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct TwentyBit;
 
-pub trait BitWidth : Clone + PartialEq + Eq {
+pub trait BitWidth: Clone + PartialEq + Eq {
     const BITS : u8;
-    const UMAX : i32 =  (1 << (Self::BITS    ));
-    const IMAX : i32 =  (1 << (Self::BITS - 1)) - 1;
+    const UMAX : i32 = (1 << (Self::BITS));
+    const IMAX : i32 = (1 << (Self::BITS - 1)) - 1;
     const IMIN : i32 = -(1 << (Self::BITS - 1));
 }
 
-impl BitWidth for TwelveBit { const BITS : u8 = 12; }
-impl BitWidth for TwentyBit { const BITS : u8 = 20; }
+impl BitWidth for TwelveBit {
+    const BITS : u8 = 12;
+}
+impl BitWidth for TwentyBit {
+    const BITS : u8 = 20;
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct SizedImmediate<T : BitWidth>(i32, PhantomData<T>);
@@ -459,14 +474,15 @@ impl<T : BitWidth> From<u8> for SizedImmediate<T> {
 }
 
 impl<T : BitWidth, U> From<U> for Immediate<T>
-    where U : Into<SizedImmediate<T>>
+where
+    U : Into<SizedImmediate<T>>,
 {
     fn from(val : U) -> Self { Immediate::Fixed(val.into()) }
 }
 
 // Sometimes we need to convert 12-bit unsigned numbers to 12-bit signed immediates
 impl Immediate12 {
-    const BITS : u8  = TwelveBit::BITS;
+    const BITS : u8 = TwelveBit::BITS;
     const UMAX : i32 = TwelveBit::UMAX;
 
     pub fn try_from_bits(val : u16) -> Result<Self, String> {
@@ -476,7 +492,10 @@ impl Immediate12 {
             let val = i32::from(val) | mask;
             Self::try_from(val)
         } else {
-            Err(format!("number {val} is too big for a {}-bit immediate", Self::BITS))
+            Err(format!(
+                "number {val} is too big for a {}-bit immediate",
+                Self::BITS
+            ))
         }
     }
 }
@@ -487,7 +506,10 @@ impl<T : BitWidth> TryFrom<i32> for SizedImmediate<T> {
         if val >= T::IMIN && val <= T::IMAX {
             Ok(Self(val, PhantomData))
         } else {
-            Err(format!("number {val} is too big for a {}-bit immediate", T::BITS))
+            Err(format!(
+                "number {val} is too big for a {}-bit immediate",
+                T::BITS
+            ))
         }
     }
 }
@@ -533,9 +555,7 @@ impl From<Immediate12> for Immediate20 {
 }
 
 impl<T : BitWidth> Display for SizedImmediate<T> {
-    fn fmt(&self, f : &mut Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}", self.0)
-    }
+    fn fmt(&self, f : &mut Formatter) -> Result<(), fmt::Error> { write!(f, "{}", self.0) }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -552,7 +572,7 @@ impl<T : BitWidth> fmt::Display for Immediate<T> {
     fn fmt(&self, f : &mut Formatter) -> Result<(), fmt::Error> {
         let d : &dyn Display = match self {
             Immediate::Fixed(x) => x,
-            Immediate::Expr(x)  => x,
+            Immediate::Expr(x) => x,
         };
         write!(f, "{d}")
     }
@@ -588,15 +608,17 @@ impl From<i32> for SmallestImmediate {
     fn from(n : i32) -> Self {
         use SmallestImmediate::*;
 
-        Immediate12::try_from(n).map(Imm12)
-            .or_else(|_| Immediate20::try_from(n).map(Imm20)).unwrap_or(Imm32(n))
+        Immediate12::try_from(n)
+            .map(Imm12)
+            .or_else(|_| Immediate20::try_from(n).map(Imm20))
+            .unwrap_or(Imm32(n))
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct InsnGeneral {
-    pub y   : Register,
-    pub op  : Opcode,
+    pub y :   Register,
+    pub op :  Opcode,
     pub imm : Immediate12,
 }
 
@@ -611,9 +633,9 @@ pub enum InstructionType {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Instruction {
     pub kind : InstructionType,
-    pub z    : Register,
-    pub x    : Register,
-    pub dd   : MemoryOpType,
+    pub z :    Register,
+    pub x :    Register,
+    pub dd :   MemoryOpType,
 }
 
 #[rustfmt::skip]
@@ -732,10 +754,12 @@ fn test_basicblock_display() -> Result<(), Box<dyn std::error::Error>> {
     let bb = BasicBlock { label, insns };
     let ss = bb.to_string();
     let first_line = ss.lines().next().ok_or("no lines in input")?;
-    assert_eq!(':', first_line.chars().last().ok_or("no characters in line")?);
-    assert_eq!(bb.label, first_line[..first_line.len()-1]);
+    assert_eq!(
+        ':',
+        first_line.chars().last().ok_or("no characters in line")?
+    );
+    assert_eq!(bb.label, first_line[..first_line.len() - 1]);
     assert_eq!(bb.insns.len() + 1, ss.lines().count());
 
     Ok(())
 }
-

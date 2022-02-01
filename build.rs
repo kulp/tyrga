@@ -49,7 +49,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                     //     [wrote RegularFileObject[xyz/interesting/module/name/Packaged.class]]
                     // This lets us copy the .tas file to the right location alongside the .class.
                     let all = std::str::from_utf8(&output.stderr)?;
-                    let wrote = all.lines()
+                    let wrote = all
+                        .lines()
                         .find(|x| x.starts_with(&"[wrote"))
                         .expect("unexpected output from javac");
                     // Different versions of javac use different syntaxes for demarcating paths
