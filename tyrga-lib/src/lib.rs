@@ -226,17 +226,22 @@ fn test_expand() -> GeneralResult<()> {
 type InsnPair = (Vec<Instruction>, Vec<Destination>);
 
 fn make_target(target : impl std::string::ToString) -> exprtree::Atom {
-    use exprtree::Atom::*;
+    use exprtree::Atom::Immediate;
     use exprtree::Expr;
     use exprtree::Operation::{Add, Sub};
 
-    let a = Variable(target.to_string());
-    let b = Expression(Box::new(Expr {
-        a :  Variable(".".to_owned()),
+    let b = Expr {
+        a :  ".".into(),
         op : Add,
         b :  Immediate(1),
-    }));
-    Expression(Box::new(Expr { a, op : Sub, b }))
+    }
+    .into();
+    Expr {
+        a : target.to_string().into(),
+        op : Sub,
+        b,
+    }
+    .into()
 }
 
 fn make_int_branch(
@@ -295,7 +300,7 @@ fn make_call(
     // decrement stack pointer)
     let sp = sm.get_stack_ptr();
     let far = format!("@+{target}");
-    let off = tenyr::Immediate20::Expr(exprtree::Atom::Variable(far));
+    let off = tenyr::Immediate20::Expr(exprtree::Atom::Variable(far.into()));
     insns.extend(tenyr_insn_list!(
         [sp] <- P + 1   ;
         P <- P + (off)  ;
@@ -336,7 +341,7 @@ fn make_constant<'a>(
     sm : &mut StackManager,
     gc : impl Contextualizer<'a>,
     details : Indirection<ExplicitConstant>,
-) -> Vec<Instruction> {
+) -> GeneralResult<Vec<Instruction>> {
     use jvmtypes::Indirection::{Explicit, Indirect};
 
     let mut make = |slice : &[_]| {
@@ -358,26 +363,26 @@ fn make_constant<'a>(
     match details {
         Explicit(ExplicitConstant { kind, value }) =>
             match kind {
-                JType::Object => make(&[ 0 ]), // all Object constants are nulls
-                JType::Int    => make(&[ value.into() ]),
-                JType::Long   => make(&[ 0, value.into() ]),
-                JType::Float  => make(&[ f32::from(value).to_bits() as i32 ]),
+                JType::Object => Ok(make(&[ 0 ])), // all Object constants are nulls
+                JType::Int    => Ok(make(&[ value.into() ])),
+                JType::Long   => Ok(make(&[ 0, value.into() ])),
+                JType::Float  => Ok(make(&[ f32::from(value).to_bits() as i32 ])),
                 JType::Double => {
                     let bits = f64::from(value).to_bits();
-                    make(&[ (bits >> 32) as i32, bits as i32 ])
+                    Ok(make(&[ (bits >> 32) as i32, bits as i32 ]))
                 },
-                _ => unreachable!("impossible Constant configuration"),
+                _ => Err("encountered impossible Constant configuration".into()),
             },
         Indirect(index) => {
             use ConstantInfo::*;
             let c = gc.get_constant(index);
             match c {
-                Integer(IntegerConstant { value }) => make(&[ *value ]),
-                Long   (   LongConstant { value }) => make(&[ (*value >> 32) as i32, *value as i32 ]),
-                Float  (  FloatConstant { value }) => make(&[ value.to_bits() as i32 ]),
+                Integer(IntegerConstant { value }) => Ok(make(&[ *value ])),
+                Long   (   LongConstant { value }) => Ok(make(&[ (*value >> 32) as i32, *value as i32 ])),
+                Float  (  FloatConstant { value }) => Ok(make(&[ value.to_bits() as i32 ])),
                 Double ( DoubleConstant { value }) => {
                     let bits = value.to_bits();
-                    make(&[(bits >> 32) as i32, bits as i32])
+                    Ok(make(&[(bits >> 32) as i32, bits as i32]))
                 },
                 Class       (       ClassConstant { .. }) |
                 String      (      StringConstant { .. }) |
@@ -387,7 +392,7 @@ fn make_constant<'a>(
                     // do not be tempted to make the containing function infallible
                     unimplemented!("unhandled Constant configuration"),
 
-                _ => unreachable!("impossible Constant configuration"),
+                _ => Err("encountered impossible Constant configuration".into()),
             }
         },
     }
@@ -753,7 +758,7 @@ fn make_switch(
 
 fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> Vec<Instruction> {
     use jvmtypes::ArrayOperation::{GetLength, Load, Store};
-    use tenyr::InstructionType::{Type1, Type3};
+    use tenyr::InstructionType::*;
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
     use tenyr::{InsnGeneral, Opcode};
 
@@ -800,13 +805,13 @@ fn make_array_op(sm : &mut StackManager, op : ArrayOperation) -> Vec<Instruction
     };
     // For now, all arrays of int or smaller are stored unpacked (i.e. one bool/short/char
     // per 32-bit tenyr word)
-    let (op, imm) = match kind.size() {
-        1 => (Opcode::BitwiseOr, 0_u8),
-        2 => (Opcode::ShiftLeft, 1_u8),
+    let (ctor, op, imm) : (fn(_) -> _, _, _) = match kind.size() {
+        1 => (Type2, Opcode::BitwiseOr, 0_u8),
+        2 => (Type1, Opcode::ShiftLeft, 1_u8),
         _ => unreachable!(), // impossible size
     };
     let imm = imm.into();
-    let kind = Type1(InsnGeneral { y, op, imm });
+    let kind = ctor(InsnGeneral { y, op, imm });
     let insn = Instruction { kind, z, x, dd };
     v.push(insn);
     v
@@ -834,7 +839,7 @@ fn make_invocation_virtual(
     let (temp, gets) = sm.reserve_one();
     insns.extend(gets);
     let far = format!("@{}", mangle(&[&method_name, &"vslot"]));
-    let off = Immediate20::Expr(exprtree::Atom::Variable(far));
+    let off = Immediate20::Expr(exprtree::Atom::Variable(far.into()));
 
     insns.extend(tenyr_insn_list!(
         temp <- [obj - 1]   ;
@@ -1092,7 +1097,7 @@ fn make_varaction<'a>(
             let b = Atom::Immediate(i);
             let op = exprtree::Operation::Add;
             let e = exprtree::Expr { a, b, op };
-            tenyr::Immediate20::Expr(Atom::Expression(Box::new(e)))
+            tenyr::Immediate20::Expr(e.into())
         };
 
         let op_depth = match op {
@@ -1104,7 +1109,11 @@ fn make_varaction<'a>(
 
         let (drops, (reg, mut insns), base) = match kind {
             VarKind::Static => (0, (Register::P, vec![]), make_target(format("static"))),
-            VarKind::Field => (1, sm.get(op_depth), Atom::Variable(format("field_offset"))),
+            VarKind::Field => (
+                1,
+                sm.get(op_depth),
+                Atom::Variable(format("field_offset").into()),
+            ),
         };
 
         let mut range = 0_i32..len.into();
@@ -1154,10 +1163,10 @@ fn make_instructions<'a>(
     // follow multiple destinations. Each basic block needs to be visited only once, however, since
     // the JVM guarantees that every instance of every instruction within a method always sees the
     // same depth of the operand stack every time that instance is executed.
-    let branching = |x| x;
-    let no_branch = |x| Ok((x, vec![Destination::Successor]));
+    let branching = GeneralResult::Ok;
+    let no_branch = |x| GeneralResult::Ok((x, vec![Destination::Successor]));
 
-    let make_jump = |_sm, target| Ok(make_jump(target, &namer(&target)?));
+    let make_jump = |_sm, target| GeneralResult::Ok(make_jump(target, &namer(&target)?));
     let make_noop = |_sm| vec![tenyr::NOOP_TYPE0];
     let make_branch = |sm, ops, way, target| make_branch(sm, ops, way, target, &namer(&target)?);
     let make_yield  = |sm, kind| make_yield(sm, kind, &namer(&"epilogue")?, max_locals);
@@ -1166,19 +1175,19 @@ fn make_instructions<'a>(
         Allocation { 0 : details      } => no_branch( make_allocation ( sm, details, gc              )?),
         Arithmetic { kind, op         } => no_branch( make_arithmetic ( sm, kind, op                 )?),
         ArrayOp    { 0 : aop          } => no_branch( make_array_op   ( sm, aop                      ) ),
-        Branch     { ops, way, target } => branching( make_branch     ( sm, ops, way, target         ) ),
+        Branch     { ops, way, target } => branching( make_branch     ( sm, ops, way, target         )?),
         Compare    { kind, nans       } => no_branch( make_compare    ( sm, kind, nans               )?),
-        Constant   { 0 : details      } => no_branch( make_constant   ( sm, gc, details              ) ),
+        Constant   { 0 : details      } => no_branch( make_constant   ( sm, gc, details              )?),
         Conversion { from, to         } => no_branch( make_conversion ( sm, from, to                 )?),
         Increment  { index, value     } => no_branch( make_increment  ( sm, index, value, max_locals )?),
         Invocation { kind, index      } => no_branch( make_invocation ( sm, kind, index, gc          )?),
-        Jump       { target           } => branching( make_jump       ( sm, target                   ) ),
+        Jump       { target           } => branching( make_jump       ( sm, target                   )?),
         LocalOp    { 0 : op           } => no_branch( make_mem_op     ( sm, op, max_locals           ) ),
         Noop       {                  } => no_branch( make_noop       ( sm                           ) ),
         StackOp    { op, size         } => no_branch( make_stack_op   ( sm, op, size                 ) ),
-        Switch     { 0 : params       } => branching( make_switch     ( sm, params, namer, addr      ) ),
+        Switch     { 0 : params       } => branching( make_switch     ( sm, params, namer, addr      )?),
         VarAction  { op, kind, index  } => no_branch( make_varaction  ( sm, op, kind, index, gc      )?),
-        Yield      { kind             } => branching( make_yield      ( sm, kind                     ) ),
+        Yield      { kind             } => branching( make_yield      ( sm, kind                     )?),
 
         Unhandled  { ..               } => unimplemented!("unhandled operation {:?}", op)
     }

@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -18,7 +19,7 @@ impl fmt::Display for Operation {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Atom {
-    Variable(String),
+    Variable(Cow<'static, str>),
     Immediate(i32),
     Expression(Box<Expr>),
 }
@@ -32,6 +33,18 @@ impl fmt::Display for Atom {
             Expression(e) => write!(f, "{e}"),
         }
     }
+}
+
+impl From<&'static str> for Atom {
+    fn from(s : &'static str) -> Self { Atom::Variable(Cow::from(s)) }
+}
+
+impl From<String> for Atom {
+    fn from(s : String) -> Self { Atom::Variable(Cow::from(s)) }
+}
+
+impl From<Expr> for Atom {
+    fn from(e : Expr) -> Self { Atom::Expression(Box::new(e)) }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -54,7 +67,7 @@ fn test_expr_display() {
     use Operation::*;
 
     let e = Expr {
-        a :  Variable("A".to_string()),
+        a :  Variable("A".into()),
         op : Add,
         b :  Immediate(3),
     };
@@ -62,7 +75,7 @@ fn test_expr_display() {
     let f = Expr {
         a :  Expression(e.clone()),
         op : Sub,
-        b :  Variable("B".to_string()),
+        b :  Variable("B".into()),
     };
     let f = Box::new(f);
     let g = Expr {

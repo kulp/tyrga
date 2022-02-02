@@ -1,5 +1,3 @@
-#![allow(unused_macros)]
-
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
@@ -38,7 +36,6 @@ pub const NOOP_TYPE3 : Instruction = Instruction {
 };
 
 // Some tenyr ops are more than one token, so require special treatment
-#[macro_export]
 macro_rules! tenyr_get_op {
     ( $callback:ident                       ) => { { use $crate::tenyr::Opcode::*; let op = tenyr_op!( | ); $callback!(op            ) } };
 
@@ -51,14 +48,12 @@ macro_rules! tenyr_get_op {
 
 pub type InsnResult = Result<Instruction, Box<dyn std::error::Error>>;
 
-#[macro_export]
 macro_rules! tenyr_imm {
     ( $imm:expr ) => { {
         $imm.try_into().map_err::<Box<dyn std::error::Error>,_>(Into::into)?
     } };
 }
 
-#[macro_export]
 macro_rules! tenyr_type013 {
     ( $opname:ident ( $imm:expr ) $( + $y:ident )? ) => {
         Ok($crate::tenyr::Instruction {
@@ -124,7 +119,6 @@ macro_rules! tenyr_type013 {
     };
 }
 
-#[macro_export]
 macro_rules! tenyr_type2 {
     ( $opname:ident $x:ident $( + $y:ident )? ) => {
         Ok($crate::tenyr::Instruction {
@@ -139,7 +133,6 @@ macro_rules! tenyr_type2 {
     };
 }
 
-#[macro_export]
 macro_rules! tenyr_rhs {
     ( $( $x:ident + )? ( $imm:expr ) ) => {
         {
@@ -218,7 +211,6 @@ macro_rules! tenyr_insn {
 
 #[rustfmt::skip]
 #[test]
-#[allow(clippy::cognitive_complexity)]
 fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
     use InstructionType::*;
     use MemoryOpType::*;
@@ -409,9 +401,9 @@ pub enum Opcode {
 }
 
 impl fmt::Display for Opcode {
-    #[rustfmt::skip]
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         use Opcode::*;
+        #[rustfmt::skip]
         let s = match self {
             BitwiseOr       => "|" , BitwiseOrn       => "|~" ,
             BitwiseAnd      => "&" , BitwiseAndn      => "&~" ,
@@ -423,11 +415,7 @@ impl fmt::Display for Opcode {
             CompareEq       => "==", TestBit          => "@"  ,
             CompareLt       => "<" , CompareGe        => ">=" ,
         };
-        // Support a tiny, inconsistent subset of formatting commands
-        match f.align() {
-            Some(fmt::Alignment::Center) => write!(f, "{:^3}", s),
-            _ => write!(f, "{s}"),
-        }
+        write!(f, "{s}")
     }
 }
 
@@ -659,16 +647,18 @@ impl fmt::Display for Instruction {
                 => format!("{a} - {c}", c=(-i32::from(imm))),
             Type3(..)
                 => format!("{a} + {c}"),
+            Type2(Gen { op : Opcode::BitwiseOr, imm : Immediate::Fixed(imm), .. }) if imm == 0_u8.into()
+                => format!("{b} + {c}"),
             Type0(Gen { op, imm : Immediate::Fixed(imm), .. }) if imm == 0_u8.into()
-                => format!("{a} {op:^3} {b}"),
-            Type1(Gen { op, y, .. }) | Type2(Gen { op, y, .. }) if y == Register::A
-                => format!("{a} {op:^3} {b}"),
+                => format!("{a} {op} {b}"),
+            Type1(Gen { op, y: Register::A, .. }) | Type2(Gen { op, y: Register::A, .. })
+                => format!("{a} {op} {b}"),
             Type0(Gen { op, imm : Immediate::Fixed(imm), .. }) if i32::from(imm) < 0
-                => format!("{a} {op:^3} {b} - {imm}", imm=(-i32::from(imm))),
+                => format!("{a} {op} {b} - {imm}", imm=(-i32::from(imm))),
             Type0(Gen { op, .. }) |
             Type1(Gen { op, .. }) |
             Type2(Gen { op, .. })
-                => format!("{a} {op:^3} {b} + {c}"),
+                => format!("{a} {op} {b} + {c}"),
         };
 
         {
@@ -705,22 +695,22 @@ fn instruction_test_cases() -> Vec<(&'static str, Instruction)> {
     let neg4_20 = Immediate20::from(-4_i8);
 
     vec![
-        (" B  <-  C  |  D - 3"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : D, op : BitwiseOr       }) }),
-        (" B  <-  C |~  D"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12.clone(), y : D, op : BitwiseOrn      }) }),
-        (" B  <-  C  &  -3 + D" , Insn { dd : NoLoad    , z : B, x : C, kind : Type1(Gen { imm : neg3_12.clone(), y : D, op : BitwiseAnd      }) }),
-        (" B  <-  C &~  0 + D"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type1(Gen { imm : zero_12.clone(), y : D, op : BitwiseAndn     }) }),
-        (" B  <-  -3  ^  C + D" , Insn { dd : NoLoad    , z : B, x : C, kind : Type2(Gen { imm : neg3_12.clone(), y : D, op : BitwiseXor      }) }),
-        (" B  <-  0 ^^  C + D"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type2(Gen { imm : zero_12.clone(), y : D, op : Pack            }) }),
-        (" B  <-  C >>  D - 3"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : D, op : ShiftRightArith }) }),
-        (" B  <-  C >>> D"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12.clone(), y : D, op : ShiftRightLogic }) }),
-        (" B  <-  C ==  A - 3"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : A, op : CompareEq       }) }),
-        (" B  <-  C  @  A"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12.clone(), y : A, op : TestBit         }) }),
-        (" P  <-  C - 4"        , Insn { dd : NoLoad    , z : P, x : C, kind : Type3(neg4_20.clone()) }),
-        (" P  <-  C"            , Insn { dd : NoLoad    , z : P, x : C, kind : Type3(zero_20.clone()) }),
-        (" P  -> [C]"           , Insn { dd : StoreRight, z : P, x : C, kind : Type3(zero_20.clone()) }),
-        (" P  <- [C]"           , Insn { dd : LoadRight , z : P, x : C, kind : Type3(zero_20.clone()) }),
-        ("[P] <-  C"            , Insn { dd : StoreLeft , z : P, x : C, kind : Type3(zero_20.clone()) }),
-        (" P  <-  0"            , Insn { dd : NoLoad    , z : P, x : A, kind : Type3(zero_20.clone()) }),
+        (" B  <-  C | D - 3"  , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : D, op : BitwiseOr       }) }),
+        (" B  <-  C |~ D"     , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12.clone(), y : D, op : BitwiseOrn      }) }),
+        (" B  <-  C & -3 + D" , Insn { dd : NoLoad    , z : B, x : C, kind : Type1(Gen { imm : neg3_12.clone(), y : D, op : BitwiseAnd      }) }),
+        (" B  <-  C &~ 0 + D" , Insn { dd : NoLoad    , z : B, x : C, kind : Type1(Gen { imm : zero_12.clone(), y : D, op : BitwiseAndn     }) }),
+        (" B  <-  -3 ^ C + D" , Insn { dd : NoLoad    , z : B, x : C, kind : Type2(Gen { imm : neg3_12.clone(), y : D, op : BitwiseXor      }) }),
+        (" B  <-  0 ^^ C + D" , Insn { dd : NoLoad    , z : B, x : C, kind : Type2(Gen { imm : zero_12.clone(), y : D, op : Pack            }) }),
+        (" B  <-  C >> D - 3" , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : D, op : ShiftRightArith }) }),
+        (" B  <-  C >>> D"    , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12.clone(), y : D, op : ShiftRightLogic }) }),
+        (" B  <-  C == A - 3" , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : neg3_12.clone(), y : A, op : CompareEq       }) }),
+        (" B  <-  C @ A"      , Insn { dd : NoLoad    , z : B, x : C, kind : Type0(Gen { imm : zero_12.clone(), y : A, op : TestBit         }) }),
+        (" P  <-  C - 4"      , Insn { dd : NoLoad    , z : P, x : C, kind : Type3(neg4_20.clone()) }),
+        (" P  <-  C"          , Insn { dd : NoLoad    , z : P, x : C, kind : Type3(zero_20.clone()) }),
+        (" P  -> [C]"         , Insn { dd : StoreRight, z : P, x : C, kind : Type3(zero_20.clone()) }),
+        (" P  <- [C]"         , Insn { dd : LoadRight , z : P, x : C, kind : Type3(zero_20.clone()) }),
+        ("[P] <-  C"          , Insn { dd : StoreLeft , z : P, x : C, kind : Type3(zero_20.clone()) }),
+        (" P  <-  0"          , Insn { dd : NoLoad    , z : P, x : A, kind : Type3(zero_20.clone()) }),
     ]
 }
 
