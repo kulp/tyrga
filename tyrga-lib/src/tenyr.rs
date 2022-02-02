@@ -415,11 +415,7 @@ impl fmt::Display for Opcode {
             CompareEq       => "==", TestBit          => "@"  ,
             CompareLt       => "<" , CompareGe        => ">=" ,
         };
-        // Support a tiny, inconsistent subset of formatting commands
-        match f.align() {
-            Some(fmt::Alignment::Center) => write!(f, "{:^3}", s),
-            _ => write!(f, "{s}"),
-        }
+        write!(f, "{s}")
     }
 }
 
