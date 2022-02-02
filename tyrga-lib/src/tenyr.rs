@@ -401,9 +401,9 @@ pub enum Opcode {
 }
 
 impl fmt::Display for Opcode {
-    #[rustfmt::skip]
     fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
         use Opcode::*;
+        #[rustfmt::skip]
         let s = match self {
             BitwiseOr       => "|" , BitwiseOrn       => "|~" ,
             BitwiseAnd      => "&" , BitwiseAndn      => "&~" ,
