@@ -1,14 +1,12 @@
 .Lmethod_table:
     .word @_4Deep02_3b3c4init04_3e3b28291V  - .Lmethod_table, 0x0001
     .word @_4Deep01_3b3add02_3b282II01_291I - .Lmethod_table, 0x0009
-    .word @_4Deep01_3b7calling03_3b28291J   - .Lmethod_table, 0x0001
+    .word @_4Deep01_3b7calling03_3b28291J   - .Lmethod_table, 0x0009
 .Lmethod_table_end:
     .zero 0
 
     .global _4Deep02_3b3c4init04_3e3b28291V01_3b5vslot
     .set    _4Deep02_3b3c4init04_3e3b28291V01_3b5vslot, 0
-    .global _4Deep01_3b7calling03_3b28291J01_3b5vslot
-    .set    _4Deep01_3b7calling03_3b28291J01_3b5vslot , 1
 
 .global _4Deep02_3b3c4init04_3e3b28291V
 _4Deep02_3b3c4init04_3e3b28291V:
@@ -130,5 +128,6 @@ _4Deep01_3b7calling03_3b28291J:
      C  -> [O + 3]
      P  <-  P + @+.L_4Deep01_3b7calling03_3b28291J01_3b10__epilogue
 .L_4Deep01_3b7calling03_3b28291J01_3b10__epilogue:
+     O  <-  O - 1
      P  <- [O]
 

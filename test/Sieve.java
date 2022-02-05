@@ -1,5 +1,5 @@
 public class Sieve {
-    public void primes(int[] result)
+    public static void primes(int[] result)
     {
         int count = result.length;
         if (count > 0)

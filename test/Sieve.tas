@@ -1,13 +1,11 @@
 .Lmethod_table:
     .word @_5Sieve02_3b3c4init04_3e3b28291V      - .Lmethod_table, 0x0001
-    .word @_5Sieve01_3b6primes03_3b285b1I01_291V - .Lmethod_table, 0x0001
+    .word @_5Sieve01_3b6primes03_3b285b1I01_291V - .Lmethod_table, 0x0009
 .Lmethod_table_end:
     .zero 0
 
     .global _5Sieve02_3b3c4init04_3e3b28291V01_3b5vslot
-    .set    _5Sieve02_3b3c4init04_3e3b28291V01_3b5vslot     , 0
-    .global _5Sieve01_3b6primes03_3b285b1I01_291V01_3b5vslot
-    .set    _5Sieve01_3b6primes03_3b285b1I01_291V01_3b5vslot, 1
+    .set    _5Sieve02_3b3c4init04_3e3b28291V01_3b5vslot, 0
 
 .global _5Sieve02_3b3c4init04_3e3b28291V
 _5Sieve02_3b3c4init04_3e3b28291V:
@@ -29,7 +27,7 @@ _5Sieve02_3b3c4init04_3e3b28291V:
 .global _5Sieve01_3b6primes03_3b285b1I01_291V
 _5Sieve01_3b6primes03_3b285b1I01_291V:
 .L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b10__prologue:
-     O  <-  O - 7
+     O  <-  O - 6
 .L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b3__0:
      B  <- [O + 7]
      B  <- [B - 1]
@@ -57,7 +55,7 @@ _5Sieve01_3b6primes03_3b285b1I01_291V:
      B  <- [O + 5]
      C  <- [O + 6]
      B  <-  B >= C
-     P  <-  @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b5__111 & B + P
+     P  <-  @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b5__107 & B + P
      B  <- [O + 7]
      C  <- [O + 5]
      D  <-  1
@@ -66,19 +64,19 @@ _5Sieve01_3b6primes03_3b285b1I01_291V:
      C  <-  2
      B  <-  B + C
      B  -> [O + 4]
-.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__36:
+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__35:
      B  <-  0
      B  -> [O + 3]
      B  <-  0
      B  -> [O + 2]
-.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__42:
+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__41:
      B  <- [O + 3]
      B  <-  B == A
-     P  <-  @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__86 &~ B + P
+     P  <-  @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__83 &~ B + P
      B  <- [O + 2]
      C  <- [O + 5]
      B  <-  B >= C
-     P  <-  @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__86 & B + P
+     P  <-  @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__83 & B + P
      B  <- [O + 7]
      C  <- [O + 2]
      B  <- [C + B]
@@ -88,7 +86,7 @@ _5Sieve01_3b6primes03_3b285b1I01_291V:
      B  <-  B * C
      C  <- [O + 4]
      B  <-  C < B
-     P  <-  @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__86 & B + P
+     P  <-  @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__83 & B + P
      B  <- [O + 4]
      C  <- [O + 7]
      D  <- [O + 2]
@@ -101,36 +99,36 @@ _5Sieve01_3b6primes03_3b285b1I01_291V:
      B  <- [O + 1]
      O  <-  O + 1
      B  <-  B == A
-     P  <-  @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__80 &~ B + P
+     P  <-  @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__77 &~ B + P
      B  <-  1
      B  -> [O + 3]
-.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__80:
+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__77:
      B  <- [O + 2]
      B  <-  B + 1
      B  -> [O + 2]
-     P  <-  P + @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__42
-.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__86:
+     P  <-  P + @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__41
+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__83:
      B  <- [O + 3]
      B  <-  B == A
-     P  <-  @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__99 &~ B + P
+     P  <-  @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__95 &~ B + P
      B  <- [O + 7]
      C  <- [O + 5]
      D  <- [O + 4]
      D  -> [C + B]
-     P  <-  P + @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b5__105
-.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__99:
+     P  <-  P + @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b5__101
+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__95:
      B  <- [O + 4]
      B  <-  B + 1
      B  -> [O + 4]
-     P  <-  P + @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__36
-.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b5__105:
+     P  <-  P + @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__35
+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b5__101:
      B  <- [O + 5]
      B  <-  B + 1
      B  -> [O + 5]
      P  <-  P + @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b4__22
-.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b5__111:
+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b5__107:
      P  <-  P + @+.L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b10__epilogue
 .L_5Sieve01_3b6primes03_3b285b1I01_291V01_3b10__epilogue:
-     O  <-  O + 8
-     P  <- [O - 7]
+     O  <-  O + 7
+     P  <- [O - 6]
 
