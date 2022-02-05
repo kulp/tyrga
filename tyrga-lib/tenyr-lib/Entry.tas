@@ -1,4 +1,4 @@
 .global main
 main:
-    P <- P + (@_4Main01_3b4main03_3b28291V - (. + 1)) # Main;main;()V
+    P <- P + @+_4Main01_3b4main03_3b28291V # Main;main;()V
 
