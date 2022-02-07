@@ -10,49 +10,53 @@
 .global _3GCD02_3b3c4init04_3e3b28291V
 _3GCD02_3b3c4init04_3e3b28291V:
 .L_3GCD02_3b3c4init04_3e3b28291V01_3b10__prologue:
-     O  <-  O - 2
+     O  <-  O - 1
+     N  <-  N + 1
 .L_3GCD02_3b3c4init04_3e3b28291V01_3b3__0:
-     B  <- [O + 2]
+     B  <- [O + 1]
      O  <-  O - 1
      B  -> [O + 1]
-    [O] <-  P + 1
+    [N] <-  P + 1
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
      P  <-  P + @+.L_3GCD02_3b3c4init04_3e3b28291V01_3b10__epilogue
 .L_3GCD02_3b3c4init04_3e3b28291V01_3b10__epilogue:
-     O  <-  O + 2
-     P  <- [O - 1]
+     O  <-  O + 1
+     N  <-  N - 1
+     P  <- [N]
 
 .global _3GCD01_3b3gcd02_3b282II01_291I
 _3GCD01_3b3gcd02_3b282II01_291I:
 .L_3GCD01_3b3gcd02_3b282II01_291I01_3b10__prologue:
-     O  <-  O - 1
+     O  <-  O
+     N  <-  N + 1
 .L_3GCD01_3b3gcd02_3b282II01_291I01_3b3__0:
-     B  <- [O + 3]
-     C  <- [O + 2]
+     B  <- [O + 2]
+     C  <- [O + 1]
      B  <-  B == C
      P  <-  @+.L_3GCD01_3b3gcd02_3b282II01_291I01_3b4__24 & B + P
-     B  <- [O + 3]
-     C  <- [O + 2]
+     B  <- [O + 2]
+     C  <- [O + 1]
      B  <-  C >= B
      P  <-  @+.L_3GCD01_3b3gcd02_3b282II01_291I01_3b4__17 & B + P
-     B  <- [O + 3]
-     C  <- [O + 2]
-     B  <-  B - C
-     B  -> [O + 3]
-     P  <-  P + @+.L_3GCD01_3b3gcd02_3b282II01_291I01_3b3__0
-.L_3GCD01_3b3gcd02_3b282II01_291I01_3b4__17:
      B  <- [O + 2]
-     C  <- [O + 3]
+     C  <- [O + 1]
      B  <-  B - C
      B  -> [O + 2]
      P  <-  P + @+.L_3GCD01_3b3gcd02_3b282II01_291I01_3b3__0
+.L_3GCD01_3b3gcd02_3b282II01_291I01_3b4__17:
+     B  <- [O + 1]
+     C  <- [O + 2]
+     B  <-  B - C
+     B  -> [O + 1]
+     P  <-  P + @+.L_3GCD01_3b3gcd02_3b282II01_291I01_3b3__0
 .L_3GCD01_3b3gcd02_3b282II01_291I01_3b4__24:
-     B  <- [O + 3]
-     B  -> [O + 3]
+     B  <- [O + 2]
+     B  -> [O + 2]
      P  <-  P + @+.L_3GCD01_3b3gcd02_3b282II01_291I01_3b10__epilogue
 .L_3GCD01_3b3gcd02_3b282II01_291I01_3b10__epilogue:
-     O  <-  O + 2
-     P  <- [O - 1]
+     O  <-  O + 1
+     N  <-  N - 1
+     P  <- [N]
 

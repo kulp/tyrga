@@ -27,6 +27,6 @@ _5tyrga01_2f7Builtin01_3b3add02_3b282JJ01_291J: # tyrga/Builtin;add;(JJ)J
     B -> [O + 2]
     C -> [O + 1]
 
-    # return address is still at its original location despite our pops
-    P <- [O - 2]
+    # return
+    P <- [N]
 

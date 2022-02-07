@@ -250,9 +250,6 @@ fn make_int_branch(
     Ok((v, dest))
 }
 
-// number of slots of data we will save between locals and stack
-const SAVE_SLOTS : u8 = 1;
-
 fn make_builtin_name(proc : &str, descriptor : &str) -> String {
     mangle(&[&"tyrga/Builtin", &proc, &descriptor])
 }
@@ -274,14 +271,14 @@ fn make_call(
     let mut insns = Vec::new();
     insns.extend(sm.freeze(count_params(descriptor).into()));
 
-    // Save return address through current data-stack pointer (callee will
-    // decrement stack pointer)
-    let sp = sm.get_datastack_ptr();
+    // Save return address through current return-stack pointer (callee will
+    // increment return-stack pointer)
+    let rp = sm.get_returnstack_ptr();
     // Using `.to_owned()` here would not be required if our Cow carried
     // arbitrary lifetimes, but pulling that thread unravels quite a lot.
     let target = target.to_owned();
     insns.extend(tenyr_insn_list!(
-        [sp] <- P + 1       ;
+        [rp] <- P + 1       ;
         P <- P + @+target   ;
     ));
 
@@ -804,9 +801,9 @@ fn make_invocation_virtual(
     use Register::P;
 
     let mut insns = Vec::new();
-    // Save return address through current data-stack pointer (callee will
-    // decrement stack pointer)
-    let sp = sm.get_datastack_ptr();
+    // Save return address through current return-stack pointer (callee will
+    // increment return-stack pointer)
+    let rp = sm.get_returnstack_ptr();
     let param_count = u16::from(count_params(descriptor));
     let (obj, gets) = sm.get(param_count);
     insns.extend(gets);
@@ -821,7 +818,7 @@ fn make_invocation_virtual(
 
     insns.extend(tenyr_insn_list!(
         temp <- [obj - 1]   ;
-        [sp] <- P + 1       ;
+        [rp] <- P + 1       ;
         P <- [temp + (off)] ;
     ));
     insns.extend(sm.release(1));
@@ -1393,8 +1390,7 @@ mod util {
 
 impl StackManager {
     pub fn index_local(&self, reg : Register, idx : i32, stack_depth : u16) -> Instruction {
-        let saved : u16 = SAVE_SLOTS.into();
-        self.get_frame_offset(reg, idx - i32::from(saved + stack_depth))
+        self.get_frame_offset(reg, idx - i32::from(stack_depth))
     }
 }
 
@@ -1716,20 +1712,25 @@ fn translate_method<'a, 'b>(
 
     let sm = &StackManager::new(STACK_REGS);
     let sp = sm.get_datastack_ptr();
+    let rp = sm.get_returnstack_ptr();
 
     let prologue = {
         let name = "prologue";
-        let off = -(i32::from(stack_depth) - i32::from(count_params(&descriptor)) + i32::from(SAVE_SLOTS));
-        let insns = vec![tenyr_insn!( sp <-  sp + (off) )?];
+        let off = -(i32::from(stack_depth) - i32::from(count_params(&descriptor)));
+        let insns = tenyr_insn_list!(
+            sp <- sp + (off);
+            rp <- rp + 1;
+        )
+        .collect();
         let label = make_label(class, method, name);
         tenyr::BasicBlock { label, insns }
     };
 
     let epilogue = {
+        use Register::P;
+
         let name = "epilogue";
-        let off = i32::from(SAVE_SLOTS) + i32::from(total_locals) - i32::from(num_returns);
-        let down = i32::from(num_returns) - i32::from(stack_depth);
-        let rp = Register::P;
+        let off = i32::from(stack_depth) - i32::from(num_returns);
         let mv = if off != 0 {
             Some(tenyr_insn!( sp <-  sp + (off) )?)
         } else {
@@ -1737,7 +1738,10 @@ fn translate_method<'a, 'b>(
         };
         let insns = mv
             .into_iter()
-            .chain(std::iter::once(tenyr_insn!( rp <- [sp + (down)] )?))
+            .chain(tenyr_insn_list!(
+                rp <-  rp - 1 ;
+                P  <- [rp + 0];
+            ))
             .collect();
         let label = make_label(class, method, name);
         tenyr::BasicBlock { label, insns }

@@ -14,115 +14,126 @@
 .global _6Except02_3b3c4init04_3e3b28291V
 _6Except02_3b3c4init04_3e3b28291V:
 .L_6Except02_3b3c4init04_3e3b28291V01_3b10__prologue:
-     O  <-  O - 2
+     O  <-  O - 1
+     N  <-  N + 1
 .L_6Except02_3b3c4init04_3e3b28291V01_3b3__0:
-     B  <- [O + 2]
+     B  <- [O + 1]
      O  <-  O - 1
      B  -> [O + 1]
-    [O] <-  P + 1
+    [N] <-  P + 1
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
      P  <-  P + @+.L_6Except02_3b3c4init04_3e3b28291V01_3b10__epilogue
 .L_6Except02_3b3c4init04_3e3b28291V01_3b10__epilogue:
-     O  <-  O + 2
-     P  <- [O - 1]
+     O  <-  O + 1
+     N  <-  N - 1
+     P  <- [N]
 
 .global _6Except01_3b3sub02_3b281I01_291I
 _6Except01_3b3sub02_3b281I01_291I:
 .L_6Except01_3b3sub02_3b281I01_291I01_3b10__prologue:
-     O  <-  O - 1
+     O  <-  O
+     N  <-  N + 1
 .L_6Except01_3b3sub02_3b281I01_291I01_3b3__0:
      B  <-  10
-     C  <- [O + 2]
+     C  <- [O + 1]
      O  <-  O - 2
      B  -> [O + 2]
      C  -> [O + 1]
-    [O] <-  P + 1
+    [N] <-  P + 1
      P  <-  P + @+_5tyrga01_2f7Builtin01_3b3div02_3b282II01_291I
      B  <- [O + 1]
      O  <-  O + 1
-     B  -> [O + 2]
+     B  -> [O + 1]
      P  <-  P + @+.L_6Except01_3b3sub02_3b281I01_291I01_3b10__epilogue
 .L_6Except01_3b3sub02_3b281I01_291I01_3b10__epilogue:
-     O  <-  O + 1
-     P  <- [O]
+     N  <-  N - 1
+     P  <- [N]
 
 .global _6Except01_3b6except02_3b281I01_291I
 _6Except01_3b6except02_3b281I01_291I:
 .L_6Except01_3b6except02_3b281I01_291I01_3b10__prologue:
-     O  <-  O - 2
+     O  <-  O - 1
+     N  <-  N + 1
 .L_6Except01_3b6except02_3b281I01_291I01_3b3__0:
-     B  <- [O + 3]
+     B  <- [O + 2]
      O  <-  O - 1
      B  -> [O + 1]
-    [O] <-  P + 1
+    [N] <-  P + 1
      P  <-  P + @+_6Except01_3b3sub02_3b281I01_291I
      B  <- [O + 1]
      O  <-  O + 1
-     B  -> [O + 3]
+     B  -> [O + 2]
      P  <-  P + @+.L_6Except01_3b6except02_3b281I01_291I01_3b10__epilogue
 .L_6Except01_3b6except02_3b281I01_291I01_3b10__epilogue:
-     O  <-  O + 2
-     P  <- [O - 1]
+     O  <-  O + 1
+     N  <-  N - 1
+     P  <- [N]
 
 .global _6Except01_3b6lastly02_3b281I01_291I
 _6Except01_3b6lastly02_3b281I01_291I:
 .L_6Except01_3b6lastly02_3b281I01_291I01_3b10__prologue:
-     O  <-  O - 3
+     O  <-  O - 2
+     N  <-  N + 1
 .L_6Except01_3b6lastly02_3b281I01_291I01_3b3__0:
+     B  <- [O + 3]
+     O  <-  O - 1
+     B  -> [O + 1]
+    [N] <-  P + 1
+     P  <-  P + @+_6Except01_3b3sub02_3b281I01_291I
+     B  <- [O + 1]
+     O  <-  O + 1
+     B  -> [O + 2]
+     B  <-  -1
+     B  -> [O + 3]
+     P  <-  P + @+.L_6Except01_3b6lastly02_3b281I01_291I01_3b10__epilogue
+.L_6Except01_3b6lastly02_3b281I01_291I01_3b10__epilogue:
+     O  <-  O + 2
+     N  <-  N - 1
+     P  <- [N]
+
+.global _6Except01_3b13except_lastly02_3b281I01_291I
+_6Except01_3b13except_lastly02_3b281I01_291I:
+.L_6Except01_3b13except_lastly02_3b281I01_291I01_3b10__prologue:
+     O  <-  O - 3
+     N  <-  N + 1
+.L_6Except01_3b13except_lastly02_3b281I01_291I01_3b3__0:
      B  <- [O + 4]
      O  <-  O - 1
      B  -> [O + 1]
-    [O] <-  P + 1
+    [N] <-  P + 1
      P  <-  P + @+_6Except01_3b3sub02_3b281I01_291I
      B  <- [O + 1]
      O  <-  O + 1
      B  -> [O + 3]
      B  <-  -1
      B  -> [O + 4]
-     P  <-  P + @+.L_6Except01_3b6lastly02_3b281I01_291I01_3b10__epilogue
-.L_6Except01_3b6lastly02_3b281I01_291I01_3b10__epilogue:
-     O  <-  O + 3
-     P  <- [O - 2]
-
-.global _6Except01_3b13except_lastly02_3b281I01_291I
-_6Except01_3b13except_lastly02_3b281I01_291I:
-.L_6Except01_3b13except_lastly02_3b281I01_291I01_3b10__prologue:
-     O  <-  O - 4
-.L_6Except01_3b13except_lastly02_3b281I01_291I01_3b3__0:
-     B  <- [O + 5]
-     O  <-  O - 1
-     B  -> [O + 1]
-    [O] <-  P + 1
-     P  <-  P + @+_6Except01_3b3sub02_3b281I01_291I
-     B  <- [O + 1]
-     O  <-  O + 1
-     B  -> [O + 4]
-     B  <-  -1
-     B  -> [O + 5]
      P  <-  P + @+.L_6Except01_3b13except_lastly02_3b281I01_291I01_3b10__epilogue
 .L_6Except01_3b13except_lastly02_3b281I01_291I01_3b10__epilogue:
-     O  <-  O + 4
-     P  <- [O - 3]
+     O  <-  O + 3
+     N  <-  N - 1
+     P  <- [N]
 
 .global _6Except01_3b14except2_lastly02_3b281I01_291I
 _6Except01_3b14except2_lastly02_3b281I01_291I:
 .L_6Except01_3b14except2_lastly02_3b281I01_291I01_3b10__prologue:
-     O  <-  O - 4
+     O  <-  O - 3
+     N  <-  N + 1
 .L_6Except01_3b14except2_lastly02_3b281I01_291I01_3b3__0:
-     B  <- [O + 5]
+     B  <- [O + 4]
      O  <-  O - 1
      B  -> [O + 1]
-    [O] <-  P + 1
+    [N] <-  P + 1
      P  <-  P + @+_6Except01_3b3sub02_3b281I01_291I
      B  <- [O + 1]
      O  <-  O + 1
-     B  -> [O + 4]
+     B  -> [O + 3]
      B  <-  -1
-     B  -> [O + 5]
+     B  -> [O + 4]
      P  <-  P + @+.L_6Except01_3b14except2_lastly02_3b281I01_291I01_3b10__epilogue
 .L_6Except01_3b14except2_lastly02_3b281I01_291I01_3b10__epilogue:
-     O  <-  O + 4
-     P  <- [O - 3]
+     O  <-  O + 3
+     N  <-  N - 1
+     P  <- [N]
 

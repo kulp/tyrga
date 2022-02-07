@@ -10,27 +10,30 @@
 .global _5Empty02_3b3c4init04_3e3b28291V
 _5Empty02_3b3c4init04_3e3b28291V:
 .L_5Empty02_3b3c4init04_3e3b28291V01_3b10__prologue:
-     O  <-  O - 2
+     O  <-  O - 1
+     N  <-  N + 1
 .L_5Empty02_3b3c4init04_3e3b28291V01_3b3__0:
-     B  <- [O + 2]
+     B  <- [O + 1]
      O  <-  O - 1
      B  -> [O + 1]
-    [O] <-  P + 1
+    [N] <-  P + 1
      P  <-  P + @+_4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
      B  <- [O + 1]
      O  <-  O + 1
      P  <-  P + @+.L_5Empty02_3b3c4init04_3e3b28291V01_3b10__epilogue
 .L_5Empty02_3b3c4init04_3e3b28291V01_3b10__epilogue:
-     O  <-  O + 2
-     P  <- [O - 1]
+     O  <-  O + 1
+     N  <-  N - 1
+     P  <- [N]
 
 .global _5Empty01_3b5empty03_3b28291V
 _5Empty01_3b5empty03_3b28291V:
 .L_5Empty01_3b5empty03_3b28291V01_3b10__prologue:
-     O  <-  O - 1
+     O  <-  O
+     N  <-  N + 1
 .L_5Empty01_3b5empty03_3b28291V01_3b3__0:
      P  <-  P + @+.L_5Empty01_3b5empty03_3b28291V01_3b10__epilogue
 .L_5Empty01_3b5empty03_3b28291V01_3b10__epilogue:
-     O  <-  O + 1
-     P  <- [O]
+     N  <-  N - 1
+     P  <- [N]
 

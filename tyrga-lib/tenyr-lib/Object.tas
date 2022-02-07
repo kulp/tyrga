@@ -1,5 +1,4 @@
 .global _4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V
 _4java01_2f4lang01_2f6Object02_3b3c4init04_3e3b28291V: # java/lang/Object;<init>;()V
     # TODO
-    P <- [O]
-
+    P <- [N]

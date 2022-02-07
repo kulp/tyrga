@@ -1,6 +1,7 @@
 .global main
 main:
     O <- -1
-    [O] <- P + 1
+    N <- (1 << 12)
+    [N] <- P + 1
     P <- P + @+_4Main01_3b4main03_3b28291V # Main;main;()V
     illegal
