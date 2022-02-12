@@ -225,40 +225,24 @@ fn test_expand() -> GeneralResult<()> {
 
 type InsnPair = (Vec<Instruction>, Vec<Destination>);
 
-fn make_target(target : impl std::string::ToString) -> exprtree::Atom {
-    use exprtree::Atom::Immediate;
-    use exprtree::Expr;
-    use exprtree::Operation::{Add, Sub};
-
-    let b = Expr {
-        a :  ".".into(),
-        op : Add,
-        b :  Immediate(1),
-    }
-    .into();
-    Expr {
-        a : target.to_string().into(),
-        op : Sub,
-        b,
-    }
-    .into()
+fn make_target(target : String) -> exprtree::Atom {
+    exprtree::Atom::Expression(exprtree::Expr::make_atplus_expr(target.into()).into())
 }
 
 fn make_int_branch(
     sm : &mut StackManager,
     invert : bool,
     target : u16,
-    target_name : &str,
+    target_name : String,
     mut comp : impl FnMut(&mut StackManager) -> GeneralResult<(Register, Vec<Instruction>)>,
 ) -> GeneralResult<InsnPair> {
     use Register::P;
 
     let (temp_reg, sequence) = comp(sm)?;
-    let imm = tenyr::Immediate::Expr(make_target(target_name));
     let branch = if invert {
-        tenyr_insn!(   P <- (imm) &~ temp_reg + P     )
+        tenyr_insn!(   P <- @+target_name &~ temp_reg + P     )
     } else {
-        tenyr_insn!(   P <- (imm) &  temp_reg + P     )
+        tenyr_insn!(   P <- @+target_name &  temp_reg + P     )
     };
     let mut v = sequence;
     v.push(branch?);
@@ -273,17 +257,11 @@ fn make_builtin_name(proc : &str, descriptor : &str) -> String {
     mangle(&[&"tyrga/Builtin", &proc, &descriptor])
 }
 
-fn make_jump(target : u16, target_name : &str) -> InsnPair {
-    use crate::tenyr::InstructionType::Type3;
-    let kind = Type3(tenyr::Immediate::Expr(make_target(target_name)));
-    let insn = Instruction {
-        kind,
-        z : Register::P,
-        x : Register::P,
-        ..tenyr::NOOP_TYPE3
-    };
+fn make_jump(target : u16, target_name : String) -> GeneralResult<InsnPair> {
+    use Register::P;
+    let insn = tenyr_insn!( P <- P + @+target_name )?;
     let dests = vec![Destination::Address(target as usize)];
-    (vec![insn], dests)
+    Ok((vec![insn], dests))
 }
 
 fn make_call(
@@ -313,7 +291,7 @@ fn make_call(
 fn make_yield(
     sm : &mut StackManager,
     kind : JType,
-    target_name : &str,
+    target_name : String,
     max_locals : u16,
 ) -> GeneralResult<InsnPair> {
     use tenyr::MemoryOpType::StoreRight;
@@ -330,8 +308,7 @@ fn make_yield(
         })
     }
     v.extend(sm.empty());
-    let ex = tenyr::Immediate::Expr(make_target(target_name));
-    v.push(tenyr_insn!( P <- (ex) + P )?);
+    v.push(tenyr_insn!( P <- P + @+target_name )?);
 
     Ok((v, vec![])) // leaving the method is not a Destination we care about
 }
@@ -589,7 +566,7 @@ fn make_branch(
     ops : OperandCount,
     way : Comparison,
     target : u16,
-    target_name : &str,
+    target_name : String,
 ) -> GeneralResult<InsnPair> {
     use tenyr::*;
 
@@ -645,7 +622,7 @@ fn make_switch_lookup(
     insns.extend(gets);
 
     let make = |(imm, target)| {
-        make_int_branch(sm, false, there(target), &namer(&there(target))?, |sm| {
+        make_int_branch(sm, false, there(target), namer(&there(target))?, |sm| {
             Ok((
                 temp_reg,
                 expand_immediate_load(sm, tenyr_insn!(temp_reg <- top == 0)?, imm),
@@ -656,10 +633,10 @@ fn make_switch_lookup(
     pairs
         .into_iter()
         .map(make)
-        .chain(std::iter::once(Ok(make_jump(
+        .chain(std::iter::once(make_jump(
             there(default),
-            &namer(&there(default))?,
-        ))))
+            namer(&there(default))?,
+        )))
         .try_fold((insns, Vec::new()), |(mut insns, mut dests), tup| {
             let (i, d) = tup?;
             insns.extend(i);
@@ -709,7 +686,7 @@ fn make_switch_table(
             sm,
             false,
             there(default),
-            &namer(&there(default))?,
+            namer(&there(default))?,
             maker,
         )?)
     };
@@ -721,7 +698,7 @@ fn make_switch_table(
 
     let offsets = offsets
         .into_iter()
-        .map(|far| Ok(make_jump(there(far), &namer(&there(far))?)));
+        .map(|far| make_jump(there(far), namer(&there(far))?));
 
     std::iter::empty()
         .chain(once(default_maker(maker(&Type1, low))))
@@ -1166,10 +1143,10 @@ fn make_instructions<'a>(
     let branching = GeneralResult::Ok;
     let no_branch = |x| GeneralResult::Ok((x, vec![Destination::Successor]));
 
-    let make_jump = |_sm, target| GeneralResult::Ok(make_jump(target, &namer(&target)?));
+    let make_jump = |_sm, target| make_jump(target, namer(&target)?);
     let make_noop = |_sm| vec![tenyr::NOOP_TYPE0];
-    let make_branch = |sm, ops, way, target| make_branch(sm, ops, way, target, &namer(&target)?);
-    let make_yield  = |sm, kind| make_yield(sm, kind, &namer(&"epilogue")?, max_locals);
+    let make_branch = |sm, ops, way, target| make_branch(sm, ops, way, target, namer(&target)?);
+    let make_yield = |sm, kind| make_yield(sm, kind, namer(&"epilogue")?, max_locals);
 
     match op {
         Allocation { 0 : details      } => no_branch( make_allocation ( sm, details, gc              )?),
