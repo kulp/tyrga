@@ -293,7 +293,7 @@ fn make_yield(
     sm : &mut StackManager,
     kind : JType,
     target_name : String,
-    max_locals : u16,
+    stack_depth : u16,
 ) -> GeneralResult<InsnPair> {
     use tenyr::MemoryOpType::StoreRight;
     use Register::P;
@@ -305,7 +305,7 @@ fn make_yield(
         v.extend(gets);
         v.push(Instruction {
             dd : StoreRight,
-            ..sm.index_local(reg, i.into(), max_locals)
+            ..sm.index_local(reg, i.into(), stack_depth)
         })
     }
     v.extend(sm.empty());
@@ -507,7 +507,7 @@ fn make_arithmetic(
     }
 }
 
-fn make_mem_op(sm : &mut StackManager, op : LocalOperation, max_locals : u16) -> Vec<Instruction> {
+fn make_mem_op(sm : &mut StackManager, op : LocalOperation, stack_depth : u16) -> Vec<Instruction> {
     use tenyr::MemoryOpType::{LoadRight, StoreRight};
     use LocalOperation::{Load, Store};
 
@@ -531,7 +531,7 @@ fn make_mem_op(sm : &mut StackManager, op : LocalOperation, max_locals : u16) ->
         v.extend(gets);
         v.push(Instruction {
             dd,
-            ..sm.index_local(reg, (idx + i).into(), max_locals)
+            ..sm.index_local(reg, (idx + i).into(), stack_depth)
         })
     }
     v.extend(sm.release(after.unwrap_or(0).into()));
@@ -542,12 +542,12 @@ fn make_increment(
     sm : &mut StackManager,
     index : u16,
     value : i16,
-    max_locals : u16,
+    stack_depth : u16,
 ) -> GeneralResult<Vec<Instruction>> {
     use tenyr::MemoryOpType;
 
     let (temp_reg, mut v) = sm.reserve_one();
-    let insn = sm.index_local(temp_reg, index.into(), max_locals);
+    let insn = sm.index_local(temp_reg, index.into(), stack_depth);
     v.push(Instruction {
         dd : MemoryOpType::LoadRight,
         ..insn.clone()
@@ -1132,7 +1132,7 @@ fn make_instructions<'a>(
     (addr, op) : (usize, Operation),
     namer : impl Fn(&dyn Display) -> GeneralResult<String>,
     gc : impl Contextualizer<'a>,
-    max_locals : u16,
+    stack_depth : u16,
 ) -> GeneralResult<InsnPair> {
     use Operation::*;
 
@@ -1147,7 +1147,7 @@ fn make_instructions<'a>(
     let make_jump = |_sm, target| make_jump(target, namer(&target)?);
     let make_noop = |_sm| vec![tenyr::NOOP_TYPE0];
     let make_branch = |sm, ops, way, target| make_branch(sm, ops, way, target, namer(&target)?);
-    let make_yield = |sm, kind| make_yield(sm, kind, namer(&"epilogue")?, max_locals);
+    let make_yield = |sm, kind| make_yield(sm, kind, namer(&"epilogue")?, stack_depth);
 
     match op {
         Allocation { 0 : details      } => no_branch( make_allocation ( sm, details, gc              )?),
@@ -1157,10 +1157,10 @@ fn make_instructions<'a>(
         Compare    { kind, nans       } => no_branch( make_compare    ( sm, kind, nans               )?),
         Constant   { 0 : details      } => no_branch( make_constant   ( sm, gc, details              )?),
         Conversion { from, to         } => no_branch( make_conversion ( sm, from, to                 )?),
-        Increment  { index, value     } => no_branch( make_increment  ( sm, index, value, max_locals )?),
+        Increment  { index, value     } => no_branch( make_increment  ( sm, index, value, stack_depth )?),
         Invocation { kind, index      } => no_branch( make_invocation ( sm, kind, index, gc          )?),
         Jump       { target           } => branching( make_jump       ( sm, target                   )?),
-        LocalOp    { 0 : op           } => no_branch( make_mem_op     ( sm, op, max_locals           ) ),
+        LocalOp    { 0 : op           } => no_branch( make_mem_op     ( sm, op, stack_depth           ) ),
         Noop       {                  } => no_branch( make_noop       ( sm                           ) ),
         StackOp    { op, size         } => no_branch( make_stack_op   ( sm, op, size                 ) ),
         Switch     { 0 : params       } => branching( make_switch     ( sm, params, namer, addr      )?),
@@ -1392,9 +1392,9 @@ mod util {
 }
 
 impl StackManager {
-    pub fn index_local(&self, reg : Register, idx : i32, max_locals : u16) -> Instruction {
+    pub fn index_local(&self, reg : Register, idx : i32, stack_depth : u16) -> Instruction {
         let saved : u16 = SAVE_SLOTS.into();
-        self.get_frame_offset(reg, idx - i32::from(saved + max_locals))
+        self.get_frame_offset(reg, idx - i32::from(saved + stack_depth))
     }
 }
 
@@ -1488,14 +1488,14 @@ fn make_blocks_for_method<'a, 'b>(
     class : &'a Context<'b, &'b ClassConstant>,
     method : &'a Context<'b, &'b MethodInfo>,
     sm : &StackManager,
-    max_locals : u16,
+    stack_depth : u16,
 ) -> GeneralResult<Vec<tenyr::BasicBlock>> {
     struct Params<'a, 'b> {
-        class :      &'a Context<'b, &'b ClassConstant>,
-        method :     &'a Context<'b, &'b MethodInfo>,
-        rangemap :   &'a BTreeMap<usize, Range<usize>>,
-        ops :        &'a BTreeMap<usize, Operation>,
-        max_locals : u16,
+        class :       &'a Context<'b, &'b ClassConstant>,
+        method :      &'a Context<'b, &'b MethodInfo>,
+        rangemap :    &'a BTreeMap<usize, Range<usize>>,
+        ops :         &'a BTreeMap<usize, Operation>,
+        stack_depth : u16,
     }
 
     fn make_blocks(
@@ -1504,12 +1504,12 @@ fn make_blocks_for_method<'a, 'b>(
         mut sm : StackManager,
         which : &Range<usize>,
     ) -> GeneralResult<Vec<tenyr::BasicBlock>> {
-        let (class, method, rangemap, ops, max_locals) = (
+        let (class, method, rangemap, ops, stack_depth) = (
             params.class,
             params.method,
             params.rangemap,
             params.ops,
-            params.max_locals,
+            params.stack_depth,
         );
         if seen.contains(&which.start) {
             return Ok(vec![]);
@@ -1526,7 +1526,7 @@ fn make_blocks_for_method<'a, 'b>(
                     x,
                     |y| Ok(make_label(class, method, y)),
                     class,
-                    max_locals,
+                    stack_depth,
                 )
             })
             .collect();
@@ -1550,7 +1550,7 @@ fn make_blocks_for_method<'a, 'b>(
         method,
         rangemap,
         ops,
-        max_locals,
+        stack_depth,
     };
 
     let mut seen = HashSet::new();
@@ -1573,9 +1573,9 @@ fn test_parse_classes() -> GeneralResult<()> {
         for method in methods.filter(|m| !m.access_flags.contains(MethodAccessFlags::NATIVE)) {
             let sm = StackManager::new(STACK_REGS);
             let class = &util::get_constant_getter(&class).get_class(class.this_class)?;
-            let max_locals = get_method_code(method)?.max_locals;
+            let stack_depth = get_method_code(method)?.max_locals;
             let method = class.contextualize(method);
-            let bbs = make_blocks_for_method(class, &method, &sm, max_locals)?;
+            let bbs = make_blocks_for_method(class, &method, &sm, stack_depth)?;
             for bb in &bbs {
                 eprintln!("{bb}");
             }
@@ -1710,17 +1710,16 @@ fn translate_method<'a, 'b>(
         .get_string(mr.descriptor_index)
         .ok_or("method descriptor missing")?;
     let num_returns = count_returns(&descriptor).into();
-    // Pretend we have at least as many locals as we have return-slots, so we have somewhere to
-    // store our results when we Yield.
-    let max_locals = total_locals.max(num_returns);
+    // Pretend we have at least as many locals as we have return-slots, so we
+    // have somewhere to store our results when we Yield.
+    let stack_depth = total_locals.max(num_returns);
 
     let sm = &StackManager::new(STACK_REGS);
     let sp = sm.get_datastack_ptr();
-    let max_locals_i32 = i32::from(max_locals);
 
     let prologue = {
         let name = "prologue";
-        let off = -(max_locals_i32 - i32::from(count_params(&descriptor)) + i32::from(SAVE_SLOTS));
+        let off = -(i32::from(stack_depth) - i32::from(count_params(&descriptor)) + i32::from(SAVE_SLOTS));
         let insns = vec![tenyr_insn!( sp <-  sp + (off) )?];
         let label = make_label(class, method, name);
         tenyr::BasicBlock { label, insns }
@@ -1729,7 +1728,7 @@ fn translate_method<'a, 'b>(
     let epilogue = {
         let name = "epilogue";
         let off = i32::from(SAVE_SLOTS) + i32::from(total_locals) - i32::from(num_returns);
-        let down = i32::from(num_returns) - max_locals_i32;
+        let down = i32::from(num_returns) - i32::from(stack_depth);
         let rp = Register::P;
         let mv = if off != 0 {
             Some(tenyr_insn!( sp <-  sp + (off) )?)
@@ -1744,7 +1743,7 @@ fn translate_method<'a, 'b>(
         tenyr::BasicBlock { label, insns }
     };
 
-    let blocks = make_blocks_for_method(class, method, sm, max_locals)?;
+    let blocks = make_blocks_for_method(class, method, sm, stack_depth)?;
     let name = mangle(&[class, method]);
     Ok(Method {
         name,
