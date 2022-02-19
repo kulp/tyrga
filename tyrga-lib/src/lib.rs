@@ -277,11 +277,12 @@ fn make_call(
     // Save return address through current stack pointer (callee will
     // decrement stack pointer)
     let sp = sm.get_stack_ptr();
-    let far = format!("@+{target}");
-    let off = tenyr::Immediate20::Expr(exprtree::Atom::Variable(far.into()));
+    // Using `.to_owned()` here would not be required if our Cow carried
+    // arbitrary lifetimes, but pulling that thread unravels quite a lot.
+    let target = target.to_owned();
     insns.extend(tenyr_insn_list!(
-        [sp] <- P + 1   ;
-        P <- P + (off)  ;
+        [sp] <- P + 1       ;
+        P <- P + @+target   ;
     ));
 
     insns.extend(sm.thaw(count_returns(descriptor).into()));
