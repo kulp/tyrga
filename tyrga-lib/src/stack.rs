@@ -1,4 +1,5 @@
-//! Provides operations for manipulating the state of the JVM operand stack.
+//! Provides operations for manipulating the state of the JVM operand stack
+//! (and implicit return stack).
 //!
 //! These are the essential quantites:
 //! - register_count (constant, independent; number of registers usable)
@@ -19,6 +20,11 @@
 //! - get(N)     -- get location for offset N >= 0, down from top of stack
 //! - freeze(N)  -- spill all locations to memory and release N
 //! - thaw(N)    -- load registers from memory and reserve N
+//!
+//! The data-stack (or plain "stack" when unspecified) grows downward, and
+//! pushes decrement after storing. The return-stack grows upward, and pushes
+//! increment before storing. This allows the data-stack and return-stack to
+//! point to the same address when both stacks are empty.
 
 use crate::tenyr::Instruction;
 use crate::tenyr::Register;
@@ -42,6 +48,8 @@ pub struct Manager {
     pick_point : u16,
     /// the register used as a data-stack pointer
     datastack_ptr : Register,
+    /// the register used as a return-stack pointer
+    returnstack_ptr : Register,
 }
 
 impl Manager {
@@ -50,7 +58,12 @@ impl Manager {
         let mut regs = regs.to_owned();
         let stack_depth = 0;
         let pick_point = 0;
-        let datastack_ptr = regs.pop().expect("too few registers");
+        let datastack_ptr = regs
+            .pop()
+            .expect("too few registers to accommodate a data-stack pointer");
+        let returnstack_ptr = regs
+            .pop()
+            .expect("too few registers to accommodate a return-stack pointer");
         let register_count = regs.len().try_into().expect("too many registers");
         Self {
             regs,
@@ -58,6 +71,7 @@ impl Manager {
             stack_depth,
             pick_point,
             datastack_ptr,
+            returnstack_ptr,
         }
     }
 
@@ -237,6 +251,9 @@ impl Manager {
     /// returns the register that points to the highest empty slot in memory
     pub fn get_datastack_ptr(&self) -> Register { self.datastack_ptr }
 
+    /// returns the register that contains the current return address
+    pub fn get_returnstack_ptr(&self) -> Register { self.returnstack_ptr }
+
     /// returns an Instruction that sets a given register to the address of the
     /// nth element on the operand stack, regardless of the number of spilled
     /// slots
@@ -269,8 +286,9 @@ mod test {
 
     impl quickcheck::Arbitrary for NumRegs {
         fn arbitrary<G : Gen>(g : &mut G) -> Self {
-            // to be useful, we need a stack pointer and a non-stack pointer
-            let min = 2;
+            // to be useful, we need a data-stack pointer, a return-stack
+            // pointer, and a non-stack pointer.
+            let min = 3;
             // do not count A and P registers
             let max = 14;
             NumRegs((g.next_u32() as u8) % (max - min) + min) // lossy cast is fine
@@ -293,7 +311,9 @@ mod test {
     quickcheck! {
         fn test_new(num_regs : NumRegs) -> () {
             let man = get_mgr(num_regs);
-            assert_eq!(man.register_count, (num_regs.0 - 1).into());
+            // Two registers are reserved (return-stack pointer and data-stack
+            // pointer).
+            assert_eq!(man.register_count, (num_regs.0 - 2).into());
         }
 
         fn test_trivial_reserve(n : NumRegs) -> () {
@@ -308,10 +328,12 @@ mod test {
         }
 
         fn test_small_spill_and_load(num_regs : NumRegs) -> TestResult {
-            if num_regs.0 < 4 { return TestResult::discard(); }
+            if num_regs.0 < 5 { return TestResult::discard(); }
             unwrap(|| {
                 let mut man = get_mgr(num_regs);
-                let act = man.reserve((num_regs.0 - 1).into());
+                // Two registers are reserved (return-stack pointer and
+                // data-stack pointer).
+                let act = man.reserve((num_regs.0 - 2).into());
                 assert!(act.is_empty());
 
                 let sp = man.datastack_ptr;
@@ -369,9 +391,13 @@ mod test {
             if num_regs.0 < 3 { return TestResult::discard(); }
 
             let mut man = get_mgr(num_regs);
-            let free_regs : u16 = (num_regs.0 - 1).into();
+            // Two registers are reserved (return-stack pointer and data-stack
+            // pointer).
+            let free_regs : u16 = (num_regs.0 - 2).into();
             let act = man.reserve(free_regs * 2); // ensure we spill
-            assert_eq!(act.len(), num_regs.0.into());
+            // One instruction updates the stack pointer; N-2 registers are
+            // spilled.
+            assert_eq!(act.len(), (1 + num_regs.0 - 2).into());
 
             // The expected register is computed using the same logic that is used in
             // the `get` function, so ths is not an independent check, but it does help
@@ -397,9 +423,13 @@ mod test {
             if num_regs.0 < 3 { return TestResult::discard(); }
 
             let mut man = get_mgr(num_regs);
-            let free_regs : u16 = (num_regs.0 - 1).into();
+            // Two registers are reserved (return-stack pointer and data-stack
+            // pointer).
+            let free_regs : u16 = (num_regs.0 - 2).into();
             let act = man.reserve(free_regs * 2); // ensure we spill
-            assert_eq!(act.len(), num_regs.0.into());
+            // One instruction updates the stack pointer; N-2 registers are
+            // spilled.
+            assert_eq!(act.len(), (1 + num_regs.0 - 2).into());
 
             TestResult::must_fail(move || { let _ = man.get(free_regs); })
         }
@@ -444,7 +474,7 @@ mod test {
 
         fn test_get_copy(num_regs : NumRegs, off : i8) -> TestResult {
             use crate::tenyr::MemoryOpType::{LoadRight, NoLoad};
-            if num_regs.0 < 3 { return TestResult::discard(); }
+            if num_regs.0 < 5 { return TestResult::discard(); }
 
             let mut man = get_mgr(num_regs);
             let half : u16 = (num_regs.0 / 2).into();
