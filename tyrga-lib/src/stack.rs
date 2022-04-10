@@ -32,7 +32,7 @@ pub type StackActions = Vec<Instruction>;
 
 #[derive(Clone)]
 pub struct Manager {
-    /// registers under our control, excluding `stack_ptr`
+    /// registers under our control, excluding `datastack_ptr`
     regs : Vec<Register>,
     /// number of registers in our stack
     register_count : u16,
@@ -40,8 +40,8 @@ pub struct Manager {
     stack_depth : u16,
     /// number of "live" registers desired
     pick_point : u16,
-    /// the register used as a stack pointer
-    stack_ptr : Register,
+    /// the register used as a data-stack pointer
+    datastack_ptr : Register,
 }
 
 impl Manager {
@@ -50,14 +50,14 @@ impl Manager {
         let mut regs = regs.to_owned();
         let stack_depth = 0;
         let pick_point = 0;
-        let stack_ptr = regs.pop().expect("too few registers");
+        let datastack_ptr = regs.pop().expect("too few registers");
         let register_count = regs.len().try_into().expect("too many registers");
         Self {
             regs,
             register_count,
             stack_depth,
             pick_point,
-            stack_ptr,
+            datastack_ptr,
         }
     }
 
@@ -85,7 +85,7 @@ impl Manager {
 
         let spilled_after = self.spilled_count();
 
-        let sp = self.stack_ptr;
+        let sp = self.datastack_ptr;
         let n = i32::from(spilled_before) - i32::from(spilled_after);
         let reg = |off| self.regs[usize::from(off % self.register_count)];
         let mover = |dd, base| {
@@ -221,7 +221,7 @@ impl Manager {
             let offset = n + 1 + 1 - self.pick_point;
             let insn = Instruction {
                 z :    to,
-                x :    self.get_stack_ptr(),
+                x :    self.get_datastack_ptr(),
                 dd :   LoadRight,
                 kind : Type3(offset.into()),
             };
@@ -235,7 +235,7 @@ impl Manager {
     }
 
     /// returns the register that points to the highest empty slot in memory
-    pub fn get_stack_ptr(&self) -> Register { self.stack_ptr }
+    pub fn get_datastack_ptr(&self) -> Register { self.datastack_ptr }
 
     /// returns an Instruction that sets a given register to the address of the
     /// nth element on the operand stack, regardless of the number of spilled
@@ -251,7 +251,7 @@ impl Manager {
         crate::tenyr::Instruction {
             dd : crate::tenyr::MemoryOpType::NoLoad,
             z : reg,
-            x : self.stack_ptr,
+            x : self.datastack_ptr,
             kind,
         }
     }
@@ -314,7 +314,7 @@ mod test {
                 let act = man.reserve((num_regs.0 - 1).into());
                 assert!(act.is_empty());
 
-                let sp = man.stack_ptr;
+                let sp = man.datastack_ptr;
                 let top = man.regs[0];
                 let sec = man.regs[1];
                 let thr = man.regs[2];
@@ -420,7 +420,7 @@ mod test {
             unwrap(|| {
                 let n : u16 = num_regs.0.into();
                 let mut man = get_mgr(num_regs);
-                let sp = man.stack_ptr;
+                let sp = man.datastack_ptr;
 
                 let _  = man.reserve(n - 1);
                 let act = man.reserve(1);

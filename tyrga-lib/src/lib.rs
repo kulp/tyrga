@@ -274,9 +274,9 @@ fn make_call(
     let mut insns = Vec::new();
     insns.extend(sm.freeze(count_params(descriptor).into()));
 
-    // Save return address through current stack pointer (callee will
+    // Save return address through current data-stack pointer (callee will
     // decrement stack pointer)
-    let sp = sm.get_stack_ptr();
+    let sp = sm.get_datastack_ptr();
     // Using `.to_owned()` here would not be required if our Cow carried
     // arbitrary lifetimes, but pulling that thread unravels quite a lot.
     let target = target.to_owned();
@@ -804,9 +804,9 @@ fn make_invocation_virtual(
     use Register::P;
 
     let mut insns = Vec::new();
-    // Save return address through current stack pointer (callee will
+    // Save return address through current data-stack pointer (callee will
     // decrement stack pointer)
-    let sp = sm.get_stack_ptr();
+    let sp = sm.get_datastack_ptr();
     let param_count = u16::from(count_params(descriptor));
     let (obj, gets) = sm.get(param_count);
     insns.extend(gets);
@@ -1715,7 +1715,7 @@ fn translate_method<'a, 'b>(
     let max_locals = total_locals.max(num_returns);
 
     let sm = &StackManager::new(STACK_REGS);
-    let sp = sm.get_stack_ptr();
+    let sp = sm.get_datastack_ptr();
     let max_locals_i32 = i32::from(max_locals);
 
     let prologue = {
