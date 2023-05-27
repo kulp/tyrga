@@ -23,6 +23,7 @@
 #![deny(clippy::vec_init_then_push)]
 #![deny(clippy::needless_borrow)]
 #![deny(clippy::needless_lifetimes)]
+#![deny(clippy::needless_question_mark)]
 
 // make macros visible to later modules
 #[macro_use]
@@ -683,15 +684,8 @@ fn make_switch_table(
         }
     };
 
-    let mut default_maker = |maker| {
-        GeneralResult::Ok(make_int_branch(
-            sm,
-            false,
-            there(default),
-            namer(&there(default))?,
-            maker,
-        )?)
-    };
+    let mut default_maker =
+        |maker| make_int_branch(sm, false, there(default), namer(&there(default))?, maker);
 
     let insn = {
         use Register::P;
