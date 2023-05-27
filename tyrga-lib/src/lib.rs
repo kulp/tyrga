@@ -22,6 +22,7 @@
 #![deny(clippy::match_like_matches_macro)]
 #![deny(clippy::vec_init_then_push)]
 #![deny(clippy::needless_borrow)]
+#![deny(clippy::needless_lifetimes)]
 
 // make macros visible to later modules
 #[macro_use]
@@ -1359,7 +1360,7 @@ mod util {
         fn as_ref(&self) -> &T { &self.nested }
     }
 
-    pub(super) fn get_constant_getter<'a>(nested : &'a ClassFile) -> Context<'a, &ClassFile> {
+    pub(super) fn get_constant_getter(nested : &ClassFile) -> Context<'_, &ClassFile> {
         let gc = move |n| &nested.const_pool[usize::from(n) - 1];
         Context {
             constant_getter : Rc::new(gc),
