@@ -24,10 +24,6 @@ use crate::tenyr::Instruction;
 use crate::tenyr::Register;
 
 /// a list of stack-maintenance instructions that must be executed
-/// Note: the `must_use` attribute here does not appear to be effective on
-/// functions that return `StackActions`, so the `must_use` directive is
-/// reproduced on multiple functions below.
-#[must_use = "StackActions must be implemented to maintain stack discipline"]
 pub type StackActions = Vec<Instruction>;
 
 #[derive(Clone)]
@@ -70,6 +66,7 @@ impl Manager {
         count.try_into().expect("too many spilled registers")
     }
 
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
     fn nudge(&mut self, pick_movement : i32, depth_movement : i32) -> StackActions {
         use crate::tenyr::InstructionType::Type3;
         use crate::tenyr::MemoryOpType::{LoadRight, NoLoad, StoreRight};
@@ -122,6 +119,7 @@ impl Manager {
     }
 
     /// increases pick-point up to a minimum value, if necessary
+    #[must_use = "StackActions must be implemented to maintain stack discipline"]
     fn require_minimum(&mut self, n : u16) -> StackActions {
         self.nudge(0.max(i32::from(n) - i32::from(self.pick_point)), 0)
     }
