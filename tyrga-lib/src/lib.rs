@@ -500,6 +500,7 @@ fn make_arithmetic(
         use ArithmeticOperation::Neg;
         use JType::Int;
 
+        #[allow(unused_parens)]
         match (kind, bitwise_op, general_op, op) {
             (_  , Some(op), _       , _  ) => Ok(make_bitwise               (sm, kind, op)),
             (Int, _       , Some(op), _  ) => Ok(make_arithmetic_general    (sm,       op)),
