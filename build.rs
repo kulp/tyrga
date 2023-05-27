@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     || tas_in.metadata()?.modified()? > dest.metadata()?.modified()?
                 {
                     let output = Command::new("javac")
-                        .args(&["-d", &out_dir])
+                        .args(["-d", &out_dir])
                         .arg("-g:none")
                         .arg("-verbose")
                         .arg(name)
@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let all = std::str::from_utf8(&output.stderr)?;
                     let wrote = all
                         .lines()
-                        .find(|x| x.starts_with(&"[wrote"))
+                        .find(|x| x.starts_with("[wrote"))
                         .expect("unexpected output from javac");
                     // Different versions of javac use different syntaxes for demarcating paths
                     let first = wrote

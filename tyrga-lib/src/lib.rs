@@ -21,6 +21,7 @@
 #![deny(clippy::unnecessary_lazy_evaluations)]
 #![deny(clippy::match_like_matches_macro)]
 #![deny(clippy::vec_init_then_push)]
+#![deny(clippy::needless_borrow)]
 
 // make macros visible to later modules
 #[macro_use]
@@ -1875,7 +1876,7 @@ pub fn translate_class(class : ClassFile, outfile : &mut dyn Write) -> GeneralRe
         writeln!(outfile, "    {slot_name:width$}: .zero {size}")?;
         Ok(())
     };
-    write_field_list(class, fields, outfile, "static", &is_static, &print_static)?;
+    write_field_list(class, fields, outfile, "static", is_static, print_static)?;
 
     for method in methods
         .iter()
