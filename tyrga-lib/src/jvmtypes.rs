@@ -1,5 +1,7 @@
 use classfile_parser::code_attribute::Instruction;
 
+use anyhow::Result;
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum JType {
     Int,
@@ -25,7 +27,7 @@ impl JType {
 }
 
 impl TryFrom<JType> for char {
-    type Error = &'static str;
+    type Error = anyhow::Error;
     #[rustfmt::skip]
     fn try_from(t : JType) -> Result<Self, Self::Error> {
         use JType::*;
@@ -38,13 +40,13 @@ impl TryFrom<JType> for char {
             Char   => Ok('C'),
             Short  => Ok('S'),
             Void   => Ok('V'),
-            Object => Err("no such mapping"),
+            Object => anyhow::bail!("no such mapping"),
         }
     }
 }
 
 impl TryFrom<char> for JType {
-    type Error = &'static str;
+    type Error = anyhow::Error;
     fn try_from(ch : char) -> Result<Self, Self::Error> {
         use JType::*;
         match ch {
@@ -58,7 +60,7 @@ impl TryFrom<char> for JType {
             'C' => Ok(Char),
             'S' => Ok(Short),
             'V' => Ok(Void),
-            _ => Err("no such mapping"),
+            _ => anyhow::bail!("no such mapping"),
         }
     }
 }

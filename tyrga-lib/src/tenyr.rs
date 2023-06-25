@@ -2,6 +2,8 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
+use anyhow::{Ok, Result};
+
 use crate::exprtree;
 
 #[rustfmt::skip]
@@ -46,11 +48,11 @@ macro_rules! tenyr_get_op {
     ( $callback:ident $op:tt $( $rest:tt )+ ) => { { use $crate::tenyr::Opcode::*; let op = tenyr_op!($op); $callback!(op $( $rest )+) } };
 }
 
-pub type InsnResult = Result<Instruction, Box<dyn std::error::Error>>;
+pub type InsnResult = anyhow::Result<Instruction>;
 
 macro_rules! tenyr_imm {
     ( $imm:expr ) => { {
-        $imm.try_into().map_err::<Box<dyn std::error::Error>,_>(Into::into)?
+        $imm.try_into()?
     } };
 }
 
@@ -188,7 +190,7 @@ macro_rules! tenyr_rhs {
                 });
                 Ok(Instruction { kind, ..base }) as $crate::tenyr::InsnResult
             } else {
-                Err("internal error - did not get expected Type2".into())
+                Err(anyhow::anyhow!("internal error - did not get expected Type2"))
             }
         }
     };
@@ -208,7 +210,7 @@ macro_rules! tenyr_rhs {
                 let kind = $crate::tenyr::InstructionType::Type2(InsnGeneral { imm : tenyr_imm!($imm), ..gen });
                 Ok(Instruction { kind, ..base }) as $crate::tenyr::InsnResult
             } else {
-                Err("internal error - did not get expected Type2".into())
+                Err(anyhow::anyhow!("internal error - did not get expected Type2"))
             }
         }
     };
@@ -220,7 +222,7 @@ macro_rules! tenyr_rhs {
                 let kind = $crate::tenyr::InstructionType::Type2(InsnGeneral { imm : tenyr_imm!($imm), ..gen });
                 Ok(Instruction { kind, ..base }) as $crate::tenyr::InsnResult
             } else {
-                Err("internal error - did not get expected Type2".into())
+                Err(anyhow::anyhow!("internal error - did not get expected Type2"))
             }
         }
     };
@@ -242,7 +244,7 @@ fn expr_sub_one(a : exprtree::Atom) -> super::tenyr::Immediate12 {
 
 #[rustfmt::skip]
 #[test]
-fn test_macro_insn() -> Result<(), Box<dyn std::error::Error>> {
+fn test_macro_insn() -> Result<(), anyhow::Error> {
     use std::convert::TryInto;
     use InstructionType::*;
     use MemoryOpType::*;
@@ -320,7 +322,7 @@ macro_rules! tenyr_insn_list {
 }
 
 #[test]
-fn test_macro_insn_list() -> Result<(), Box<dyn std::error::Error>> {
+fn test_macro_insn_list() -> Result<(), anyhow::Error> {
     use InstructionType::*;
     use MemoryOpType::*;
     use Opcode::*;
@@ -526,31 +528,31 @@ impl Immediate12 {
     const BITS : u8 = TwelveBit::BITS;
     const UMAX : i32 = TwelveBit::UMAX;
 
-    pub fn try_from_bits(val : u16) -> Result<Self, String> {
+    pub fn try_from_bits(val : u16) -> Result<Self> {
         if i32::from(val) < Self::UMAX {
             // Convert u16 into an i32 with the same bottom 12 bits
             let mask = if (val & 0x800) == 0 { 0 } else { -1_i32 << 12 };
             let val = i32::from(val) | mask;
             Self::try_from(val)
         } else {
-            Err(format!(
+            Err(anyhow::anyhow!(format!(
                 "number {val} is too big for a {}-bit immediate",
                 Self::BITS
-            ))
+            )))
         }
     }
 }
 
 impl<T : BitWidth> TryFrom<i32> for SizedImmediate<T> {
-    type Error = String;
+    type Error = anyhow::Error;
     fn try_from(val : i32) -> Result<Self, Self::Error> {
         if val >= T::IMIN && val <= T::IMAX {
             Ok(Self(val, PhantomData))
         } else {
-            Err(format!(
+            Err(anyhow::anyhow!(format!(
                 "number {val} is too big for a {}-bit immediate",
                 T::BITS
-            ))
+            )))
         }
     }
 }
@@ -575,12 +577,12 @@ impl<T : BitWidth> From<SizedImmediate<T>> for i32 {
 }
 
 impl<T : BitWidth> TryFrom<Immediate<T>> for i32 {
-    type Error = String;
+    type Error = anyhow::Error;
 
     fn try_from(what : Immediate<T>) -> Result<Self, Self::Error> {
         match what {
             Immediate::Fixed(s) => Ok(s.into()),
-            _ => Err("cannot evaluate non-Fixed Immediate".to_owned()),
+            _ => anyhow::bail!("cannot evaluate non-Fixed Immediate"),
         }
     }
 }
@@ -786,20 +788,26 @@ impl fmt::Display for BasicBlock {
         for insn in &self.insns {
             writeln!(f, "    {insn}")?;
         }
-        Ok(())
+        std::result::Result::Ok(())
     }
 }
 
 #[test]
-fn test_basicblock_display() -> Result<(), Box<dyn std::error::Error>> {
+fn test_basicblock_display() -> Result<(), anyhow::Error> {
     let (_, insns) : (Vec<_>, Vec<_>) = instruction_test_cases().iter().cloned().unzip();
     let label = "testbb".to_string();
     let bb = BasicBlock { label, insns };
     let ss = bb.to_string();
-    let first_line = ss.lines().next().ok_or("no lines in input")?;
+    let first_line = ss
+        .lines()
+        .next()
+        .ok_or(anyhow::anyhow!("no lines in input"))?;
     assert_eq!(
         ':',
-        first_line.chars().last().ok_or("no characters in line")?
+        first_line
+            .chars()
+            .last()
+            .ok_or(anyhow::anyhow!("no characters in line"))?
     );
     assert_eq!(bb.label, first_line[..first_line.len() - 1]);
     assert_eq!(bb.insns.len() + 1, ss.lines().count());

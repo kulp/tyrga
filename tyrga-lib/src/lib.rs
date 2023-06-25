@@ -34,7 +34,6 @@ mod jvmtypes;
 mod stack;
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
-use std::error::Error;
 use std::fmt;
 use std::fmt::Display;
 use std::io::Write;
@@ -56,7 +55,7 @@ use util::{Context, Contextualizer, Manglable};
 
 type StackManager = stack::Manager;
 
-pub type GeneralResult<T> = Result<T, Box<dyn Error>>;
+pub type GeneralResult<T> = Result<T, anyhow::Error>;
 
 const STACK_REGS : &[Register] = {
     use Register::*;
@@ -219,7 +218,7 @@ fn test_expand() -> GeneralResult<()> {
         if let Type0(ref g) = vv[0].kind {
             assert_eq!(g.imm, 123_u8.into());
         } else {
-            return Err("wrong type".into());
+            return Err(anyhow::anyhow!("wrong type"));
         }
     }
 
@@ -351,7 +350,7 @@ fn make_constant<'a>(
                     let bits = f64::from(value).to_bits();
                     Ok(make(&[ (bits >> 32) as i32, bits as i32 ]))
                 },
-                _ => Err("encountered impossible Constant configuration".into()),
+                _ => Err(anyhow::anyhow!("encountered impossible Constant configuration")),
             },
         Indirect(index) => {
             use ConstantInfo::*;
@@ -372,7 +371,7 @@ fn make_constant<'a>(
                     // do not be tempted to make the containing function infallible
                     unimplemented!("unhandled Constant configuration"),
 
-                _ => Err("encountered impossible Constant configuration".into()),
+                _ => Err(anyhow::anyhow!("encountered impossible Constant configuration")),
             }
         },
     }
@@ -839,16 +838,16 @@ fn make_invocation<'a>(
             if let ConstantInfo::Class(cl) = gc.get_constant(mr.class_index) {
                 if let ConstantInfo::NameAndType(nt) = gc.get_constant(mr.name_and_type_index) {
                     return GeneralResult::Ok((
-                        gc.get_string(cl.name_index).ok_or("bad class name")?,
-                        gc.get_string(nt.name_index).ok_or("bad method name")?,
+                        gc.get_string(cl.name_index).ok_or(anyhow::anyhow!("bad class name"))?,
+                        gc.get_string(nt.name_index).ok_or(anyhow::anyhow!("bad method name"))?,
                         gc.get_string(nt.descriptor_index)
-                            .ok_or("bad method descriptor")?,
+                            .ok_or(anyhow::anyhow!("bad method descriptor"))?,
                     ));
                 }
             }
         }
 
-        Err("error during constant pool lookup".into())
+        Err(anyhow::anyhow!("error during constant pool lookup"))
     };
 
     let (class, method, descriptor) = get_method_parts()?;
@@ -874,7 +873,7 @@ fn make_invocation<'a>(
 
                 make_invocation_virtual(sm, &descriptor, gc.contextualize(mr))
             } else {
-                Err("bad constant kind".into())
+                Err(anyhow::anyhow!("bad constant kind"))
             }
         },
         _ => unimplemented!("unhandled invocation kind {:?}", kind),
@@ -917,7 +916,7 @@ fn make_allocation<'a>(
                             v.push(tenyr_insn!( top <- top + top )?);
                             Ok(v)
                         },
-                        _ => Err("impossible size"),
+                        _ => Err(anyhow::anyhow!("impossible size")),
                     }?;
                     let descriptor = "(I)Ljava.lang.Object;";
                     let name = make_builtin_name("alloc", descriptor);
@@ -926,18 +925,20 @@ fn make_allocation<'a>(
                     Ok(pre)
                 },
                 (Indirect(_index), _) => unimplemented!(),
-                _ => Err("invalid allocation configuration".into()),
+                _ => Err(anyhow::anyhow!("invalid allocation configuration")),
             }
         },
         AllocationKind::Element { index } => {
             let class = gc.get_constant(index);
             if let ConstantInfo::Class(cc) = class {
-                let name = gc.get_string(cc.name_index).ok_or("no class name")?;
+                let name = gc
+                    .get_string(cc.name_index)
+                    .ok_or(anyhow::anyhow!("no class name"))?;
                 let desc = format!("()L{name};");
                 let call = mangle(&[&name, &"new"]);
                 make_call(sm, &call, &desc)
             } else {
-                Err("invalid ConstantInfo kind".into())
+                Err(anyhow::anyhow!("invalid ConstantInfo kind"))
             }
         },
     }
@@ -1057,10 +1058,10 @@ fn make_varaction<'a>(
                 NameAndType(nt) => gc
                     .get_string(nt.descriptor_index)
                     .and_then(|x| x.chars().next())
-                    .ok_or("bad descriptor")
+                    .ok_or(anyhow::anyhow!("bad descriptor"))
                     .and_then(JType::try_from)
                     .map_err(Into::into),
-                _ => GeneralResult::Err("unexpected kind".into()),
+                _ => GeneralResult::Err(anyhow::anyhow!("unexpected kind")),
             };
 
             r?.size()
@@ -1118,7 +1119,7 @@ fn make_varaction<'a>(
 
         Ok(insns)
     } else {
-        Err("invalid ConstantInfo kind".into())
+        Err(anyhow::anyhow!("invalid ConstantInfo kind"))
     }
 }
 
@@ -1239,7 +1240,7 @@ fn derive_ranges<'a>(
 fn get_method_code(method : &MethodInfo) -> GeneralResult<CodeAttribute> {
     use classfile_parser::attribute_info::code_attribute_parser;
     Ok(code_attribute_parser(&method.attributes[0].info)
-        .or(Err("error while parsing code attribute"))?
+        .or(Err(anyhow::anyhow!("error while parsing code attribute")))?
         .1)
 }
 
@@ -1317,7 +1318,7 @@ mod util {
                 classfile_parser::constant_info::ConstantInfo::Class(cl) => {
                     Ok(self.contextualize(cl))
                 },
-                _ => Err("not a class".into()),
+                _ => Err(anyhow::anyhow!("not a class")),
             }
         }
 
@@ -1407,7 +1408,7 @@ fn get_ranges_for_method(
 
     let attribute_namer = |a : &AttributeInfo| match method.get_constant(a.attribute_name_index) {
         Utf8(u) => Ok((a.info.clone(), &u.utf8_string)),
-        _ => Err("not a name"),
+        _ => Err(anyhow::anyhow!("not a name")),
     };
 
     let code = get_method_code(method.as_ref())?;
@@ -1416,14 +1417,17 @@ fn get_ranges_for_method(
         .into_iter()
         .find(|(_, name)| name == &"StackMapTable")
         .map(|t| t.0);
-    let (_, vec) = code_parser(&code.code).or(Err("error while parsing method code"))?;
-    let (max, _) = vec.last().ok_or("body unexpectedly empty")?;
+    let (_, vec) =
+        code_parser(&code.code).or(Err(anyhow::anyhow!("error while parsing method code")))?;
+    let (max, _) = vec
+        .last()
+        .ok_or(anyhow::anyhow!("body unexpectedly empty"))?;
     let max = max + 1; // convert address to an exclusive bound
     let ops = vec.into_iter().map(decode_insn).collect();
     match info {
         Some(info) => {
-            let (_, keep) =
-                stack_map_table_attribute_parser(&info).or(Err("error while parsing stack map"))?;
+            let (_, keep) = stack_map_table_attribute_parser(&info)
+                .or(Err(anyhow::anyhow!("error while parsing stack map")))?;
             Ok((derive_ranges(max, &keep.entries), ops))
         },
         _ => Ok((vec![0..max], ops)),
@@ -1559,8 +1563,8 @@ fn make_blocks_for_method<'a, 'b>(
 fn test_parse_classes() -> GeneralResult<()> {
     fn parse_class(path : &std::path::Path) -> GeneralResult<ClassFile> {
         let p = path.with_extension("");
-        let p = p.to_str().ok_or("bad path")?;
-        classfile_parser::parse_class(p).map_err(Into::into)
+        let p = p.to_str().ok_or(anyhow::anyhow!("bad path"))?;
+        classfile_parser::parse_class(p).map_err(anyhow::Error::msg)
     }
 
     fn test_stack_map_table(path : &std::path::Path) -> GeneralResult<()> {
@@ -1594,7 +1598,10 @@ fn test_parse_classes() -> GeneralResult<()> {
         let class = class?;
         if !class.path().metadata()?.is_dir() {
             let path = class.path();
-            let name = class.file_name().to_str().ok_or("no name")?;
+            let name = class
+                .file_name()
+                .to_str()
+                .ok_or(anyhow::anyhow!("no name"))?;
             eprintln!("Testing {} ({name}) ...", path.display());
             test_stack_map_table(path)?;
         }
@@ -1627,18 +1634,23 @@ impl Display for Method {
 mod args {
     use crate::JType;
 
-    pub fn field_size(ch : char) -> Result<u8, &'static str> {
-        JType::try_from(ch).map(JType::size)
-    }
+    use anyhow::Result;
 
-    fn count_internal(s : &str) -> Result<u8, String> {
-        fn eat(s : &str) -> Result<usize, String> {
-            let ch = s.chars().next().ok_or("string ended too soon")?;
+    pub fn field_size(ch : char) -> Result<u8> { JType::try_from(ch).map(JType::size) }
+
+    fn count_internal(s : &str) -> Result<u8> {
+        fn eat(s : &str) -> Result<usize> {
+            let ch = s
+                .chars()
+                .next()
+                .ok_or(anyhow::anyhow!("string ended too soon"))?;
             match ch {
                 'B' | 'C' | 'F' | 'I' | 'S' | 'Z' | 'D' | 'J' | 'V' => Ok(1),
-                'L' => Ok(1 + s.find(';').ok_or("string ended too soon")?),
+                'L' => Ok(1 + s
+                    .find(';')
+                    .ok_or(anyhow::anyhow!("string ended too soon"))?),
                 '[' => Ok(1 + eat(&s[1..])?),
-                _ => Err(format!("unexpected character {ch}")),
+                _ => anyhow::bail!(format!("unexpected character {ch}")),
             }
         }
 
@@ -1704,7 +1716,7 @@ fn translate_method<'a, 'b>(
     let total_locals = get_method_code(mr)?.max_locals;
     let descriptor = class
         .get_string(mr.descriptor_index)
-        .ok_or("method descriptor missing")?;
+        .ok_or(anyhow::anyhow!("method descriptor missing"))?;
     let num_returns = count_returns(&descriptor).into();
     // Pretend we have at least as many locals as we have return-slots, so we have somewhere to
     // store our results when we Yield.
@@ -1815,8 +1827,11 @@ fn write_field_list(
     let tuples = fields.iter().filter(selector).map(|f| {
         let s = class
             .get_string(f.descriptor_index)
-            .ok_or("missing descriptor")?;
-        let desc = s.chars().next().ok_or("empty descriptor")?;
+            .ok_or(anyhow::anyhow!("missing descriptor"))?;
+        let desc = s
+            .chars()
+            .next()
+            .ok_or(anyhow::anyhow!("empty descriptor"))?;
         let size = args::field_size(desc)?.into();
         let name = mangle(&[class, &class.contextualize(f), &suff]);
         Ok((size, f, name))
@@ -1843,7 +1858,9 @@ fn write_field_list(
 /// Emits tenyr assembly language corresponding to the given input class.
 pub fn translate_class(class : ClassFile, outfile : &mut dyn Write) -> GeneralResult<()> {
     if class.major_version < 50 {
-        return Err("need classfile version ≥50.0 for StackMapTable attributes".into());
+        return Err(anyhow::anyhow!(
+            "need classfile version ≥50.0 for StackMapTable attributes"
+        ));
     }
 
     let fields = &class.fields;
