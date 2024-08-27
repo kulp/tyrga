@@ -13,7 +13,7 @@ public class Builtin {
 
     public static int div(int a, int b) {
         if (b == 0)
-            return (1 << 32) - 1; // TODO handle how ?
+            return Integer.MAX_VALUE;
 
         // Optimizations
         if (b == 1)
