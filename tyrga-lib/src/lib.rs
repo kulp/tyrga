@@ -1430,6 +1430,7 @@ fn get_ranges_for_method(
                 .or(Err(anyhow::anyhow!("error while parsing stack map")))?;
             Ok((derive_ranges(max, &keep.entries), ops))
         },
+        #[allow(clippy::single_range_in_vec_init)]
         _ => Ok((vec![0..max], ops)),
     }
 }
