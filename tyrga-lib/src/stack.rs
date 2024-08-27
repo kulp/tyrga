@@ -266,12 +266,12 @@ mod test {
     struct NumRegs(u8);
 
     impl quickcheck::Arbitrary for NumRegs {
-        fn arbitrary<G : Gen>(g : &mut G) -> Self {
+        fn arbitrary(g : &mut Gen) -> Self {
             // to be useful, we need a stack pointer and a non-stack pointer
             let min = 2;
             // do not count A and P registers
             let max = 14;
-            NumRegs((g.next_u32() as u8) % (max - min) + min) // lossy cast is fine
+            NumRegs(u8::arbitrary(g) % (max - min) + min)
         }
     }
 

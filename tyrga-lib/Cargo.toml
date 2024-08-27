@@ -19,7 +19,7 @@ classfile-parser = "~0.3.4"
 mangling = "0.2"
 
 [dev-dependencies]
-quickcheck = "0.8"
+quickcheck = "1"
 walkdir = "2"
 
 [build-dependencies]
