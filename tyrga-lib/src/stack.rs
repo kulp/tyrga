@@ -203,8 +203,8 @@ impl Manager {
                 x : from,
                 ..crate::tenyr::NOOP_TYPE0
             };
-            let v = std::iter::empty()
-                .chain(to_actions)
+            let v = to_actions
+                .into_iter()
                 .chain(std::iter::once(insn))
                 .collect();
             (to, v)
@@ -224,8 +224,8 @@ impl Manager {
                 kind : Type3(offset.into()),
             };
 
-            let v = std::iter::empty()
-                .chain(to_actions)
+            let v = to_actions
+                .into_iter()
                 .chain(std::iter::once(insn))
                 .collect();
             (to, v)
