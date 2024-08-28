@@ -27,8 +27,10 @@ public class Builtin {
 
         // operate on negative numbers, because in two's-complement, those can
         // be larger in magnitude than positive numbers can
-        if (a > 0)
-            return -div(-a, b);
+        if (a > 0) {
+            int c = -div(-a, b);
+            return flip ? -c : c;
+        }
 
         int c = 0;
         for (; a <= b; a -= b)
