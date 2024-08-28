@@ -19,7 +19,7 @@ JAVA_SRC_DIRS += tyrga-lib/java-lib/tyrga
 vpath %.java  $(JAVA_SRC_DIRS)
 vpath %.class $(JAVA_SRC_DIRS)
 
-ALL_JAVA = $(foreach d,$(JAVA_SRC_DIRS),$(wildcard $d/*.java))
+ALL_JAVA = $(foreach d,$(JAVA_SRC_DIRS),$(filter-out %Test.java,$(wildcard $d/*.java)))
 
 classes: $(ALL_JAVA:%.java=%.class)
 
