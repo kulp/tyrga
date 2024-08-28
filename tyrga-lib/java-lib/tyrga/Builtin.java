@@ -20,9 +20,8 @@ public class Builtin {
             return a;
 
         boolean flip = false;
-        int c = 0;
         if (b > 0) {
-            flip = ! flip;
+            flip = !flip;
             b = -b;
         }
 
@@ -31,7 +30,8 @@ public class Builtin {
         if (a > 0)
             return -div(-a, b);
 
-        for ( ; a <= b; a -= b)
+        int c = 0;
+        for (; a <= b; a -= b)
             c++;
 
         return flip ? -c : c;
