@@ -31,8 +31,8 @@ public class BuiltinTest {
 
     @TestFactory
     public Stream<DynamicTest> test_div_int() {
-        int smallest = -(1 << 31);
-        int largest = (1 << 31) - 1;
+        int smallest = Integer.MIN_VALUE;
+        int largest = Integer.MAX_VALUE;
         int divisor = rng.nextInt(1, 100);
         Stream<Integer> fixed = Stream.of(smallest, smallest + 1, -100, -10, -3, -2, -1, 1, 2, 3, 10, 100, largest - 1,
                 largest);
@@ -48,8 +48,8 @@ public class BuiltinTest {
 
     @TestFactory
     public Stream<DynamicTest> test_rem_int() {
-        int smallest = -(1 << 31);
-        int largest = (1 << 31) - 1;
+        int smallest = Integer.MIN_VALUE;
+        int largest = Integer.MAX_VALUE;
         int divisor = rng.nextInt(1, 100);
         Stream<Integer> fixed = Stream.of(smallest, smallest + 1, -100, -10, -3, -2, -1, 1, 2, 3, 10, 100, largest - 1,
                 largest);
