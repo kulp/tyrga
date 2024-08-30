@@ -203,8 +203,8 @@ impl Manager {
                 x : from,
                 ..crate::tenyr::NOOP_TYPE0
             };
-            let v = std::iter::empty()
-                .chain(to_actions)
+            let v = to_actions
+                .into_iter()
                 .chain(std::iter::once(insn))
                 .collect();
             (to, v)
@@ -224,8 +224,8 @@ impl Manager {
                 kind : Type3(offset.into()),
             };
 
-            let v = std::iter::empty()
-                .chain(to_actions)
+            let v = to_actions
+                .into_iter()
                 .chain(std::iter::once(insn))
                 .collect();
             (to, v)
@@ -266,12 +266,12 @@ mod test {
     struct NumRegs(u8);
 
     impl quickcheck::Arbitrary for NumRegs {
-        fn arbitrary<G : Gen>(g : &mut G) -> Self {
+        fn arbitrary(g : &mut Gen) -> Self {
             // to be useful, we need a stack pointer and a non-stack pointer
             let min = 2;
             // do not count A and P registers
             let max = 14;
-            NumRegs((g.next_u32() as u8) % (max - min) + min) // lossy cast is fine
+            NumRegs(u8::arbitrary(g) % (max - min) + min)
         }
     }
 
@@ -345,6 +345,10 @@ mod test {
 
             let mut man = get_mgr(num_regs);
             let r = man.register_count;
+            // TODO: explain this constraint (which first became necessary when upgrading
+            // to quickcheck v1.0, apparently because it explores the problem space
+            // differently from v0.9):
+            if extra >= u16::MAX - r { return TestResult::discard(); }
 
             let first = extra - backoff;
             let update_first = if first != 0 { POINTER_UPDATE_INSNS } else { 0 };

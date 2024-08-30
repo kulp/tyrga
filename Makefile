@@ -19,7 +19,7 @@ JAVA_SRC_DIRS += tyrga-lib/java-lib/tyrga
 vpath %.java  $(JAVA_SRC_DIRS)
 vpath %.class $(JAVA_SRC_DIRS)
 
-ALL_JAVA = $(foreach d,$(JAVA_SRC_DIRS),$(wildcard $d/*.java))
+ALL_JAVA = $(foreach d,$(JAVA_SRC_DIRS),$(filter-out %Test.java,$(wildcard $d/*.java)))
 
 classes: $(ALL_JAVA:%.java=%.class)
 
@@ -60,3 +60,21 @@ LIB_to += $(BUILTIN_java:.java=.to)
 	$(TAS) -o $@ $<
 
 test/Native.texe: test/Native_support.to
+
+JUNIT_JAR_URL = https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.11.0/junit-platform-console-standalone-1.11.0.jar
+JUNIT_JAR = test-lib/$(notdir $(JUNIT_JAR_URL))
+
+$(JUNIT_JAR):
+	mkdir -p $(@D)
+	wget -O $@ $(JUNIT_JAR_URL)
+
+.PHONY: check
+check: check_java
+
+.PHONY: check_java
+check_java: check_Builtin
+
+.PHONY: check_Builtin
+check_Builtin: check_%: %.java %Test.java $(JUNIT_JAR)
+	javac -d $@ --class-path $(JUNIT_JAR) $(filter %.java,$^)
+	java -jar $(JUNIT_JAR) execute --class-path $@ --select-class tyrga.$*Test
