@@ -24,8 +24,10 @@ jobs:
         java-version: '17'
     - name: Build
       run: cargo build --verbose
-    - name: Run tests
+    - name: Run Rust tests
       run: cargo test --verbose
+    - name: Run Java tests
+      run: make check_java
 
   coverage:
 
