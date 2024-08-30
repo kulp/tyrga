@@ -28,6 +28,9 @@ jobs:
       run: cargo test --verbose
     - name: Run Java tests
       run: make check_java
+      # We do not have Make set up on Windows, and for now we use Make to run
+      # the Java tests:
+      if: ${{ !startsWith(matrix.os, 'windows') }}
 
   coverage:
 
